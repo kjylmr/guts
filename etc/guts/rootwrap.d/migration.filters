@@ -1,0 +1,6 @@
+# guts-rootwrap command filters for migration nodes
+# This file should be owned by (and only-writeable by) the root user
+
+[Filters]
+# guts/migration/driver.py: 'dd', 'if=%s' % srcstr, 'of=%s' % deststr,...
+dd: CommandFilter, dd, root
