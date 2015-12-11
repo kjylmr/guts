@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = guts
+omit = guts/tests/*,guts/openstack/common/*
+
+[report]
+ignore_errors = True

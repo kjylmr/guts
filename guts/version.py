@@ -13,7 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from pbr import version as pbr_version
 
-def register_all():
-    # TODO(Bharat): Need to add resource objects.
-    pass
+GUTS_VENDOR = "OpenStack Foundation"
+GUTS_PRODUCT = "Migration as a Service"
+GUTS_PACKAGE = None  # OS distro package version suffix
+
+loaded = False
+version_info = pbr_version.VersionInfo('guts')
+version_string = version_info.version_string

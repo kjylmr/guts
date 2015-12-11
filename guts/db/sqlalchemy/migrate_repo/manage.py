@@ -13,7 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
 
-def register_all():
-    # TODO(Bharat): Need to add resource objects.
-    pass
+from guts.db.sqlalchemy import migrate_repo
+
+from migrate.versioning.shell import main
+
+
+if __name__ == '__main__':
+    main(debug='False',
+         repository=os.path.abspath(os.path.dirname(migrate_repo.__file__)))

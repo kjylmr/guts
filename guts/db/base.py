@@ -13,27 +13,27 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Command-line flag library.
+"""Base class for classes that need modular database access."""
 
-Emulates gflags by wrapping cfg.ConfigOpts.
-
-The idea is to move fully to cfg eventually, and this wrapper is a
-stepping stone.
-
-"""
 
 from oslo_config import cfg
-from oslo_log import log as logging
+from oslo_utils import importutils
 
+
+db_driver_opt = cfg.StrOpt('db_driver',
+                           default='guts.db',
+                           help='Driver to use for database access')
 
 CONF = cfg.CONF
-logging.register_options(CONF)
+CONF.register_opt(db_driver_opt)
 
-global_opts = [
-    cfg.StrOpt('rootwrap_config',
-               default='/etc/guts/rootwrap.conf',
-               help='Path to the rootwrap configuration file to use for '
-                    'running commands as root'),
-]
 
-CONF.register_opts(global_opts)
+class Base(object):
+    """DB driver is injected in the init method."""
+
+    def __init__(self, db_driver=None):
+        super(Base, self).__init__()
+        if not db_driver:
+            db_driver = CONF.db_driver
+        self.db = importutils.import_module(db_driver)  # pylint: disable=C0103
+        self.db.dispose_engine()

@@ -13,7 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+"""
+DB abstraction for Guts
+"""
 
-def register_all():
-    # TODO(Bharat): Need to add resource objects.
-    pass
+from guts.db.api import *  # noqa
