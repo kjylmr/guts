@@ -51,3 +51,12 @@ def dispose_engine():
         return IMPL.dispose_engine()
     else:
         return
+
+
+def purge_deleted_rows(context, age_in_days):
+    """Purge deleted rows older than given age from guts tables
+
+    Raises InvalidParameterValue if age_in_days is incorrect.
+    :returns: number of deleted rows
+    """
+    return IMPL.purge_deleted_rows(context, age_in_days=age_in_days)

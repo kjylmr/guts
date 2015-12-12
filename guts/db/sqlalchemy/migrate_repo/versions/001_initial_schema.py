@@ -59,11 +59,31 @@ def define_tables(meta):
         Column('name', String(length=255)),
         Column('deleted', Boolean),
         Column('description', String(255)),
-        Column('no_of_disks', Integer),
-        Column('migrated', Boolean),
         Column('source_hypervisor_id',
                Integer, ForeignKey('source_hypervisors.id'),
                nullable=False),
+        mysql_engine='InnoDB',
+        mysql_charset='utf8'
+    )
+
+    source_instance_disk_images = Table(
+        'source_instance_disk_images', meta,
+        Column('created_at', DateTime),
+        Column('updated_at', DateTime),
+        Column('deleted_at', DateTime),
+        Column('id', Integer, primary_key=True, nullable=False),
+        Column('name', String(length=255)),
+        Column('deleted', Boolean),
+        Column('source_instance_id',
+               Integer, ForeignKey('source_hypervisor_instances.id'),
+               nullable=False),
+        Column('disk_type', String(length=255)),
+        Column('operating_system', String(length=255)),
+        Column('disk_size', Integer),
+        Column('bootable', Boolean),
+        Column('migration_status', String(length=255)),
+        Column('description', String(255)),
+        Column('extra_specs', String(255)),
         mysql_engine='InnoDB',
         mysql_charset='utf8'
     )
@@ -92,6 +112,7 @@ def define_tables(meta):
     return [source_hypervisor_types,
             source_hypervisors,
             source_hypervisor_instances,
+            source_instance_disk_images,
             migrations]
 
 
@@ -110,6 +131,7 @@ def upgrade(migrate_engine):
         tables = ["source_hypervisor_types",
                   "source_hypervisors",
                   "source_hypervisor_instances",
+                  "source_instance_disk_images",
                   "migrations"]
 
         migrate_engine.execute("SET foreign_key_checks = 0")
