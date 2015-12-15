@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright (c) 2015 Aptira Pty Ltd.
 # All Rights Reserved.
 #
@@ -14,41 +13,26 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Starter script for Guts OS API."""
+"""Contrib contains extensions that are shipped with guts.
 
-import eventlet
-eventlet.monkey_patch()
+It can't be called 'extensions' because that causes namespacing problems.
 
-import sys
-
-from guts import objects
+"""
 
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from guts import i18n
-i18n.enable_lazy()
-
-# Need to register global_opts
-from guts.common import config  # noqa
-from guts import rpc
-from guts import service
-from guts import utils
-from guts import version
+from guts.api import extensions
 
 
 CONF = cfg.CONF
+LOG = logging.getLogger(__name__)
 
 
-def main():
-    objects.register_all()
-    CONF(sys.argv[1:], project='guts',
-         version=version.version_string())
-    logging.setup(CONF, "guts")
-    utils.monkey_patch()
+def standard_extensions(ext_mgr):
+    extensions.load_standard_extensions(ext_mgr, LOG, __path__, __package__)
 
-    rpc.init(CONF)
-    launcher = service.process_launcher()
-    server = service.WSGIService('osapi_migration')
-    launcher.launch_service(server, workers=server.workers)
-    launcher.wait()
+
+def select_extensions(ext_mgr):
+    extensions.load_standard_extensions(ext_mgr, LOG, __path__, __package__,
+                                        CONF.osapi_guts_ext_list)

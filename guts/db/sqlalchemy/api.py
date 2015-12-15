@@ -20,13 +20,18 @@ import functools
 import sys
 import threading
 import time
+import uuid
 
 from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_db import options
 from oslo_db.sqlalchemy import session as db_session
 from oslo_log import log as logging
+from oslo_utils import timeutils
+from sqlalchemy.orm import joinedload
+from sqlalchemy.sql.expression import literal_column
 
+from guts.db.sqlalchemy import models
 from guts import exception
 from guts.i18n import _
 from guts.i18n import _LW
@@ -50,14 +55,6 @@ def _create_facade_lazily():
                 CONF.database.connection,
                 **dict(CONF.database)
             )
-
-            # TODO(Bharat): Enabled profiler feature later
-            # CONF.import_group("profiler", "guts.service")
-            # if CONF.profiler.profiler_enabled:
-            #     if CONF.profiler.trace_sqlalchemy:
-            #         osprofiler.sqlalchemy.add_tracing(sqlalchemy,
-            #                                           _FACADE.get_engine(),
-            #                                           "db")
 
         return _FACADE
 
@@ -201,3 +198,420 @@ def model_query(context, *args, **kwargs):
         query = query.filter_by(project_id=context.project_id)
 
     return query
+
+
+def _source_type_get_query(context, session=None, read_deleted=None,
+                           expected_fields=None):
+    expected_fields = expected_fields or []
+    query = model_query(context,
+                        models.SourceTypes,
+                        session=session,
+                        read_deleted=read_deleted)
+
+    if 'projects' in expected_fields:
+        query = query.options(joinedload('projects'))
+
+    return query
+
+
+@require_context
+def source_type_get_all(context, inactive=False):
+    """Returns a source hypervisor types with name as key."""
+    read_deleted = "yes" if inactive else "no"
+    query = _source_type_get_query(context, read_deleted=read_deleted)
+
+    rows = query.order_by("name").all()
+
+    result = {}
+    for row in rows:
+        result[row['name']] = row
+
+    return result
+
+
+@require_context
+def _source_type_get(context, id, session=None):
+    result = _source_type_get_query(
+        context, session).\
+        filter_by(id=id).\
+        first()
+
+    if not result:
+        raise exception.SourceTypeNotFound(source_type_id=id)
+
+    return result
+
+
+@require_context
+def source_type_get(context, id, session=None):
+    """Return a dict describing specific source type."""
+    return _source_type_get(context, id,
+                            session)
+
+
+@require_context
+def _source_type_get_by_name(context, name, session=None):
+    result = model_query(context, models.SourceTypes, session=session).\
+        filter_by(name=name).\
+        first()
+
+    if not result:
+        raise exception.SourceTypeNotFoundByName(source_type_name=name)
+
+    return result
+
+
+@require_admin_context
+def source_type_create(context, values, projects=None):
+    """Create a new source type."""
+    if not values.get('id'):
+        values['id'] = str(uuid.uuid4())
+
+    session = get_session()
+
+    with session.begin():
+        try:
+            _source_type_get_by_name(context, values['name'], session)
+            raise exception.SourceTypeExists(id=values['name'])
+        except exception.SourceTypeNotFoundByName:
+            pass
+        try:
+            _source_type_get(context, values['id'], session)
+            raise exception.SourceTypeExists(id=values['id'])
+        except exception.SourceTypeNotFound:
+            pass
+
+        try:
+            source_type_ref = models.SourceTypes()
+            source_type_ref.update(values)
+            session.add(source_type_ref)
+        except Exception as e:
+            raise db_exc.DBError(e)
+
+        return source_type_ref
+
+
+@require_context
+def source_type_get_by_name(context, name):
+    """Return a dict describing specific source_type."""
+
+    return _source_type_get_by_name(context, name)
+
+
+@require_admin_context
+def source_type_delete(context, type_id):
+    session = get_session()
+    with session.begin():
+        stype = source_type_get(context, type_id,
+                                session)
+        if not stype:
+            raise exception.SourceTypeNotFound(
+                type_id=type_id)
+        stype.update({'deleted': True,
+                      'deleted_at': timeutils.utcnow(),
+                      'updated_at': literal_column('updated_at')})
+
+
+# Sources
+
+def _source_get_query(context, session=None, read_deleted=None,
+                      expected_fields=None):
+    expected_fields = expected_fields or []
+    query = model_query(context,
+                        models.Sources,
+                        session=session,
+                        read_deleted=read_deleted)
+
+    if 'projects' in expected_fields:
+        query = query.options(joinedload('projects'))
+
+    return query
+
+
+@require_context
+def source_get_all(context, inactive=False):
+    """Returns a all source hypervisor with name as key."""
+    read_deleted = "yes" if inactive else "no"
+    query = _source_get_query(context, read_deleted=read_deleted)
+
+    rows = query.order_by("name").all()
+
+    result = {}
+    for row in rows:
+        result[row['name']] = row
+
+    return result
+
+
+@require_context
+def _source_get(context, id, session=None):
+    result = _source_get_query(
+        context, session).\
+        filter_by(id=id).\
+        first()
+
+    if not result:
+        raise exception.SourceNotFound(source_id=id)
+
+    return result
+
+
+@require_context
+def source_get(context, id, session=None):
+    """Return a dict describing specific source."""
+    return _source_get(context, id, session)
+
+
+@require_context
+def _source_get_by_name(context, name, session=None):
+    result = model_query(context, models.Sources, session=session).\
+        filter_by(name=name).\
+        first()
+
+    if not result:
+        raise exception.SourceNotFoundByName(source_name=name)
+
+    return result
+
+
+@require_admin_context
+def source_create(context, values, projects=None):
+    """Create a new source."""
+    if not values.get('id'):
+        values['id'] = str(uuid.uuid4())
+
+    session = get_session()
+
+    with session.begin():
+        try:
+            _source_get_by_name(context, values['name'], session)
+            raise exception.SourceExists(id=values['name'])
+        except exception.SourceNotFoundByName:
+            pass
+        try:
+            _source_get(context, values['id'], session)
+            raise exception.SourceExists(id=values['id'])
+        except exception.SourceNotFound:
+            pass
+
+        try:
+            source_ref = models.Sources()
+            source_ref.update(values)
+            session.add(source_ref)
+        except Exception as e:
+            raise db_exc.DBError(e)
+
+        return source_ref
+
+
+@require_context
+def source_get_by_name(context, name):
+    """Return a dict describing specific source."""
+
+    return _source_get_by_name(context, name)
+
+
+@require_admin_context
+def source_delete(context, source_id):
+    session = get_session()
+    with session.begin():
+        source = source_get(context, source_id,
+                            session)
+        if not source:
+            raise exception.SourceNotFound(
+                source_id=source_id)
+        source.update({'deleted': True,
+                       'deleted_at': timeutils.utcnow(),
+                       'updated_at': literal_column('updated_at')})
+
+
+# VMs
+
+def _vm_get_query(context, session=None, read_deleted=None,
+                  expected_fields=None):
+    expected_fields = expected_fields or []
+    query = model_query(context,
+                        models.VMs,
+                        session=session,
+                        read_deleted=read_deleted)
+
+    if 'projects' in expected_fields:
+        query = query.options(joinedload('projects'))
+
+    return query
+
+
+@require_context
+def vm_get_all(context, inactive=False):
+    """Returns a dict describing all source vm with name as key."""
+    read_deleted = "yes" if inactive else "no"
+    query = _vm_get_query(context, read_deleted=read_deleted)
+
+    rows = query.order_by("name").all()
+
+    result = {}
+    for row in rows:
+        result[row['name']] = row
+
+    return result
+
+
+@require_context
+def _vm_get(context, id, session=None):
+    result = _vm_get_query(
+        context, session).\
+        filter_by(id=id).\
+        first()
+
+    if not result:
+        raise exception.VMNotFound(vm_id=id)
+
+    return result
+
+
+@require_context
+def vm_get(context, id, session=None):
+    """Return a dict describing specific source vm."""
+    return _vm_get(context, id,
+                   session)
+
+
+@require_context
+def _vm_get_by_name(context, name, session=None):
+    result = model_query(context, models.VMs, session=session).\
+        filter_by(name=name).\
+        first()
+
+    if not result:
+        raise exception.VMNotFoundByName(vm_name=name)
+
+    return result
+
+
+@require_context
+def vm_get_by_name(context, name):
+    """Return a dict describing specific source vm."""
+
+    return _vm_get_by_name(context, name)
+
+
+@require_admin_context
+def vm_delete(context, vm_id):
+    session = get_session()
+    with session.begin():
+        vm = vm_get(context, vm_id,
+                    session)
+        if not vm:
+            raise exception.VMNotFound(
+                vm_id=vm_id)
+        vm.update({'deleted': True,
+                   'deleted_at': timeutils.utcnow(),
+                   'updated_at': literal_column('updated_at')})
+
+# Migrations
+
+
+def _migration_get_query(context, session=None, read_deleted=None,
+                         expected_fields=None):
+    expected_fields = expected_fields or []
+    query = model_query(context,
+                        models.Migrations,
+                        session=session,
+                        read_deleted=read_deleted)
+
+    if 'projects' in expected_fields:
+        query = query.options(joinedload('projects'))
+
+    return query
+
+
+@require_context
+def migration_get_all(context, inactive=False):
+    read_deleted = "yes" if inactive else "no"
+    query = _migration_get_query(context, read_deleted=read_deleted)
+
+    rows = query.order_by("name").all()
+
+    result = {}
+    for row in rows:
+        result[row['id']] = row
+
+    return result
+
+
+@require_context
+def _migration_get(context, id, session=None):
+    result = _migration_get_query(
+        context, session).\
+        filter_by(id=id).\
+        first()
+
+    if not result:
+        raise exception.MigrationNotFound(migration_id=id)
+
+    return result
+
+
+@require_context
+def migration_get(context, id, session=None):
+    return _migration_get(context, id, session)
+
+
+@require_context
+def _migration_get_by_name(context, name, session=None):
+    result = model_query(context, models.Migrations, session=session).\
+        filter_by(name=name).\
+        first()
+
+    if not result:
+        raise exception.MigrationNotFoundByName(migration_name=name)
+    return result
+
+
+@require_context
+def migration_get_by_name(context, name):
+    return _migration_get_by_name(context, name)
+
+
+@require_admin_context
+def migration_delete(context, migration_id):
+    session = get_session()
+    with session.begin():
+        migration = migration_get(context, migration_id,
+                                  session)
+        if not migration:
+            raise exception.MigrationNotFound(
+                migration_id=migration_id)
+        migration.update({'deleted': True,
+                          'deleted_at': timeutils.utcnow(),
+                          'updated_at': literal_column('updated_at')})
+
+
+@require_admin_context
+def migration_create(context, values, projects=None):
+    """Create a new migration."""
+    if not values.get('id'):
+        values['id'] = str(uuid.uuid4())
+
+    session = get_session()
+
+    with session.begin():
+        try:
+            _migration_get_by_name(context, values['name'], session)
+            raise exception.MigrationExists(id=values['name'])
+        except exception.MigrationNotFoundByName:
+            pass
+        try:
+            _migration_get(context, values['id'], session)
+            raise exception.MigrationExists(id=values['id'])
+        except exception.MigrationNotFound:
+            pass
+
+        try:
+            migration_ref = models.Migrations()
+            migration_ref.update(values)
+            session.add(migration_ref)
+        except Exception as e:
+            raise db_exc.DBError(e)
+
+        return migration_ref

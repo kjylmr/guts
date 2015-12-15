@@ -57,6 +57,142 @@ def purge_deleted_rows(context, age_in_days):
     """Purge deleted rows older than given age from guts tables
 
     Raises InvalidParameterValue if age_in_days is incorrect.
+
     :returns: number of deleted rows
     """
     return IMPL.purge_deleted_rows(context, age_in_days=age_in_days)
+
+
+# Source Types
+
+def source_type_get_all(context, inactive=False):
+    """Get all source hypervisor types.
+
+    :param context: context to query under
+    :param inactive: Include inactive source types to the result set
+
+    :returns: list of source hypervisor types
+    """
+    return IMPL.source_type_get_all(context, inactive)
+
+
+def source_type_get(context, id):
+    """Get source hypervisor type by ID.
+
+    :param context: context to query under
+    :param id: Source type id to get.
+
+    :returns: source hypervisor type
+    """
+    return IMPL.source_type_get(context, id)
+
+
+def source_type_create(context, values):
+    """Create a new source type."""
+    return IMPL.source_type_create(context, values)
+
+
+def source_type_get_by_name(context, name):
+    """Get source type by name."""
+    return IMPL.source_type_get_by_name(context, name)
+
+
+def source_type_delete(context, type_id):
+    """Deletes the given source type."""
+    return IMPL.source_type_delete(context, type_id)
+
+
+# Sources
+
+def source_get_all(context, inactive=False):
+    """Get all source hypervisors.
+
+    :param context: context to query under
+    :param inactive: Include inactive sources to the result set
+
+    :returns: list of source hypervisors
+    """
+    return IMPL.source_get_all(context, inactive)
+
+
+def source_get(context, id):
+    """Get source hypervisor by ID.
+
+    :param context: context to query under
+    :param id: Source id to get.
+
+    :returns: source hypervisor
+    """
+    return IMPL.source_get(context, id)
+
+
+def source_create(context, values):
+    """Create a new source."""
+    return IMPL.source_create(context, values)
+
+
+def source_get_by_name(context, name):
+    """Get source by name."""
+    return IMPL.source_get_by_name(context, name)
+
+
+def source_delete(context, source_id):
+    """Deletes the given source."""
+    return IMPL.source_delete(context, source_id)
+
+
+# VMs
+
+def vm_get_all(context, inactive=False):
+    """Get all source vms.
+
+    :param context: context to query under
+    :param inactive: Include inactive sources to the result set
+
+    :returns: list of source vms
+    """
+    return IMPL.vm_get_all(context, inactive)
+
+
+def vm_get(context, id):
+    """Get source vm by ID.
+
+    :param context: context to query under
+    :param id: Source VM id to get.
+
+    :returns: source vm
+    """
+    return IMPL.vm_get(context, id)
+
+
+def vm_delete(context, vm_id):
+    """Deletes the given source vm."""
+    return IMPL.vm_delete(context, vm_id)
+
+
+# Migrations
+
+
+def migration_get_all(context, inactive=False):
+    """Get all migrations."""
+    return IMPL.migration_get_all(context, inactive)
+
+
+def migration_get(context, id):
+    """Get Migration."""
+    return IMPL.migration_get(context, id)
+
+
+def migration_delete(context, migration_id):
+    """Deletes the given migration."""
+    return IMPL.migration_delete(context, migration_id)
+
+
+def migration_create(context, values):
+    """Create a new migration."""
+    return IMPL.migration_create(context, values)
+
+
+def migration_get_by_name(context, name):
+    """Migration get by name"""
+    return IMPL.migration_get_by_name(context, name)

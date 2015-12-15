@@ -18,31 +18,31 @@ from sqlalchemy import Integer, MetaData, String, Table
 
 
 def define_tables(meta):
-    source_hypervisor_types = Table(
-        'source_hypervisor_types', meta,
+    source_types = Table(
+        'source_types', meta,
         Column('created_at', DateTime),
         Column('updated_at', DateTime),
         Column('deleted_at', DateTime),
-        Column('id', Integer, primary_key=True, nullable=False),
+        Column('id', String(length=36), primary_key=True, nullable=False),
         Column('name', String(length=255)),
         Column('deleted', Boolean),
         Column('description', String(255)),
-        Column('extra_specs', String(255)),
+        Column('driver_class_path', String(255)),
         mysql_engine='InnoDB',
         mysql_charset='utf8'
     )
 
-    source_hypervisors = Table(
-        'source_hypervisors', meta,
+    sources = Table(
+        'sources', meta,
         Column('created_at', DateTime),
         Column('updated_at', DateTime),
         Column('deleted_at', DateTime),
-        Column('id', Integer, primary_key=True, nullable=False),
+        Column('id', String(length=36), primary_key=True, nullable=False),
         Column('name', String(length=255)),
         Column('deleted', Boolean),
         Column('description', String(255)),
-        Column('source_hypervisor_type_id',
-               Integer, ForeignKey('source_hypervisor_types.id'),
+        Column('source_type_id',
+               String(length=36), ForeignKey('source_types.id'),
                nullable=False),
         Column('connection_params', String(255)),
         Column('extra_specs', String(255)),
@@ -50,17 +50,17 @@ def define_tables(meta):
         mysql_charset='utf8'
     )
 
-    source_hypervisor_instances = Table(
-        'source_hypervisor_instances', meta,
+    source_instances = Table(
+        'source_instances', meta,
         Column('created_at', DateTime),
         Column('updated_at', DateTime),
         Column('deleted_at', DateTime),
-        Column('id', Integer, primary_key=True, nullable=False),
+        Column('id', String(length=36), primary_key=True, nullable=False),
         Column('name', String(length=255)),
         Column('deleted', Boolean),
         Column('description', String(255)),
-        Column('source_hypervisor_id',
-               Integer, ForeignKey('source_hypervisors.id'),
+        Column('source_id',
+               String(length=36), ForeignKey('sources.id'),
                nullable=False),
         mysql_engine='InnoDB',
         mysql_charset='utf8'
@@ -71,11 +71,11 @@ def define_tables(meta):
         Column('created_at', DateTime),
         Column('updated_at', DateTime),
         Column('deleted_at', DateTime),
-        Column('id', Integer, primary_key=True, nullable=False),
+        Column('id', String(length=36), primary_key=True, nullable=False),
         Column('name', String(length=255)),
         Column('deleted', Boolean),
         Column('source_instance_id',
-               Integer, ForeignKey('source_hypervisor_instances.id'),
+               String(length=36), ForeignKey('source_instances.id'),
                nullable=False),
         Column('disk_type', String(length=255)),
         Column('operating_system', String(length=255)),
@@ -93,7 +93,7 @@ def define_tables(meta):
         Column('created_at', DateTime),
         Column('updated_at', DateTime),
         Column('deleted_at', DateTime),
-        Column('id', Integer, primary_key=True, nullable=False),
+        Column('id', String(length=36), primary_key=True, nullable=False),
         Column('name', String(length=255)),
         Column('start_time', DateTime),
         Column('finish_time', DateTime),
@@ -103,17 +103,33 @@ def define_tables(meta):
         Column('description', String(255)),
         Column('deleted', Boolean),
         Column('source_instance_id',
-               Integer, ForeignKey('source_hypervisor_instances.id'),
+               String(length=36), ForeignKey('source_instances.id'),
                nullable=False),
         mysql_engine='InnoDB',
         mysql_charset='utf8'
     )
 
-    return [source_hypervisor_types,
-            source_hypervisors,
-            source_hypervisor_instances,
+    services = Table(
+        'services', meta,
+        Column('created_at', DateTime),
+        Column('updated_at', DateTime),
+        Column('deleted_at', DateTime),
+        Column('deleted', Boolean),
+        Column('id', String(length=36), primary_key=True, nullable=False),
+        Column('host', String(length=255)),
+        Column('binary', String(length=255)),
+        Column('topic', String(length=255)),
+        Column('report_count', Integer, nullable=False),
+        Column('disabled', Boolean),
+        mysql_engine='InnoDB'
+    )
+
+    return [source_types,
+            sources,
+            source_instances,
             source_instance_disk_images,
-            migrations]
+            migrations,
+            services]
 
 
 def upgrade(migrate_engine):
@@ -128,11 +144,12 @@ def upgrade(migrate_engine):
         table.create()
 
     if migrate_engine.name == "mysql":
-        tables = ["source_hypervisor_types",
-                  "source_hypervisors",
-                  "source_hypervisor_instances",
+        tables = ["source_types",
+                  "sources",
+                  "source_instances",
                   "source_instance_disk_images",
-                  "migrations"]
+                  "migrations",
+                  "services"]
 
         migrate_engine.execute("SET foreign_key_checks = 0")
         for table in tables:

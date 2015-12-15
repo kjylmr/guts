@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright (c) 2015 Aptira Pty Ltd.
 # All Rights Reserved.
 #
@@ -14,41 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Starter script for Guts OS API."""
-
-import eventlet
-eventlet.monkey_patch()
-
-import sys
-
-from guts import objects
-
 from oslo_config import cfg
 from oslo_log import log as logging
-
-from guts import i18n
-i18n.enable_lazy()
-
-# Need to register global_opts
-from guts.common import config  # noqa
-from guts import rpc
-from guts import service
-from guts import utils
-from guts import version
+import paste.urlmap
 
 
 CONF = cfg.CONF
+LOG = logging.getLogger(__name__)
 
 
-def main():
-    objects.register_all()
-    CONF(sys.argv[1:], project='guts',
-         version=version.version_string())
-    logging.setup(CONF, "guts")
-    utils.monkey_patch()
-
-    rpc.init(CONF)
-    launcher = service.process_launcher()
-    server = service.WSGIService('osapi_migration')
-    launcher.launch_service(server, workers=server.workers)
-    launcher.wait()
+def root_app_factory(loader, global_conf, **local_conf):
+    return paste.urlmap.urlmap_factory(loader, global_conf, **local_conf)

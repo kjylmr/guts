@@ -22,6 +22,8 @@ stepping stone.
 
 """
 
+import socket
+
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -29,11 +31,49 @@ from oslo_log import log as logging
 CONF = cfg.CONF
 logging.register_options(CONF)
 
+core_opts = [
+    cfg.StrOpt('api_paste_config',
+               default="api-paste.ini",
+               help='File name for the paste.deploy config for guts-api'),
+    cfg.StrOpt('state_path',
+               default='/var/lib/guts',
+               deprecated_name='pybasedir',
+               help="Top-level directory for maintaining guts's state"), ]
+
+debug_opts = [
+]
+
+CONF.register_cli_opts(core_opts)
+CONF.register_cli_opts(debug_opts)
+
 global_opts = [
+    cfg.StrOpt('host',
+               default=socket.gethostname(),
+               help='Name of this node.  This can be an opaque identifier. '
+                    'It is not necessarily a host name, FQDN, or IP address.'),
+    cfg.BoolOpt('monkey_patch',
+                default=False,
+                help='Enable monkey patching'),
+    cfg.ListOpt('monkey_patch_modules',
+                default=[],
+                help='List of modules/decorators to monkey patch'),
     cfg.StrOpt('rootwrap_config',
                default='/etc/guts/rootwrap.conf',
                help='Path to the rootwrap configuration file to use for '
                     'running commands as root'),
+    cfg.StrOpt('auth_strategy',
+               default='keystone',
+               choices=['noauth', 'keystone'],
+               help='The strategy to use for auth. Supports noauth or keystone.'),
+    cfg.BoolOpt('api_rate_limit',
+                default=True,
+                help='Enables or disables rate limit of the API.'),
+    cfg.MultiStrOpt('osapi_migration_extension',
+                    default=['guts.api.contrib.standard_extensions'],
+                    help='osapi migration extension to load'),
+    cfg.StrOpt('migration_api_class',
+               default='guts.migration.api.API',
+               help='The full class name of the migration API class to use'),
 ]
 
 CONF.register_opts(global_opts)
