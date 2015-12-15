@@ -51,7 +51,8 @@ def create(ctxt, name, driver, description=None):
     """Creates source types."""
     try:
         type_ref = db.source_type_create(ctxt,
-                                         dict(name=name, driver=driver,
+                                         dict(name=name,
+                                              driver_class_path=driver,
                                               description=description))
     except db_exc.DBError:
         LOG.exception(_LE('DB error:'))

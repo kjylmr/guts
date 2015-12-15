@@ -19,6 +19,7 @@ import six
 import webob
 
 from oslo_log import log as logging
+from oslo_utils import importutils
 
 from guts.api import extensions
 from guts.api.openstack import wsgi
@@ -31,6 +32,13 @@ from guts import utils
 LOG = logging.getLogger(__name__)
 
 authorize = extensions.extension_authorizer('migration', 'types_manage')
+
+
+def validate_type_driver(source_type_driver):
+    try:
+        importutils.import_module(source_type_driver)
+    except ImportError:
+        raise exception.SourceTypeDriverNotFound(type_driver=source_type_driver)
 
 
 class TypesController(wsgi.Controller):
@@ -92,9 +100,10 @@ class TypesController(wsgi.Controller):
         utils.check_string_length(name, 'Type name',
                                   min_length=1, max_length=255)
 
-        # TODO(Bharat): Verify source driver class path.
         utils.check_string_length(driver, 'Source Type driver',
                                   min_length=1, max_length=255)
+
+        validate_type_driver(driver)
 
         if description is not None:
             utils.check_string_length(description, 'Type description',

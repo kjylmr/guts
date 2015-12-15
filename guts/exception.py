@@ -199,3 +199,7 @@ class MigrationNotFoundByName(SourceNotFound):
 
 class MigrationExists(Duplicate):
     message = _("Migration %(id)s already exists.")
+
+
+class SourceTypeDriverNotFound(NotFound):
+    message = _("Source Type Driver %(type_driver)s could not be found.")
