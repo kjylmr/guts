@@ -165,6 +165,11 @@ def vm_get(context, id):
     return IMPL.vm_get(context, id)
 
 
+def vm_create(context, vm):
+    """Create a new vm."""
+    return IMPL.vm_create(context, vm)
+
+
 def vm_delete(context, vm_id):
     """Deletes the given source vm."""
     return IMPL.vm_delete(context, vm_id)

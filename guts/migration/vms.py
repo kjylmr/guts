@@ -65,6 +65,25 @@ def vm_delete(context, id):
     return db.vm_delete(context, id)
 
 
+def _create(ctxt, name, source_id, description=None):
+    """Creates source types."""
+    try:
+        type_ref = db.vm_create(ctxt,
+                                dict(name=name,
+                                     source_id=source_id,
+                                     description=description))
+    except db_exc.DBError:
+        LOG.exception(_LE('DB error:'))
+        raise exception.SourceTypeCreateFailed(name=name)
+
+    return type_ref
+
+
 def fetch_vms(context, source_id):
     """Fetch VMs from the source hypervisor."""
-    pass
+    # TODO(Alok): Fetch vms list and assign variable 'vms'
+    # Example: vms = [{"id": "1234"}, {"id": "5678"}]
+
+    vms = []
+    for vm in vms:
+        _create(context, vm['id'], source_id)

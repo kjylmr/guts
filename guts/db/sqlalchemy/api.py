@@ -495,6 +495,24 @@ def vm_get_by_name(context, name):
     return _vm_get_by_name(context, name)
 
 
+@require_context
+def vm_create(context, values):
+    if not values.get('id'):
+        values['id'] = str(uuid.uuid4())
+
+    session = get_session()
+
+    with session.begin():
+        try:
+            vm_ref = models.VMs()
+            vm_ref.update(values)
+            session.add(vm_ref)
+        except Exception as e:
+            raise db_exc.DBError(e)
+
+        return vm_ref
+
+
 @require_admin_context
 def vm_delete(context, vm_id):
     session = get_session()
