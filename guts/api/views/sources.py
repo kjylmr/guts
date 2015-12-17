@@ -15,21 +15,25 @@
 
 
 from guts.api import common
+from guts.migration import types
 
 
 class ViewBuilder(common.ViewBuilder):
 
-    def show(self, request, source, brief=False):
+    def show(self, request, context, source, brief=False):
         """Trim away extraneous source hypervisor attributes."""
         trimmed = dict(id=source.get('id'),
                        name=source.get('name'),
-                       type=source.get('source_type_id'),
                        connection_params=source.get('connection_params'),
                        description=source.get('description'))
+
+        source_type = types.get_source_type(context, source.source_type_id)
+        trimmed['source_type_name'] = source_type.get('name')
+
         return trimmed if brief else dict(source=trimmed)
 
-    def index(self, request, sources):
+    def index(self, request, context, sources):
         """Index over trimmed source hypervisors."""
-        source_list = [self.show(request, source, True)
+        source_list = [self.show(request, context, source, True)
                        for source in sources]
         return dict(sources=source_list)

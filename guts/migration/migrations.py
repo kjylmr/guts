@@ -47,8 +47,15 @@ def get_migration(ctxt, id):
 
     if ctxt is None:
         ctxt = context.get_admin_context()
-
     return db.migration_get(ctxt, id)
+
+
+def update_migration(ctxt, id, values):
+    """Updates migration DB entry"""
+    # Ex: values = {"migration_status": "INCOMPLETE",
+    #               "migration_event": "DOWNLOADING"}
+
+    db.migration_update(ctxt, id, values)
 
 
 def create(ctxt, name, source_instance_id, description=None):

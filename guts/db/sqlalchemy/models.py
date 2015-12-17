@@ -46,6 +46,15 @@ class GutsBase(models.TimestampMixin,
         self.save(session=session)
 
 
+class SourceTypes(BASE, GutsBase):
+    """Represent source hypervisor types."""
+    __tablename__ = "source_types"
+    id = Column(String(36), primary_key=True)
+    name = Column(String(255))
+    description = Column(String(255))
+    driver_class_path = Column(String(255))
+
+
 class Sources(BASE, GutsBase):
     """Represents a source hypervisor."""
     __tablename__ = 'sources'
@@ -56,15 +65,6 @@ class Sources(BASE, GutsBase):
     source_type_id = Column(String(36),
                             ForeignKey('source_types.id'),
                             nullable=False)
-
-
-class SourceTypes(BASE, GutsBase):
-    """Represent source hypervisor types."""
-    __tablename__ = "source_types"
-    id = Column(String(36), primary_key=True)
-    name = Column(String(255))
-    description = Column(String(255))
-    driver_class_path = Column(String(255))
 
 
 class VMs(BASE, GutsBase):

@@ -22,7 +22,7 @@ from oslo_log import log as logging
 from guts import context
 from guts import db
 from guts import exception
-from guts.i18n import _
+from guts.i18n import _, _LE
 
 
 CONF = cfg.CONF
@@ -72,7 +72,7 @@ def _create(ctxt, name, source_id, description=None):
                                 dict(name=name,
                                      source_id=source_id,
                                      description=description))
-    except db_exc.DBError:
+    except Exception:
         LOG.exception(_LE('DB error:'))
         raise exception.SourceTypeCreateFailed(name=name)
 

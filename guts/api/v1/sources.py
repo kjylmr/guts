@@ -56,7 +56,7 @@ class SourcesController(wsgi.Controller):
         hsources = sources.get_all_sources(context)
         hsources = list(hsources.values())
         req.cache_resource(hsources, name='sources')
-        return self._view_builder.index(req, hsources)
+        return self._view_builder.index(req, context, hsources)
 
     def show(self, req, id):
         """Returns data about given source hypervisor."""
@@ -67,7 +67,7 @@ class SourcesController(wsgi.Controller):
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
 
-        return self._view_builder.show(req, source)
+        return self._view_builder.show(req, context, source)
 
     def create(self, req, body):
         """Creates a new source hypervisor."""
@@ -121,7 +121,7 @@ class SourcesController(wsgi.Controller):
                 ctxt, 'source_.create', err, name=name)
             raise webob.exc.HTTPNotFound(explanation=err.msg)
 
-        return self._view_builder.show(req, source)
+        return self._view_builder.show(req, ctxt, source)
 
     def delete(self, req, id):
         """Delete given source."""

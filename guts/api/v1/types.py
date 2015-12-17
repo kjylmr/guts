@@ -38,7 +38,8 @@ def validate_type_driver(source_type_driver):
     try:
         importutils.import_module(source_type_driver)
     except ImportError:
-        raise exception.SourceTypeDriverNotFound(type_driver=source_type_driver)
+        raise exception.SourceTypeDriverNotFound(
+            type_driver=source_type_driver)
 
 
 class TypesController(wsgi.Controller):

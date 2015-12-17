@@ -31,6 +31,7 @@ from oslo_utils import timeutils
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.expression import literal_column
 
+
 from guts.db.sqlalchemy import models
 from guts import exception
 from guts.i18n import _
@@ -245,8 +246,7 @@ def _source_type_get(context, id, session=None):
 @require_context
 def source_type_get(context, id, session=None):
     """Return a dict describing specific source type."""
-    return _source_type_get(context, id,
-                            session)
+    return _source_type_get(context, id, session)
 
 
 @require_context
@@ -632,4 +632,13 @@ def migration_create(context, values, projects=None):
         except Exception as e:
             raise db_exc.DBError(e)
 
+        return migration_ref
+
+
+@require_admin_context
+def migration_update(context, migration_id, values):
+    session = get_session()
+    with session.begin():
+        migration_ref = _migration_get(context, migration_id, session=session)
+        migration_ref.update(values)
         return migration_ref

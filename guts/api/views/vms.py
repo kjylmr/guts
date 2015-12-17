@@ -15,19 +15,21 @@
 
 
 from guts.api import common
+from guts.migration import sources
 
 
 class ViewBuilder(common.ViewBuilder):
 
-    def show(self, request, vm, brief=False):
+    def show(self, request, context, vm, brief=False):
         """Trim away extraneous source vm attributes."""
         trimmed = dict(id=vm.get('id'),
                        name=vm.get('name'),
-                       source_id=vm.get('source_id'),
                        description=vm.get('description'))
+        src = sources.get_source(context, vm.get('source_id'))
+        trimmed['hypervisor_name'] = src.get('name')
         return trimmed if brief else dict(vm=trimmed)
 
-    def index(self, request, vms):
+    def index(self, request, context, vms):
         """Index over trimmed source vms."""
-        vm_list = [self.show(request, vm, True) for vm in vms]
+        vm_list = [self.show(request, context, vm, True) for vm in vms]
         return dict(vms=vm_list)

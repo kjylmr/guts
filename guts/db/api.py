@@ -201,3 +201,11 @@ def migration_create(context, values):
 def migration_get_by_name(context, name):
     """Migration get by name"""
     return IMPL.migration_get_by_name(context, name)
+
+
+def migration_update(context, migration_id, values):
+    """Set the given properties on an migration and update it.
+
+    Raises NotFound if migration does not exist.
+    """
+    return IMPL.migration_update(context, migration_id, values)

@@ -55,7 +55,7 @@ class VMsController(wsgi.Controller):
         svms = vms.get_all_vms(context)
         svms = list(svms.values())
         req.cache_resource(svms, name='vms')
-        return self._view_builder.index(req, svms)
+        return self._view_builder.index(req, context, svms)
 
     def show(self, req, id):
         """Returns data about given source vm."""
@@ -66,7 +66,7 @@ class VMsController(wsgi.Controller):
         except exception.NotFound:
             raise exc.HTTPNotFound()
 
-        return self._view_builder.show(req, vm)
+        return self._view_builder.show(req, context, vm)
 
     def delete(self, req, id):
         """Delete given vm."""
