@@ -24,6 +24,7 @@ from guts import context
 from guts import db
 from guts import exception
 from guts.i18n import _, _LE
+from guts.migration import rpcapi as migration_rpcapi
 
 
 CONF = cfg.CONF
@@ -69,6 +70,9 @@ def create(ctxt, name, source_instance_id, description=None):
     except db_exc.DBError:
         LOG.exception(_LE('DB error:'))
         raise exception.MigrationCreateFailed(name=name)
+
+    migration_api = migration_rpcapi.MigrationAPI()
+    migration_api.create_migration(ctxt, migration_ref)
 
     return migration_ref
 

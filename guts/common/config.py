@@ -54,6 +54,9 @@ global_opts = [
     cfg.BoolOpt('monkey_patch',
                 default=False,
                 help='Enable monkey patching'),
+    cfg.StrOpt('migration_topic',
+               default='guts-migration',
+               help='The topic that migration nodes listen on'),
     cfg.ListOpt('monkey_patch_modules',
                 default=[],
                 help='List of modules/decorators to monkey patch'),
@@ -74,6 +77,13 @@ global_opts = [
     cfg.StrOpt('migration_api_class',
                default='guts.migration.api.API',
                help='The full class name of the migration API class to use'),
+    cfg.StrOpt('migration_manager',
+               default='guts.migration.manager.MigrationManager',
+               help='Full class name for the Manager for migration'),
+    cfg.IntOpt('service_down_time',
+               default=60,
+               help='Maximum time since last check-in for a service to be '
+                    'considered up')
 ]
 
 CONF.register_opts(global_opts)

@@ -203,3 +203,7 @@ class MigrationExists(Duplicate):
 
 class SourceTypeDriverNotFound(NotFound):
     message = _("Source Type Driver %(type_driver)s could not be found.")
+
+
+class HostBinaryNotFound(NotFound):
+    message = _("Could not find binary %(binary)s on host %(host)s.")

@@ -38,7 +38,13 @@ from oslo_config import cfg
 from oslo_db import concurrency as db_concurrency
 
 
+db_opts = [
+    cfg.BoolOpt('enable_new_services',
+                default=True,
+                help='Services to be added to the available pool on create')]
+
 CONF = cfg.CONF
+CONF.register_opts(db_opts)
 
 _BACKEND_MAPPING = {'sqlalchemy': 'guts.db.sqlalchemy.api'}
 IMPL = db_concurrency.TpoolDbapiWrapper(CONF, _BACKEND_MAPPING)
@@ -209,3 +215,110 @@ def migration_update(context, migration_id, values):
     Raises NotFound if migration does not exist.
     """
     return IMPL.migration_update(context, migration_id, values)
+
+
+# Service
+
+def service_destroy(context, service_id):
+    """Destroy the service or raise if it does not exist."""
+    return IMPL.service_destroy(context, service_id)
+
+
+def service_get(context, service_id):
+    """Get a service or raise if it does not exist."""
+    return IMPL.service_get(context, service_id)
+
+
+def service_get_by_host_and_topic(context, host, topic):
+    """Get a service by host it's on and topic it listens to."""
+    return IMPL.service_get_by_host_and_topic(context, host, topic)
+
+
+def service_get_all(context, disabled=None):
+    """Get all services."""
+    return IMPL.service_get_all(context, disabled)
+
+
+def service_get_all_by_topic(context, topic, disabled=None):
+    """Get all services for a given topic."""
+    return IMPL.service_get_all_by_topic(context, topic, disabled=disabled)
+
+
+def service_get_by_args(context, host, binary):
+    """Get the state of an service by node name and binary."""
+    return IMPL.service_get_by_args(context, host, binary)
+
+
+def service_create(context, values):
+    """Create a service from the values dictionary."""
+    return IMPL.service_create(context, values)
+
+
+def service_update(context, service_id, values):
+    """Updates service entry
+
+    Set the given properties on an service and update it.
+    Raises NotFound if service does not exist.
+    """
+    return IMPL.service_update(context, service_id, values)
+
+
+# Extra
+
+
+def get_model_for_versioned_object(versioned_object):
+    return IMPL.get_model_for_versioned_object(versioned_object)
+
+
+def get_by_id(context, model, id, *args, **kwargs):
+    return IMPL.get_by_id(context, model, id, *args, **kwargs)
+
+
+class Condition(object):
+    """Class for normal condition values for conditional_update."""
+    def __init__(self, value, field=None):
+        self.value = value
+        # Field is optional and can be passed when getting the filter
+        self.field = field
+
+    def get_filter(self, model, field=None):
+        return IMPL.condition_db_filter(model, self._get_field(field),
+                                        self.value)
+
+    def _get_field(self, field=None):
+        # We must have a defined field on initialization or when called
+        field = field or self.field
+        if not field:
+            raise ValueError('Condition has no field.')
+        return field
+
+
+class Not(Condition):
+    """Class for negated condition values for conditional_update.
+
+    By default NULL values will be treated like Python treats None instead of
+    how SQL treats it.
+
+    So for example when values are (1, 2) it will evaluate to True when we have
+    value 3 or NULL, instead of only with 3 like SQL does.
+    """
+    def __init__(self, value, field=None, auto_none=True):
+        super(Not, self).__init__(value, field)
+        self.auto_none = auto_none
+
+    def get_filter(self, model, field=None):
+        # If implementation has a specific method use it
+        if hasattr(IMPL, 'condition_not_db_filter'):
+            return IMPL.condition_not_db_filter(model, self._get_field(field),
+                                                self.value, self.auto_none)
+
+        # Otherwise non negated object must adming ~ operator for not
+        return ~super(Not, self).get_filter(model, field)
+
+
+class Case(object):
+    """Class for conditional value selection for conditional_update."""
+    def __init__(self, whens, value=None, else_=None):
+        self.whens = whens
+        self.value = value
+        self.else_ = else_
