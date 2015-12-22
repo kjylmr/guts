@@ -197,12 +197,10 @@ class Service(service.Service):
                 CONF.set_override('service_down_time', new_down_time)
 
     def _create_service_ref(self, context):
-        zone = CONF.storage_availability_zone
         kwargs = {'host': self.host,
                   'binary': self.binary,
                   'topic': self.topic,
-                  'report_count': 0,
-                  'availability_zone': zone}
+                  'report_count': 0}
         service_ref = objects.Service(context=context, **kwargs)
         service_ref.create()
         self.service_id = service_ref.id
@@ -301,7 +299,6 @@ class Service(service.Service):
             return
 
         ctxt = context.get_admin_context()
-        zone = CONF.storage_availability_zone
         try:
             try:
                 service_ref = objects.Service.get_by_id(ctxt, self.service_id)
@@ -312,9 +309,6 @@ class Service(service.Service):
                 service_ref = objects.Service.get_by_id(ctxt, self.service_id)
 
             service_ref.report_count += 1
-            if zone != service_ref.availability_zone:
-                service_ref.availability_zone = zone
-
             service_ref.save()
 
             # TODO(termie): make this pattern be more elegant.

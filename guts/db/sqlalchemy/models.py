@@ -20,7 +20,7 @@ SQLAlchemy models for guts data.
 from oslo_config import cfg
 from oslo_db.sqlalchemy import models
 from oslo_utils import timeutils
-from sqlalchemy import Column, String
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import ForeignKey, DateTime, Boolean
 
@@ -88,3 +88,20 @@ class Migrations(BASE, GutsBase):
     source_instance_id = Column(String(36),
                                 ForeignKey('source_instances.id'),
                                 nullable=False)
+
+
+class Service(BASE, GutsBase):
+    """Represents a running service on a host."""
+    __tablename__ = 'services'
+    id = Column(Integer, primary_key=True)
+    host = Column(String(255))  # , ForeignKey('hosts.id'))
+    binary = Column(String(255))
+    topic = Column(String(255))
+    report_count = Column(Integer, nullable=False, default=0)
+    disabled = Column(Boolean, default=False)
+    disabled_reason = Column(String(255))
+    modified_at = Column(DateTime)
+    rpc_current_version = Column(String(36))
+    rpc_available_version = Column(String(36))
+    object_current_version = Column(String(36))
+    object_available_version = Column(String(36))

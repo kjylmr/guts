@@ -114,13 +114,19 @@ def define_tables(meta):
         Column('created_at', DateTime),
         Column('updated_at', DateTime),
         Column('deleted_at', DateTime),
+        Column('modified_at', DateTime),
         Column('deleted', Boolean),
-        Column('id', String(length=36), primary_key=True, nullable=False),
+        Column('id', Integer, primary_key=True, nullable=False),
         Column('host', String(length=255)),
         Column('binary', String(length=255)),
         Column('topic', String(length=255)),
         Column('report_count', Integer, nullable=False),
         Column('disabled', Boolean),
+        Column('disabled_reason', String(255)),
+        Column('rpc_current_version', String(36)),
+        Column('rpc_available_version', String(36)),
+        Column('object_current_version', String(36)),
+        Column('object_available_version', String(36)),
         mysql_engine='InnoDB'
     )
 

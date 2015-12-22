@@ -17,6 +17,7 @@
 
 
 import functools
+import re
 import sys
 import threading
 import time
@@ -642,3 +643,150 @@ def migration_update(context, migration_id, values):
         migration_ref = _migration_get(context, migration_id, session=session)
         migration_ref.update(values)
         return migration_ref
+
+
+# Service
+
+@require_admin_context
+def service_destroy(context, service_id):
+    session = get_session()
+    with session.begin():
+        service_ref = _service_get(context, service_id, session=session)
+        service_ref.delete(session=session)
+
+
+@require_admin_context
+def _service_get(context, service_id, session=None):
+    result = model_query(
+        context,
+        models.Service,
+        session=session).\
+        filter_by(id=service_id).\
+        first()
+    if not result:
+        raise exception.ServiceNotFound(service_id=service_id)
+
+    return result
+
+
+@require_admin_context
+def service_get(context, service_id):
+    return _service_get(context, service_id)
+
+
+@require_admin_context
+def service_get_all(context, disabled=None):
+    query = model_query(context, models.Service)
+
+    if disabled is not None:
+        query = query.filter_by(disabled=disabled)
+
+    return query.all()
+
+
+@require_admin_context
+def service_get_all_by_topic(context, topic, disabled=None):
+    query = model_query(
+        context, models.Service, read_deleted="no").\
+        filter_by(topic=topic)
+
+    if disabled is not None:
+        query = query.filter_by(disabled=disabled)
+
+    return query.all()
+
+
+@require_admin_context
+def service_get_by_host_and_topic(context, host, topic):
+    result = model_query(
+        context, models.Service, read_deleted="no").\
+        filter_by(disabled=False).\
+        filter_by(host=host).\
+        filter_by(topic=topic).\
+        first()
+    if not result:
+        raise exception.ServiceNotFound(service_id=None)
+    return result
+
+
+@require_admin_context
+def service_get_by_args(context, host, binary):
+    results = model_query(context, models.Service).\
+        filter_by(host=host).\
+        filter_by(binary=binary).\
+        all()
+
+    for result in results:
+        if host == result['host']:
+            return result
+
+    raise exception.HostBinaryNotFound(host=host, binary=binary)
+
+
+@require_admin_context
+def service_create(context, values):
+    service_ref = models.Service()
+    service_ref.update(values)
+    if not CONF.enable_new_services:
+        service_ref.disabled = True
+
+    session = get_session()
+    with session.begin():
+        service_ref.save(session)
+        return service_ref
+
+
+@require_admin_context
+@_retry_on_deadlock
+def service_update(context, service_id, values):
+    session = get_session()
+    with session.begin():
+        service_ref = _service_get(context, service_id, session=session)
+        if ('disabled' in values):
+            service_ref['modified_at'] = timeutils.utcnow()
+            service_ref['updated_at'] = literal_column('updated_at')
+        service_ref.update(values)
+        return service_ref
+
+
+# Extra
+
+_GET_METHODS = {}
+
+
+@require_context
+def get_by_id(context, model, id, *args, **kwargs):
+    # Add get method to cache dictionary if it's not already there
+    if not _GET_METHODS.get(model):
+        _GET_METHODS[model] = _get_get_method(model)
+
+    return _GET_METHODS[model](context, id, *args, **kwargs)
+
+
+def get_model_for_versioned_object(versioned_object):
+    # Exceptions to model mapping, in general Versioned Objects have the same
+    # name as their ORM models counterparts, but there are some that diverge
+    VO_TO_MODEL_EXCEPTIONS = {
+    }
+
+    model_name = versioned_object.obj_name()
+    return (VO_TO_MODEL_EXCEPTIONS.get(model_name) or
+            getattr(models, model_name))
+
+
+def _get_get_method(model):
+    # Exceptions to model to get methods, in general method names are a simple
+    # conversion changing ORM name from camel case to snake format and adding
+    # _get to the string
+    GET_EXCEPTIONS = {
+    }
+
+    if model in GET_EXCEPTIONS:
+        return GET_EXCEPTIONS[model]
+
+    # General conversion
+    # Convert camel cased model name to snake format
+    s = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', model.__name__)
+    # Get method must be snake formatted model name concatenated with _get
+    method_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s).lower() + '_get'
+    return globals().get(method_name)
