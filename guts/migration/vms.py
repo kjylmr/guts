@@ -22,7 +22,7 @@ from oslo_log import log as logging
 from guts import context
 from guts import db
 from guts import exception
-from guts.i18n import _, _LE
+from guts.i18n import _
 from guts.migration import rpcapi as migration_rpcapi
 
 
