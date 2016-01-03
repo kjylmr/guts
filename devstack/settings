@@ -1,0 +1,52 @@
+GUTS_AUTH_CACHE_DIR=${GUTS_AUTH_CACHE_DIR:-/var/cache/guts}
+GUTS_STATE_PATH=${GUTS_STATE_PATH:=$DATA_DIR/guts}
+
+# Set up default directories
+GUTS_DIR=$DEST/guts
+GUTS_CONF_DIR=${GUTS_CONF_DIR:-/etc/guts}
+GUTS_CONF=${GUTS_CONF_DIR}/guts.conf
+GUTS_POLICY_FILE=${GUTS_CONF_DIR}/policy.json
+GUTS_DEBUG=${GUTS_DEBUG:-True}
+GUTS_API_PASTE_INI=$GUTS_CONF_DIR/api-paste.ini
+GUTS_ENABLE_MODEL_POLICY_ENFORCEMENT=${GUTS_ENABLE_MODEL_POLICY_ENFORCEMENT:-False}
+
+GUTS_REPO="https://dev.aptira.com/bharat/guts.git"
+GUTS_BRANCH=${GUTS_BRANCH:-devstack-plugin}
+GUTS_PYTHONCLIENT_REPO="https://dev.aptira.com/bharat/python-gutsclient.git"
+GUTS_PYTHONCLIENT_BRANCH=${GUTS_PYTHONCLIENT_BRANCH:-master}
+GUTS_PYTHONCLIENT_DIR=$DEST/python-gutsclient
+
+# Set up guts service endpoint
+GUTS_SERVICE_HOST=${GUTS_SERVICE_HOST:-$SERVICE_HOST}
+GUTS_SERVICE_PORT=${GUTS_SERVICE_PORT:-7000}
+GUTS_SERVICE_PROTOCOL=${GUTS_SERVICE_PROTOCOL:-$SERVICE_PROTOCOL}
+
+# Set up default service user for guts
+GUTS_ADMIN_USER=${GUTS_ADMIN_USER:-guts}
+
+# GUTS_RABBIT_VHOST allows to specify a separate virtual host for Guts services.
+# This is not required if all OpenStack services are deployed by devstack scripts
+#   on a single node. In this case '/' virtual host (which is the default) is enough.
+# The problem arise when Guts installed in 'devbox' mode, allowing two or more
+#   devboxes to use one common OpenStack host. In this case it's better devboxes
+#   use separated virtual hosts, to avoid conflicts between Guts services.
+# This couldn't be done using exitsting variables, so that's why this variable was added.
+GUTS_RABBIT_VHOST=${GUTS_RABBIT_VHOST:-''}
+
+# Change the default nova_catalog_info and nova_catalog_admin_info values in
+# guts so that the service name guts is searching for matches that set for
+# nova in keystone.
+GUTS_NOVA_CATALOG_INFO=${GUTS_NOVA_CATALOG_INFO:-compute:nova:publicURL}
+GUTS_NOVA_CATALOG_ADMIN_INFO=${GUTS_NOVA_CATALOG_ADMIN_INFO:-compute:nova:adminURL}
+
+GUTS_PERIODIC_INTERVAL=${GUTS_PERIODIC_INTERVAL:-60}
+GUTS_ISCSI_HELPER=${GUTS_ISCSI_HELPER:-tgtadm}
+GUTS_OSAPI_MIGRATION_WORKERS=${GUTS_OSAPI_MIGRATION_WORKERS:-2}
+GRACEFUL_SHUTDOWN_TIMEOUT=${GRACEFUL_SHUTDOWN_TIMEOUT:-5}
+GUTS_USE_MOD_WSGI=${GUTS_USE_MOD_WSGI:-False}
+
+
+# settings file for template
+enable_service guts
+enable_service gu-api
+enable_service gu-migration
