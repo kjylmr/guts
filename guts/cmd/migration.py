@@ -17,34 +17,31 @@
 
 """Starter script for Guts Migration service."""
 
-import eventlet
-eventlet.monkey_patch()
-
 import sys
+import eventlet
 
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from guts import config
 from guts import i18n
-i18n.enable_lazy()
-
-# Need to register global_opts
-from guts.common import config  # noqa
 from guts import objects
 from guts import service
-from guts import utils
-from guts import version
+
+# TODO: Is this needed?
+eventlet.monkey_patch()
+
+i18n.enable_lazy()
 
 
 CONF = cfg.CONF
 
 
 def main():
-    objects.register_all()
-    CONF(sys.argv[1:], project='guts',
-         version=version.version_string())
+    config.parse_args(sys.argv)
     logging.setup(CONF, "guts")
-    utils.monkey_patch()
-    server = service.Service.create(binary='guts-migration')
+    objects.register_all()
+    server = service.Service.create(binary='guts-migration',
+                                    topic=CONF.migration_topic)
     service.serve(server)
     service.wait()

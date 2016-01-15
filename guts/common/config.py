@@ -27,6 +27,8 @@ import socket
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from guts import version
+
 
 CONF = cfg.CONF
 logging.register_options(CONF)
@@ -55,7 +57,7 @@ global_opts = [
                 default=False,
                 help='Enable monkey patching'),
     cfg.StrOpt('migration_topic',
-               default='guts-migration',
+               default='migration',
                help='The topic that migration nodes listen on'),
     cfg.ListOpt('monkey_patch_modules',
                 default=[],
@@ -87,3 +89,11 @@ global_opts = [
 ]
 
 CONF.register_opts(global_opts)
+
+
+def parse_args(args=None, usage=None, default_config_files=None):
+    CONF(args=args,
+         project='guts',
+         version=version.version_string(),
+         usage=usage,
+         default_config_files=default_config_files)
