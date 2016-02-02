@@ -25,6 +25,7 @@ from guts.api.openstack import wsgi
 from guts.api.views import sources as views_sources
 from guts import exception
 from guts.migration import sources
+from guts.migration import vms
 from guts import rpc
 from guts import utils
 
@@ -121,6 +122,7 @@ class SourcesController(wsgi.Controller):
                 ctxt, 'source_.create', err, name=name)
             raise webob.exc.HTTPNotFound(explanation=err.msg)
 
+        vms.fetch_vms(ctxt, source.get('id'))
         return self._view_builder.show(req, ctxt, source)
 
     def delete(self, req, id):
@@ -128,11 +130,6 @@ class SourcesController(wsgi.Controller):
         context = req.environ['guts.context']
         authorize(context)
 
-        # TODO(Bharat): Enable this later.
-        # if self._source_in_use(context, type_id):
-        #    expl = _('Cannot delete source type. Source type in use.')
-        #    raise webob.exc.HTTPBadRequest(explanation=expl)
-        # else:
         try:
             sources.source_delete(context, id)
         except exception.SourceNotFound as ex:

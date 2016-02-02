@@ -4,3 +4,6 @@
 [Filters]
 # guts/migration/driver.py: 'dd', 'if=%s' % srcstr, 'of=%s' % deststr,...
 dd: CommandFilter, dd, root
+mkdir: CommandFilter, mkdir, root
+qemu-img: CommandFilter, qemu-img, root
+env: CommandFilter, env, root

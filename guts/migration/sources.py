@@ -76,5 +76,5 @@ def get_source_by_name(context, name):
 
 def source_delete(context, id):
     """Deletes specified source."""
-
+    db.delete_vms_by_source_id(context, id)
     return db.source_delete(context, id)

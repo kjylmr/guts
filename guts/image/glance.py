@@ -1,52 +1,38 @@
+# Copyright (c) 2015 Aptira Pty Ltd.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
 
 
-import glanceclient
+from glanceclient import Client
 
-from keystoneclient.auth.identity import v2
-from keystoneclient import session
 from oslo_config import cfg
-
 
 CONF = cfg.CONF
 
-GLANCE_API_VERSION = 1
-
-
-def _get_admin_auth_url(context):
-    try:
-        return context.service_catalog[0]['endpoints'][0]['adminURL']
-    except IndexError:
-        raise "Invalid auth_url"
-
 
 class GlanceAPI(object):
-
     def __init__(self, context):
-        auth = v2.Token(auth_url=_get_admin_auth_url(context),
-                        token=context.auth_token,
-                        tenant_id=context.tenant)
-        glance_session = session.Session(auth)
-        self._gc = glanceclient.Client(GLANCE_API_VERSION,
-                                       session=glance_session)
+        version = CONF.glance_api_version
+        endpoint = CONF.glance_api_server
+        self.glance_client = Client(version, endpoint=endpoint,
+                                    token=context.auth_token)
 
-    def create(self, context, image_info):
-        """Creates a new image record.
-
-        :param context: The `guts.context.Context` object for the request
-        :param image_info: A dict of information about the image that is
-                           passed to the image registry.
-        """
-        # TODO: Optionally allow storing image bits to backend storage too.
-        image_meta = _get_image_info(image_info)
-        return self._gc.images.create(**image_meta)
-
-
-def _get_image_info(image_info):
-    return image_info
-
-
-def create_image(ctxt, image_meta, image_path):
-    glance_client = GlanceAPI(ctxt)
-    image = glance_client.create(ctxt, image_meta)
-    image.update(data=open(image_path, 'rb'))
-    return image
+    def create(self, image_info, image_path):
+        """Creates a new image record."""
+        try:
+            img = self.glance_client.images.create(**image_info)
+            img.update(data=open(image_path, 'rb'))
+            return img
+        except Exception:
+            raise

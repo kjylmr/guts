@@ -37,9 +37,10 @@ authorize = extensions.extension_authorizer('migration', 'types_manage')
 def validate_type_driver(source_type_driver):
     try:
         importutils.import_module(source_type_driver)
-    except ImportError:
+    except ImportError as err:
         raise exception.SourceTypeDriverNotFound(
-            type_driver=source_type_driver)
+            type_driver=source_type_driver,
+            message=err.message)
 
 
 class TypesController(wsgi.Controller):

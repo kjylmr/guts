@@ -490,6 +490,14 @@ def _vm_get_by_name(context, name, session=None):
 
 
 @require_context
+def _vms_get_by_sorce_id(context, source_id, session=None):
+    result = model_query(context, models.VMs, session=session).\
+        filter_by(source_id=source_id)
+
+    return result
+
+
+@require_context
 def vm_get_by_name(context, name):
     """Return a dict describing specific source vm."""
 
@@ -526,6 +534,28 @@ def vm_delete(context, vm_id):
         vm.update({'deleted': True,
                    'deleted_at': timeutils.utcnow(),
                    'updated_at': literal_column('updated_at')})
+
+
+@require_admin_context
+def delete_vms_by_source_id(context, source_id):
+    session = get_session()
+    with session.begin():
+        vms = _vms_get_by_sorce_id(context, source_id,
+                                   session)
+
+        for vm in vms:
+            vm.update({'deleted': True,
+                       'deleted_at': timeutils.utcnow(),
+                       'updated_at': literal_column('updated_at')})
+
+
+@require_admin_context
+def vm_update(context, vm_id, values):
+    session = get_session()
+    with session.begin():
+        vm_ref = _vm_get(context, vm_id, session=session)
+        vm_ref.update(values)
+        return vm_ref
 
 # Migrations
 

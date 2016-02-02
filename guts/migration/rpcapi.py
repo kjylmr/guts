@@ -26,9 +26,6 @@ from guts import rpc
 
 CONF = cfg.CONF
 
-# TODO: Must be removed after fixing below TODO
-SOURCE_HYPERVISOR_ID = '902487d4-6a97-4982-b0c1-77751a3e2b8f'
-
 
 class MigrationAPI(object):
     """Client side of the migration rpc API."""
@@ -44,14 +41,9 @@ class MigrationAPI(object):
         self.client = rpc.get_client(target, version_cap=None,
                                      serializer=serializer)
 
-    # TODO: Since guts API doesn't send source_hypervisor_id, I'm accepting
-    #       my test value. Must be sorted and removed assignment
-    def create_migration(self, ctxt, migration_ref, vm_uuid,
-                         source_hypervisor_id=SOURCE_HYPERVISOR_ID):
+    def create_migration(self, ctxt, migration_ref):
         cctxt = self.client.prepare(version='1.8')
-        cctxt.cast(ctxt, 'create_migration', migration_info=migration_ref,
-                   vm_uuid=vm_uuid,
-                   source_hypervisor_id=source_hypervisor_id)
+        cctxt.cast(ctxt, 'create_migration', migration_ref=migration_ref)
 
     def fetch_vms(self, ctxt, source_hypervisor_id):
         cctxt = self.client.prepare(version='1.8')

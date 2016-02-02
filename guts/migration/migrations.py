@@ -15,7 +15,6 @@
 
 """Built-in sources properties."""
 
-import threading
 
 from oslo_config import cfg
 from oslo_db import exception as db_exc
@@ -26,7 +25,6 @@ from guts import db
 from guts import exception
 from guts.i18n import _, _LE
 from guts.migration import rpcapi as migration_rpcapi
-from guts.migration.drivers import vsphere
 
 
 CONF = cfg.CONF
@@ -69,35 +67,13 @@ def create(ctxt, name, source_instance_id, description=None):
             dict(name=name,
                  source_instance_id=source_instance_id,
                  description=description))
-        vm = db.vm_get(ctxt, source_instance_id)
     except db_exc.DBError:
         LOG.exception(_LE('DB error:'))
         raise exception.MigrationCreateFailed(name=name)
 
-    source_instance = db.vm_get(ctxt, source_instance_id)
-
     migration_api = migration_rpcapi.MigrationAPI()
-    migration_api.create_migration(ctxt, migration_ref,
-                                   source_instance.description)
+    migration_api.create_migration(ctxt, migration_ref)
 
-#     def create_migration(migration_ref, ctxt, source_id, vm_uuid):
-#         # set migration status as in progress
-#         db.migration_update(ctxt, migration_ref.id,
-#                             dict(migration_status='IN_PROGRESS'))
-#         try:
-#             vsphere.create_migration(ctxt, migration_ref, '23232', vm.description)
-#         except Exception as e:
-#             LOG.exception(_LE('Error during migration'))
-#             db.migration_update(ctxt, migration_ref.id,
-#                                 dict(migration_status='FAILED'))
-#             raise e
-#         db.migration_update(ctxt, migration_ref.id,
-#                             dict(migration_status='SUCCESS'))
-
-    #t = threading.Thread(target=create_migration, args=(migration_ref,
-    #                                                    ctxt, '23223',
-    #                                                    vm.description))
-    #t.start()
     return migration_ref
 
 

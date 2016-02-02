@@ -24,7 +24,6 @@ from guts import db
 from guts import exception
 from guts.i18n import _
 from guts.migration import rpcapi as migration_rpcapi
-from guts.migration.drivers import vsphere
 
 
 CONF = cfg.CONF
