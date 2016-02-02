@@ -149,6 +149,10 @@ class NotFound(GutsException):
     safe = True
 
 
+class ConfigNotFound(GutsException):
+    message = _("Could not find config at %(path)s")
+
+
 class PasteAppNotFound(NotFound):
     message = _("Could not load paste app '%(name)s' from %(path)s")
 
@@ -160,6 +164,18 @@ class SourceTypeNotFound(NotFound):
 class SourceTypeNotFoundByName(SourceTypeNotFound):
     message = _("Source type with name %(source_type_name)s "
                 "could not be found.")
+
+
+class VMNotFound(NotFound):
+    message = _("Could not find VM with id '%(vm_id)s'")
+
+
+class VMNotFoundByName(NotFound):
+    message = _("Could not find VM with name '%(vm_name)s'")
+
+
+class ServiceNotFound(NotFound):
+    message = _("Service %(service_id)s could not be found.")
 
 
 class Duplicate(GutsException):
@@ -175,6 +191,22 @@ class Invalid(GutsException):
     code = 400
 
 
+class InvalidContentType(Invalid):
+    message = _("Invalid content type %(content_type)s.")
+
+
+class InvalidInput(Invalid):
+    message = _("Invalid input received: %(reason)s")
+
+
+class InvalidSource(Invalid):
+    message = _("Invalid source: %(reason)s.")
+
+
+class InvalidSourceType(Invalid):
+    message = _("Invalid source type: %(reason)s.")
+
+
 class SourceNotFound(NotFound):
     message = _("Source %(source_id)s could not be found.")
 
@@ -186,6 +218,14 @@ class SourceNotFoundByName(SourceNotFound):
 
 class SourceExists(Duplicate):
     message = _("Source %(id)s already exists.")
+
+
+class MalformedRequestBody(GutsException):
+    message = _("Malformed message body: %(reason)s")
+
+
+class MigrationCreateFailed(GutsException):
+    message = _("Failed to create migration %(name)s")
 
 
 class MigrationNotFound(NotFound):
@@ -201,9 +241,25 @@ class MigrationExists(Duplicate):
     message = _("Migration %(id)s already exists.")
 
 
+class SourceCreateFailed(GutsException):
+    message = _("Failed to create source %(name)s")
+
+
+class SourceTypeCreateFailed(GutsException):
+    message = _("Failed to create source type %(name)s")
+
+
 class SourceTypeDriverNotFound(NotFound):
     message = _("Source Type Driver %(type_driver)s could not be found.")
 
 
 class HostBinaryNotFound(NotFound):
     message = _("Could not find binary %(binary)s on host %(host)s.")
+
+
+class OrphanedObjectError(GutsException):
+    message = _('Cannot call %(method)s on orphaned %(objtype)s object')
+
+
+class ObjectActionError(GutsException):
+    msg_fmt = _('Object action %(action)s failed because: %(reason)s')

@@ -135,14 +135,14 @@ def check_string_length(value, name, min_length=0, max_length=None):
     """
     if not isinstance(value, six.string_types):
         msg = ("%s is not a string or unicode") % name
-        raise exception.InvalidInput(message=msg)
+        raise exception.InvalidInput(reason=msg)
 
     if len(value) < min_length:
         msg = ("%(name)s has a minimum character requirement of "
                "%(min_length)s.") % {'name': name, 'min_length': min_length}
-        raise exception.InvalidInput(message=msg)
+        raise exception.InvalidInput(reason=msg)
 
     if max_length and len(value) > max_length:
         msg = ("%(name)s has more than %(max_length)s "
                "characters.") % {'name': name, 'max_length': max_length}
-        raise exception.InvalidInput(message=msg)
+        raise exception.InvalidInput(reason=msg)
