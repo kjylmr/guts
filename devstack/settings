@@ -1,5 +1,11 @@
-GUTS_AUTH_CACHE_DIR=${GUTS_AUTH_CACHE_DIR:-/var/cache/guts}
-GUTS_STATE_PATH=${GUTS_STATE_PATH:=$DATA_DIR/guts}
+# Settings needed for the Murano plugin
+# -------------------------------------
+# Set up default repos
+GUTS_REPO="https://github.com/aptira/guts.git"
+GUTS_BRANCH=${GUTS_BRANCH:-master}
+GUTS_PYTHONCLIENT_REPO="https://github.com/aptira/python-gutsclient.git"
+GUTS_PYTHONCLIENT_BRANCH=${GUTS_PYTHONCLIENT_BRANCH:-master}
+GUTS_PYTHONCLIENT_DIR=$DEST/python-gutsclient
 
 # Set up default directories
 GUTS_DIR=$DEST/guts
@@ -10,11 +16,8 @@ GUTS_DEBUG=${GUTS_DEBUG:-True}
 GUTS_API_PASTE_INI=$GUTS_CONF_DIR/api-paste.ini
 GUTS_ENABLE_MODEL_POLICY_ENFORCEMENT=${GUTS_ENABLE_MODEL_POLICY_ENFORCEMENT:-False}
 
-GUTS_REPO="https://dev.aptira.com/bharat/guts.git"
-GUTS_BRANCH=${GUTS_BRANCH:-devstack-plugin}
-GUTS_PYTHONCLIENT_REPO="https://dev.aptira.com/bharat/python-gutsclient.git"
-GUTS_PYTHONCLIENT_BRANCH=${GUTS_PYTHONCLIENT_BRANCH:-master}
-GUTS_PYTHONCLIENT_DIR=$DEST/python-gutsclient
+GUTS_AUTH_CACHE_DIR=${GUTS_AUTH_CACHE_DIR:-/var/cache/guts}
+GUTS_STATE_PATH=${GUTS_STATE_PATH:=$DATA_DIR/guts}
 
 # Set up guts service endpoint
 GUTS_SERVICE_HOST=${GUTS_SERVICE_HOST:-$SERVICE_HOST}
