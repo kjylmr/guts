@@ -24,7 +24,9 @@ class ViewBuilder(common.ViewBuilder):
         """Trim away extraneous source vm attributes."""
         trimmed = dict(id=vm.get('id'),
                        name=vm.get('name'),
-                       description=vm.get('description'))
+                       uuid_at_source=vm.get('uuid_at_source'),
+                       migrated=vm.get('migrated'),
+                       destination_vm_id=vm.get('dest_id'))
         src = sources.get_source(context, vm.get('source_id'))
         trimmed['hypervisor_name'] = src.get('name')
         return trimmed if brief else dict(vm=trimmed)

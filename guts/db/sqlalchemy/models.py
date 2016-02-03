@@ -72,7 +72,9 @@ class VMs(BASE, GutsBase):
     __tablename__ = "source_instances"
     id = Column(String(36), primary_key=True)
     name = Column(String(255))
-    description = Column(String(255))
+    uuid_at_source = Column(String(36))
+    migrated = Column(Boolean, default=False)
+    dest_id = Column(String(36))
     source_id = Column(String(36), ForeignKey('source_types.id'),
                        nullable=False)
 

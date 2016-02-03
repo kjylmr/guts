@@ -181,6 +181,25 @@ def vm_delete(context, vm_id):
     return IMPL.vm_delete(context, vm_id)
 
 
+def delete_vms_by_source_id(context, source_id):
+    """Deletes all VMs list from the given source hypervisor."""
+    return IMPL.delete_vms_by_source_id(context, source_id)
+
+
+def vm_update(context, vm_id, values):
+    """Set the given properties on an vm and update it.
+
+    Raises NotFound if vm does not exist.
+    """
+    return IMPL.vm_update(context, vm_id, values)
+
+
+def vm_get_by_name(context, name):
+    """Return a dict describing specific source vm."""
+
+    return IMPL.vm_get_by_name(context, name)
+
+
 # Migrations
 
 

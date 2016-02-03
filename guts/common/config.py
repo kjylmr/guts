@@ -26,8 +26,7 @@ import socket
 
 from oslo_config import cfg
 from oslo_log import log as logging
-
-from guts import version
+from oslo_utils import netutils
 
 
 CONF = cfg.CONF
@@ -49,6 +48,27 @@ CONF.register_cli_opts(core_opts)
 CONF.register_cli_opts(debug_opts)
 
 global_opts = [
+    cfg.StrOpt('my_ip',
+               default=netutils.get_my_ipv4(),
+               help='IP address of this host'),
+    cfg.StrOpt('glance_host',
+               default='$my_ip',
+               help='Default glance host name or IP'),
+    cfg.IntOpt('glance_port',
+               default=9292,
+               min=1, max=65535,
+               help='Default glance port'),
+    cfg.IntOpt('glance_api_version',
+               default=1,
+               help='Version of the glance API to use'),
+    cfg.StrOpt('glance_api_server',
+                default='http://$glance_host:$glance_port/v$glance_api_version',
+                help='A list of the URLs of glance API servers available to '
+                     'cinder ([http[s]://][hostname|ip]:port). If protocol '
+                     'is not specified it defaults to http.'),
+    cfg.StrOpt('project_domain_name',
+               default='default',
+               help="Project domain name required to connect to Nova."),
     cfg.StrOpt('host',
                default=socket.gethostname(),
                help='Name of this node.  This can be an opaque identifier. '
@@ -57,7 +77,7 @@ global_opts = [
                 default=False,
                 help='Enable monkey patching'),
     cfg.StrOpt('migration_topic',
-               default='migration',
+               default='guts-migration',
                help='The topic that migration nodes listen on'),
     cfg.ListOpt('monkey_patch_modules',
                 default=[],
@@ -89,11 +109,3 @@ global_opts = [
 ]
 
 CONF.register_opts(global_opts)
-
-
-def parse_args(args=None, usage=None, default_config_files=None):
-    CONF(args=args,
-         project='guts',
-         version=version.version_string(),
-         usage=usage,
-         default_config_files=default_config_files)
