@@ -98,6 +98,11 @@ def source_type_create(context, values):
     return IMPL.source_type_create(context, values)
 
 
+def source_type_update(context, source_type_id, values):
+    """Updates given source type."""
+    return IMPL.source_type_update(context, source_type_id, values)
+
+
 def source_type_get_by_name(context, name):
     """Get source type by name."""
     return IMPL.source_type_get_by_name(context, name)

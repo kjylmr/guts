@@ -124,16 +124,56 @@ class TypesController(wsgi.Controller):
 
         return self._view_builder.show(req, stype)
 
+    def update(self, req, id, body):
+        """Updates given source type."""
+        context = req.environ['guts.context']
+        authorize(context)
+        stype = body['source_type']
+        name = stype.get('name', None)
+        driver = stype.get('driver', None)
+        description = stype.get('description', None)
+
+        if not (name or driver or description):
+            raise exception.Invalid('No attributes to update.')
+
+        if driver and len(driver.strip()) == 0:
+            msg = "Source type driver can not be empty."
+            raise webob.exc.HTTPBadRequest(explanation=msg)
+
+            utils.check_string_length(driver, 'Source Type driver',
+                                      min_length=1, max_length=255)
+
+            validate_type_driver(driver)
+
+        if description is not None:
+            utils.check_string_length(description, 'Type description',
+                                      min_length=0, max_length=255)
+
+        try:
+            types.update(context, id,
+                         name,
+                         driver,
+                         description)
+            modified_stype = types.get_source_type(context, id)
+            req.cache_resource(modified_stype, name='types')
+            self._notify_source_type_info(
+                context, 'source_type.update', modified_stype)
+        except exception.SourceTypeExists as err:
+            self._notify_source_type_error(
+                context, 'source_type.update', err, source_type=modified_stype)
+            raise webob.exc.HTTPConflict(explanation=six.text_type(err))
+        except exception.SourceTypeNotFoundByName as err:
+            self._notify_source_type_error(
+                context, 'source_type.update', err, name=name)
+            raise webob.exc.HTTPNotFound(explanation=err.msg)
+
+        return self._view_builder.show(req, modified_stype)
+
     def delete(self, req, id):
         """Delete given source type."""
         context = req.environ['guts.context']
         authorize(context)
 
-        # TODO(Bharat): Enable this later.
-        # if self._source_type_in_use(context, type_id):
-        #    expl = _('Cannot delete source type. Source type in use.')
-        #    raise webob.exc.HTTPBadRequest(explanation=expl)
-        # else:
         try:
             types.source_type_delete(context, id)
         except exception.SourceTypeNotFound as ex:

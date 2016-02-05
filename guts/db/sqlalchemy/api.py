@@ -288,6 +288,36 @@ def source_type_create(context, values, projects=None):
         return source_type_ref
 
 
+@require_admin_context
+def source_type_update(context, source_type_id, values):
+    session = get_session()
+    with session.begin():
+        # Check it exists
+        source_type_ref = _source_type_get(context,
+                                           source_type_id,
+                                           session)
+        if not source_type_ref:
+            raise exception.SourceTypeNotFound(type_id=source_type_id)
+
+        # No description change
+        if values['description'] is None:
+            del values['description']
+
+        # No driver change
+        if values['driver'] is None:
+            del values['driver']
+
+        # No name change
+        if values['name'] is None:
+            del values['name']
+
+        source_type_ref.update(values)
+        source_type_ref.save(session=session)
+        source_type = source_type_get(context, source_type_id)
+
+        return source_type
+
+
 @require_context
 def source_type_get_by_name(context, name):
     """Return a dict describing specific source_type."""
