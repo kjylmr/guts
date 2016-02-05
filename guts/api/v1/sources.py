@@ -102,13 +102,12 @@ class SourcesController(wsgi.Controller):
                                       min_length=0, max_length=255)
 
         try:
-            sources.create(ctxt,
-                           name,
-                           stype,
-                           connection_params,
-                           description=description)
+            source = sources.create(ctxt,
+                                    name,
+                                    stype,
+                                    connection_params,
+                                    description=description)
 
-            source = sources.get_source_by_name(ctxt, name)
             req.cache_resource(source, name='sources')
             self._notify_source_info(
                 ctxt, 'source.create', source)

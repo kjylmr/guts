@@ -88,16 +88,13 @@ class MigrationsController(wsgi.Controller):
                                       min_length=0, max_length=255)
 
         try:
-            migrations.create(ctxt,
-                              name,
-                              source_instance_id,
-                              description=description)
-
-            migration = migrations.get_migration_by_name(ctxt, name)
+            migration = migrations.create(ctxt,
+                                          name,
+                                          source_instance_id,
+                                          description=description)
             req.cache_resource(migration, name='migrations')
             self._notify_migration_info(
                 ctxt, 'migration.create', migration)
-
         except exception.MigrationExists as err:
             self._notify_migration_error(
                 ctxt, 'migration.create', err, migration=migration)
