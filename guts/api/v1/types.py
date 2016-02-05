@@ -91,16 +91,9 @@ class TypesController(wsgi.Controller):
         driver = stype.get('driver')
         description = stype.get('description')
 
-        if name is None or len(name.strip()) == 0:
-            msg = "Source type name can not be empty."
-            raise webob.exc.HTTPBadRequest(explanation=msg)
-
         if driver is None or len(driver.strip()) == 0:
             msg = "Source type driver can not be empty."
             raise webob.exc.HTTPBadRequest(explanation=msg)
-
-        utils.check_string_length(name, 'Type name',
-                                  min_length=1, max_length=255)
 
         utils.check_string_length(driver, 'Source Type driver',
                                   min_length=1, max_length=255)
@@ -112,12 +105,10 @@ class TypesController(wsgi.Controller):
                                       min_length=0, max_length=255)
 
         try:
-            types.create(ctxt,
-                         name,
-                         driver,
-                         description=description)
-
-            stype = types.get_source_type_by_name(ctxt, name)
+            stype = types.create(ctxt,
+                                 name,
+                                 driver,
+                                 description=description)
             req.cache_resource(stype, name='types')
             self._notify_source_type_info(
                 ctxt, 'source_type.create', stype)
