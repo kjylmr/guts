@@ -226,7 +226,7 @@ def source_type_get_all(context, inactive=False):
 
     result = {}
     for row in rows:
-        result[row['name']] = row
+        result[row['id']] = row
 
     return result
 
@@ -271,11 +271,7 @@ def source_type_create(context, values, projects=None):
     session = get_session()
 
     with session.begin():
-        try:
-            _source_type_get_by_name(context, values['name'], session)
-            raise exception.SourceTypeExists(id=values['name'])
-        except exception.SourceTypeNotFoundByName:
-            pass
+        # Check, if any source_type exist with the same ID.
         try:
             _source_type_get(context, values['id'], session)
             raise exception.SourceTypeExists(id=values['id'])
@@ -339,7 +335,7 @@ def source_get_all(context, inactive=False):
 
     result = {}
     for row in rows:
-        result[row['name']] = row
+        result[row['id']] = row
 
     return result
 
@@ -384,17 +380,12 @@ def source_create(context, values, projects=None):
     session = get_session()
 
     with session.begin():
-        try:
-            _source_get_by_name(context, values['name'], session)
-            raise exception.SourceExists(id=values['name'])
-        except exception.SourceNotFoundByName:
-            pass
+        # Check, if any source exist with the same ID.
         try:
             _source_get(context, values['id'], session)
             raise exception.SourceExists(id=values['id'])
         except exception.SourceNotFound:
             pass
-
         try:
             source_ref = models.Sources()
             source_ref.update(values)
@@ -452,7 +443,7 @@ def vm_get_all(context, inactive=False):
 
     result = {}
     for row in rows:
-        result[row['name']] = row
+        result[row['id']] = row
 
     return result
 
@@ -645,11 +636,7 @@ def migration_create(context, values, projects=None):
     session = get_session()
 
     with session.begin():
-        try:
-            _migration_get_by_name(context, values['name'], session)
-            raise exception.MigrationExists(id=values['name'])
-        except exception.MigrationNotFoundByName:
-            pass
+        # Check, if any migration exist with the same ID.
         try:
             _migration_get(context, values['id'], session)
             raise exception.MigrationExists(id=values['id'])
