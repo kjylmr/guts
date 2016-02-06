@@ -142,6 +142,11 @@ def source_create(context, values):
     return IMPL.source_create(context, values)
 
 
+def source_update(context, source_id, values):
+    """Updates given source."""
+    return IMPL.source_update(context, source_id, values)
+
+
 def source_get_by_name(context, name):
     """Get source by name."""
     return IMPL.source_get_by_name(context, name)

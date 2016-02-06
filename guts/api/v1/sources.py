@@ -124,6 +124,57 @@ class SourcesController(wsgi.Controller):
         vms.fetch_vms(ctxt, source.get('id'))
         return self._view_builder.show(req, ctxt, source)
 
+    def update(self, req, id, body):
+        """Creates a new source hypervisor."""
+        ctxt = req.environ['guts.context']
+        authorize(ctxt)
+
+        source = body['source']
+        name = source.get('name', None)
+        stype = source.get('stype')
+        con_params = source.get('connection_params')
+        description = source.get('description')
+
+        if name and len(name.strip()) == 0:
+            msg = "Source name can not be empty."
+            raise webob.exc.HTTPBadRequest(explanation=msg)
+            utils.check_string_length(name, 'Hypervisor name',
+                                      min_length=1, max_length=255)
+
+
+        if con_params and len(con_params.strip()) == 0:
+            msg = "Source connection params can not be empty."
+            raise webob.exc.HTTPBadRequest(explanation=msg)
+            utils.check_string_length(con_params,
+                                      'Source connection parameters',
+                                      min_length=1, max_length=255)
+
+        if description is not None:
+            utils.check_string_length(description, 'Source description',
+                                      min_length=0, max_length=255)
+        try:
+            sources.update(ctxt, id,
+                           name=name,
+                           stype=stype,
+                           con_params=con_params,
+                           desc=description)
+            modified_source = sources.get_source(ctxt, id)
+            req.cache_resource(modified_source, name='sources')
+            self._notify_source_info(
+                ctxt, 'source.update', modified_source)
+        except exception.SourceExists as err:
+            self._notify_source_error(
+                ctxt, 'source.update', err, source=modified_source)
+            raise webob.exc.HTTPConflict(explanation=six.text_type(err))
+        except exception.SourceNotFoundByName as err:
+            self._notify_source_error(
+                ctxt, 'source_.update', err, name=name)
+            raise webob.exc.HTTPNotFound(explanation=err.msg)
+
+        if stype:
+            vms.fetch_vms(ctxt, id)
+        return self._view_builder.show(req, ctxt, modified_source)
+
     def delete(self, req, id):
         """Delete given source."""
         context = req.environ['guts.context']

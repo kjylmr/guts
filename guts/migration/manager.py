@@ -97,7 +97,7 @@ class MigrationManager(manager.Manager):
     def fetch_vms(self, context, source_hypervisor_id):
         """Fetch VM list from source hypervisor"""
         if not source_hypervisor_id:
-            raise
+            raise Exception
 
         source = db.source_get(context, source_hypervisor_id)
 

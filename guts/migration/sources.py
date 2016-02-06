@@ -65,6 +65,25 @@ def create(ctxt, name, stype, connection_params, description=None):
     return source_ref
 
 
+def update(context, id, name=None, stype=None,
+           con_params=None, desc=None):
+    """Update source by id."""
+    if id is None:
+        msg = _("ID cannot be None")
+        raise exception.InvalidSourceType(reason=msg)
+    try:
+        source_updated = db.source_update(context,
+                                          id,
+                                          dict(name=name,
+                                               description=desc,
+                                               connection_params=con_params,
+                                               source_type_id=stype))
+    except db_exc.DBError:
+        LOG.exception(_LE('DB error:'))
+        raise exception.SourceUpdateFailed(id=id)
+    return source_updated
+
+
 def get_source_by_name(context, name):
     """Retrieves single source by name."""
     if name is None:
