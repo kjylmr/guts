@@ -453,7 +453,6 @@ def source_update(context, source_id, values):
         if values['name'] is None:
             del values['name']
 
-
         source_ref.update(values)
         source_ref.save(session=session)
         return source_ref

@@ -141,7 +141,6 @@ class SourcesController(wsgi.Controller):
             utils.check_string_length(name, 'Hypervisor name',
                                       min_length=1, max_length=255)
 
-
         if con_params and len(con_params.strip()) == 0:
             msg = "Source connection params can not be empty."
             raise webob.exc.HTTPBadRequest(explanation=msg)
