@@ -426,6 +426,38 @@ def source_create(context, values, projects=None):
         return source_ref
 
 
+@require_admin_context
+def source_update(context, source_id, values):
+    session = get_session()
+    with session.begin():
+        # Check it exists
+        source_ref = _source_get(context,
+                                 source_id,
+                                 session)
+        if not source_ref:
+            raise exception.SourceNotFound(source_id=source_id)
+
+        # No description change
+        if values['description'] is None:
+            del values['description']
+
+        # No connection_params change
+        if values['connection_params'] is None:
+            del values['connection_params']
+
+        # No stype change
+        if values['source_type_id'] is None:
+            del values['source_type_id']
+
+        # No name change
+        if values['name'] is None:
+            del values['name']
+
+        source_ref.update(values)
+        source_ref.save(session=session)
+        return source_ref
+
+
 @require_context
 def source_get_by_name(context, name):
     """Return a dict describing specific source."""
