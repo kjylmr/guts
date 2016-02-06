@@ -70,6 +70,23 @@ def get_source_type_by_name(context, name):
     return db.source_type_get_by_name(context, name)
 
 
+def update(context, id, name=None, driver=None, description=None):
+    """Update source type by id."""
+    if id is None:
+        msg = _("ID cannot be None")
+        raise exception.InvalidSourceType(reason=msg)
+    try:
+        type_updated = db.source_type_update(context,
+                                             id,
+                                             dict(name=name,
+                                                  description=description,
+                                                  driver=driver))
+    except db_exc.DBError:
+        LOG.exception(_LE('DB error:'))
+        raise exception.SourceTypeUpdateFailed(id=id)
+    return type_updated
+
+
 def source_type_delete(context, id):
     """Deletes specified source type."""
 
