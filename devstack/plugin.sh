@@ -207,23 +207,152 @@ function cleanup_guts() {
 }
 
 
-# check for service enabled
+# Dependencies:
+#
+# - ``functions`` file
+# - ``DEST``, ``DATA_DIR``, ``STACK_USER`` must be defined
+# - ``SERVICE_HOST``
+
+# ``stack.sh`` calls the entry points in this order:
+#
+# - install_guts_dashboard
+# - configure_guts_dashboard
+# - cleanup_guts_dashboard
+
+source $TOP_DIR/lib/horizon
+
+# Defaults
+# --------
+
+HORIZON_CONFIG=${HORIZON_CONFIG:-$HORIZON_DIR/openstack_dashboard/settings.py}
+HORIZON_LOCAL_CONFIG=${HORIZON_LOCAL_CONFIG:-$HORIZON_DIR/openstack_dashboard/local/local_settings.py}
+
+# Set up default repos
+GUTS_DASHBOARD_REPO="https://github.com/aptira/guts-dashboard.git"
+GUTS_DASHBOARD_BRANCH=${GUTS_DASHBOARD_BRANCH:-master}
+
+# Set up default directories
+GUTS_DASHBOARD_DIR=$DEST/guts-dashboard
+
+GUTS_DASHBOARD_CACHE_DIR=${GUTS_DASHBOARD_CACHE_DIR:-/tmp/guts}
+
+
+# Functions
+# ---------
+
+function remove_config_block() {
+    local config_file="$1"
+    local label="$2"
+
+    if [[ -f "$config_file" ]] && [[ -n "$label" ]]; then
+        sed -e "/^#${label}_BEGIN/,/^#${label}_END/ d" -i "$config_file"
+    fi
+}
+
+
+# Entry points
+# ------------
+
+# configure_guts_dashboard() - Set config files, create data dirs, etc
+function configure_guts_dashboard() {
+
+    remove_config_block "$HORIZON_CONFIG" "GUTS_CONFIG_SECTION"
+    configure_local_settings_py
+    restart_apache_server
+}
+
+function configure_local_settings_py() {
+    local horizon_config_part=$(mktemp)
+
+    sudo install -d -o $STACK_USER -m 755 $GUTS_DASHBOARD_CACHE_DIR
+
+    # Write changes for dashboard config to a separate file
+    cat << EOF >> "$horizon_config_part"
+
+#GUTS_CONFIG_SECTION_BEGIN
+#-------------------------------------------------------------------------------
+METADATA_CACHE_DIR = '$GUTS_DASHBOARD_CACHE_DIR'
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join('$GUTS_DASHBOARD_DIR', 'openstack-dashboard.sqlite')
+    }
+}
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+#-------------------------------------------------------------------------------
+#GUTS_CONFIG_SECTION_END
+
+EOF
+
+    cat "$horizon_config_part" >> "$HORIZON_LOCAL_CONFIG"
+
+    if [[ -f "$HORIZON_LOCAL_CONFIG" ]]; then
+        sed -e "s/\(^\s*OPENSTACK_HOST\s*=\).*$/\1 '$HOST_IP'/" -i "$HORIZON_LOCAL_CONFIG"
+    fi
+
+    # Install Guts as plugin for Horizon
+    ln -sf $GUTS_DASHBOARD_DIR/gutsdashboard/local/_50_guts.py $HORIZON_DIR/openstack_dashboard/local/enabled/
+}
+
+# init_guts_dashboard() - Initialize databases, etc.
+function init_guts_dashboard() {
+    # clean up from previous (possibly aborted) runs
+    # create required data files
+
+    local horizon_manage_py="$HORIZON_DIR/manage.py"
+
+    python "$horizon_manage_py" collectstatic --noinput
+    python "$horizon_manage_py" compress --force
+    python "$horizon_manage_py" migrate --noinput
+
+    restart_apache_server
+}
+
+
+# install_guts_dashboard() - Collect source and prepare
+function install_guts_dashboard() {
+    echo_summary "Install guts Dashboard"
+
+    git_clone $GUTS_DASHBOARD_REPO $GUTS_DASHBOARD_DIR $GUTS_DASHBOARD_BRANCH
+
+    setup_develop $GUTS_DASHBOARD_DIR
+}
+
+# cleanup_guts_dashboard() - Remove residual data files, anything left over from previous
+# runs that a clean run would need to clean up
+function cleanup_guts_dashboard() {
+    echo_summary "Cleanup Guts Dashboard"
+    remove_config_block "$HORIZON_CONFIG" "GUTS_CONFIG_SECTION"
+    rm $HORIZON_DIR/openstack_dashboard/local/enabled/_50_guts.py
+}
+
+# Main dispatcher
+
 if is_service_enabled guts; then
 
     if [[ "$1" == "stack" && "$2" == "install" ]]; then
         # Perform installation of service source
         echo_summary "Installing Guts"
         install_guts
+        if is_service_enabled horizon; then
+            install_guts_dashboard
+        fi
 
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         echo_summary "Configuring Guts"
         configure_guts
         echo_summary "Creating Guts entities for auth service"
         create_guts_accounts
+        if is_service_enabled horizon; then
+            configure_guts_dashboard
+        fi
 
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
         echo_summary "Initializing Guts"
         init_guts
+        if is_service_enabled horizon; then
+            init_guts_dashboard
+        fi
         echo_summary "Starting Guts"
         start_guts
 
@@ -234,6 +363,9 @@ if is_service_enabled guts; then
     if [[ "$1" == "unstack" ]]; then
         stop_guts
         cleanup_guts
+        if is_service_enabled horizon; then
+            cleanup_guts_dashboard
+        fi
     fi
 fi
 
