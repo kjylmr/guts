@@ -23,6 +23,7 @@ from oslo_log import log as logging
 from guts import context
 from guts import db
 from guts import exception
+from guts import policy
 from guts.i18n import _, _LE
 
 
@@ -30,25 +31,30 @@ CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
-def get_all_sources(ctxt, inactive=0):
+def check_policy(context, action, target_obj=None):
+    target = {
+        'project_id': context.project_id,
+        'user_id': context.user_id,
+    }
+    _action = 'sources:%s' % action
+    policy.enforce(context, _action, target)
+
+
+def get_all_sources(context, inactive=0):
     """Get all non-deleted source hypervisors.
-
     Pass true as argument if you want deleted sources returned also.
-
     """
-    return db.source_get_all(ctxt, inactive)
+    check_policy(context, 'get_all_sources')
+    return db.source_get_all(context, inactive)
 
 
-def get_source(ctxt, id):
+def get_source(context, id):
     """Retrieves single source by ID."""
     if id is None:
         msg = _("ID cannot be None")
         raise exception.InvalidSource(reason=msg)
 
-    if ctxt is None:
-        ctxt = context.get_admin_context()
-
-    return db.source_get(ctxt, id)
+    return db.source_get(context, id)
 
 
 def create(ctxt, name, stype, connection_params, description=None):

@@ -3,5 +3,14 @@
     "admin_or_owner":  "is_admin:True or project_id:%(project_id)s",
     "default": "rule:admin_or_owner",
 
-    "admin_api": "is_admin:True"
+    "admin_api": "is_admin:True",
+
+    "types:get_all_types": "is_admin:True",
+    "types:get_source_type": "is_admin:True",
+    "types:create": "",
+    "types:delete": "",
+
+    "sources:get_all_sources": "is_admin:True",
+    "sources:create": "",
+    "sources:delete": ""
 }

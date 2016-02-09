@@ -56,14 +56,14 @@ def enforce(context, action, target):
            for object creation this should be a dictionary representing the
            location of the object e.g. ``{'project_id': context.project_id}``
 
-       :raises PolicyNotAuthorized: if verification fails.
+       :raise AdminRequired: if verification amin required.
 
     """
     init()
 
     return _ENFORCER.enforce(action, target, context.to_dict(),
                              do_raise=True,
-                             exc=exception.PolicyNotAuthorized,
+                             exc=exception.AdminRequired,
                              action=action)
 
 

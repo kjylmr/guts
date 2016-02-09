@@ -23,6 +23,7 @@ from oslo_log import log as logging
 from guts import context
 from guts import db
 from guts import exception
+from guts import policy
 from guts.i18n import _, _LE
 
 
@@ -30,21 +31,29 @@ CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
-def get_all_types(ctxt, inactive=0):
+def check_policy(context, action, target_obj=None):
+    target = {
+        'project_id': context.project_id,
+        'user_id': context.user_id,
+    }
+    _action = 'types:%s' % action
+    policy.enforce(context, _action, target)
+
+
+def get_all_types(context, inactive=0):
     """Get all non-deleted source hypervisor types."""
-    return db.source_type_get_all(ctxt, inactive)
+    check_policy(context, 'get_all_types')
+    return db.source_type_get_all(context, inactive)
 
 
-def get_source_type(ctxt, id):
+def get_source_type(context, id):
     """Retrieves single source type by ID."""
+    check_policy(context, 'get_source_type')
     if id is None:
         msg = _("ID cannot be None")
         raise exception.InvalidSourceType(reason=msg)
 
-    if ctxt is None:
-        ctxt = context.get_admin_context()
-
-    return db.source_type_get(ctxt, id)
+    return db.source_type_get(context, id)
 
 
 def create(ctxt, name, driver, description=None):
