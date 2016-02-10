@@ -12,5 +12,10 @@
 
     "sources:get_all_sources": "is_admin:True",
     "sources:create": "",
-    "sources:delete": ""
+    "sources:delete": "",
+
+    "vms:fetch_vms": "is_admin:True",
+    "vms:get_all_vms": "is_admin:True",
+    "vms:vm_delete": "",
+    "vms:get_vm": "is_admin:True"
 }
