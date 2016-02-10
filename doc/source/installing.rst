@@ -17,3 +17,18 @@
 ===============
 Installing Guts
 ===============
+
+This section describes how to install Guts and Guts-Dashboard using Devstack.
+
+1. Follow Devstack documentation to setup a host for Devstack.
+2. Create a localrc file as input to devstack.
+3. The Guts service is not enabled by default, so it must be enabled in localrc before running stack.sh.
+   This example localrc file shows all of the settings required for Murano and Murano-Dashboard.
+
+.. code-block:: console
+
+    > cat localrc
+    [[local|localrc]]
+    enable_plugin guts https://github.com/aptira/guts.git
+
+4. If user enable guts plugin in localrc file, guts plugin will automatically install guts-dashboard along with guts.
