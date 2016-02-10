@@ -22,6 +22,7 @@ from oslo_log import log as logging
 from guts import context
 from guts import db
 from guts import exception
+from guts import policy
 from guts.i18n import _
 from guts.migration import rpcapi as migration_rpcapi
 
@@ -30,25 +31,30 @@ CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
-def get_all_vms(ctxt, inactive=0):
+def check_policy(context, action, target_obj=None):
+    target = {
+        'project_id': context.project_id,
+        'user_id': context.user_id,
+    }
+    _action = 'vms:%s' % action
+    policy.enforce(context, _action, target)
+
+def get_all_vms(context, inactive=0):
     """Get all non-deleted source vms.
-
     Pass true as argument if you want deleted sources returned also.
-
     """
-    return db.vm_get_all(ctxt, inactive)
+    check_policy(context, 'get_all_vms')
+    return db.vm_get_all(context, inactive)
 
 
-def get_vm(ctxt, id):
+def get_vm(context, id):
     """Retrieves single source by ID."""
     if id is None:
         msg = _("ID cannot be None")
         raise exception.InvalidSource(reason=msg)
 
-    if ctxt is None:
-        ctxt = context.get_admin_context()
-
-    return db.vm_get(ctxt, id)
+    check_policy(context, 'get_vm')
+    return db.vm_get(context, id)
 
 
 def get_vm_by_name(context, name):
@@ -68,5 +74,6 @@ def vm_delete(context, id):
 
 def fetch_vms(context, source_id):
     """Fetch VMs from the source hypervisor."""
+    check_policy(context, 'fetch_vms')
     migration_api = migration_rpcapi.MigrationAPI()
     migration_api.fetch_vms(context, source_id)

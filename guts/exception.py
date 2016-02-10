@@ -137,7 +137,7 @@ class NotAuthorized(GutsException):
 
 class AdminRequired(NotAuthorized):
     message = _("You are not authorized to perform the \
-                requested action: admin_required")
+requested action: admin_required")
 
 
 class PolicyNotAuthorized(NotAuthorized):
