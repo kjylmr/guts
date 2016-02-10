@@ -69,8 +69,12 @@ Guts maintains two lists of dependencies::
 
 The first is the list of dependencies needed for running guts, the second list includes dependencies used for active development and testing of guts itself.
 
+These dependencies can be installed from PyPi_ using the Python tool pip_.
+
+.. _PyPi: http://pypi.python.org/
+.. _pip: http://pypi.python.org/pypi/pip
+
 However, your system *may* need additional dependencies that `pip` (and by
 extension, PyPi) cannot satisfy. These dependencies should be installed
 prior to using `pip`, and the installation method may vary depending on
 your platform.
-

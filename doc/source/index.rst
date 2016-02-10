@@ -78,7 +78,7 @@ Code Documentation
 .. toctree::
    :maxdepth: 1
 
-   api/modules
+   api/modules/guts
 
 
 Indices and tables

@@ -8,6 +8,6 @@ run the following from inside `doc` directory of the root of the repository::
 
 The documentation will be built at ``doc/build/``.
 
-View them on http://localhost:8000 locally after hitting
+View them on http://localhost:8000 locally after hitting::
 
     $ cd doc/build/html && python -m SimpleHTTPServer
