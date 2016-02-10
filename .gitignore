@@ -18,6 +18,8 @@ ChangeLog
 guts.egg-info
 cover/*
 covhtml
+doc/source/api
+doc/source/modules.rst
 dist/*
 etc/guts/guts.conf.sample
 instances
