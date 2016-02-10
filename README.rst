@@ -1,31 +1,73 @@
-OpenStack Guts
-==============
+====
+GUTS
+====
 
-OpenStack Guts provides VM migration as a Service, which
-helps us to migrate VMs from existing cloud to OpenStack
-cloud.
+A Workload migration engine designed to automatically move
+existing workloads and virtual machines from various previous
+generation virtualisation platforms on to OpenStack.
 
-Example:
+OpenStack Guts is distributed under the terms of the Apache
+License, Version 2.0. The full terms and conditions of this
+license are detailed in the LICENSE file.
 
-`Guts` migrates VM from existing VMWare hypervisor to
-OpenStack KVM hypervisor.
+* Reference: https://aptira.com/guts
+* GitHub: https://github.com/aptira/guts
 
-Developer documentation, the source of which is in ``doc/source/``, is
-published at:
+Architecture
+------------
 
-    http://guts.readthedocs.org/en/latest/
+GUTS primarily consists of a set of Python daemons, though
+it requires and integrates with a number of native system
+components for databases, messaging and miagaration
+capabilities.
 
-The API specification and documentation are available at:
+GUTS architecture diagram looks like::
 
-    http://guts.readthedocs.org/en/latest/
+                                                                          +-----------------+
+                                                                          |                 |
+                                                                          |      VMWare     |
+                                                                       +->|Source Hypervisor|
+ +-----------+                                      +---------------+  |  |                 |
+ |           |                         +------+     |               |  |  +-----------------+
+ |Guts Client+--+                      |      |  +->|guts-migration +--+
+ |           |  |   +--------------+   |      |  |  |               |
+ +-----------+  +-->|              |   |      +--+  +---------------+
+                    |   guts-api   +-->| AMQP |
+ +-----------+  +-->|              |   |      +--+  +---------------+
+ |           |  |   +--------------+   |      |  |  |               |
+ |  Horizon  +--+                      |      |  +->|guts-migration +--+
+ |           |                         +------+     |               |  |  +-----------------+
+ +-----------+                                      +---------------+  |  |                 |
+                                                                       +->|     Hyper-V     |
+                                                                          |Source Hypervisor|
+                                                                          |                 |
+                                                                          +-----------------+
 
-The canonical client library is available at:
 
-    https://github.com/aptira/python-gutsclient
+guts-api:
 
-Bugs and feature requests are tracked on github issues at:
+* Accepts and responds to end user migration API calls.
+* Exposes RESTful APIs on the port 7000
 
-    https://github.com/aptira/guts/issues
+guts-migration:
 
+* A worker daemon that migrates VMs from source hypervisor to OpenStack
+* Also communicates with Glance, Nova and Neutron to create VM on OpenStack
 
-For information on contributing to Keystone, see ``CONTRIBUTING.rst``.
+Other Components
+----------------
+
+Guts Client:
+
+* Command line interface to interact with guts-api
+* https://github.com/aptira/python-gutsclient.git
+
+Guts Dashboard:
+
+* Guts Dashboard is an extension for OpenStack Dashboard which provides UI for guts.
+* https://github.com/aptira/guts-dashboard.git
+
+Devstack Plugin:
+
+* Guts also provides devstack plugin, which provides an automated way to deploy Guts through devstack.
+* https://github.com/aptira/guts/tree/master/devstack
