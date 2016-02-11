@@ -23,6 +23,7 @@ from oslo_log import log as logging
 from guts import context
 from guts import db
 from guts import exception
+from guts import policy
 from guts.i18n import _, _LE
 from guts.migration import rpcapi as migration_rpcapi
 
@@ -31,12 +32,20 @@ CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
+def check_policy(context, action, target_obj=None):
+    target = {
+        'project_id': context.project_id,
+        'user_id': context.user_id,
+    }
+    _action = 'migrations:%s' % action
+    policy.enforce(context, _action, target)
+
+
 def get_all_migrations(ctxt, inactive=0):
     """Get all non-deleted source hypervisors.
-
     Pass true as argument if you want deleted sources returned also.
-
     """
+    check_policy(context, 'get_all_migrations')
     return db.migration_get_all(ctxt, inactive)
 
 
@@ -45,9 +54,7 @@ def get_migration(ctxt, id):
     if id is None:
         msg = _("ID cannot be None")
         raise exception.InvalidSource(reason=msg)
-
-    if ctxt is None:
-        ctxt = context.get_admin_context()
+    check_policy(context, 'get_migration')
     return db.migration_get(ctxt, id)
 
 

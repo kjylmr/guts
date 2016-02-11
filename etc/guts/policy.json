@@ -17,5 +17,10 @@
     "vms:fetch_vms": "is_admin:True",
     "vms:get_all_vms": "is_admin:True",
     "vms:vm_delete": "",
-    "vms:get_vm": "is_admin:True"
+    "vms:get_vm": "is_admin:True",
+
+    "migrations:get_all_migrations": "is_admin:True",
+    "migrations:get_migration": "is_admin:True",
+    "migrations:create": "",
+    "migrations:migration_delete": ""
 }
