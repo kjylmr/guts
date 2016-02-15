@@ -57,6 +57,10 @@ guts-migration:
 Other Components
 ----------------
 
+Guts Documentation:
+* Documentation for GUTS
+* http://guts.readthedocs.org/en/latest/
+
 Guts Client:
 
 * Command line interface to interact with guts-api
@@ -71,3 +75,11 @@ Devstack Plugin:
 
 * Guts also provides devstack plugin, which provides an automated way to deploy Guts through devstack.
 * https://github.com/aptira/guts/tree/master/devstack
+
+Guts demo on
+* A demo session recording, explaining GUTS command line tools
+* https://asciinema.org/a/1nwd6vpvm93ajaik6xl9y834w
+
+Guts on GUI
+* A dashboard plugin which explains guts workflow as part of horizon
+* http://guts-dashboard.readthedocs.org/en/latest/example_screenshots.html
