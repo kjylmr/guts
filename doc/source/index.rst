@@ -52,7 +52,7 @@ Developers Documentation
     developing
     components
     architecture
-    http-api
+    guts-v1-api
     api_curl_examples
     guts_cli
 
