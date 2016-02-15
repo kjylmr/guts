@@ -19,14 +19,21 @@ Installing Guts
 ===============
 
 This section describes how to install Guts and Guts-Dashboard using Devstack.
-
-1. Follow Devstack documentation to setup a host for Devstack.
-2. Create a localrc file as input to devstack.
-3. The Guts service is not enabled by default, so it must be enabled in localrc before running stack.sh.
+1. Select a Linux Distribution
+	* Currently GUTS supports Ubuntu 14.04 (Trusty), Fedora 22 (or Fedora 23) and CentOS/RHEL 7.
+2. Install Selected OS
+	* In order to correctly install all the dependencies, we assume a specific minimal version of the
+          supported distributions to make it as easy as possible. We recommend using a minimal install of Ubuntu
+          or Fedora server in a VM if this is your first time.
+3. Follow Devstack documentation to setup a host for Devstack.
+4. Create a localrc file as input to devstack.
+5. The Guts service is not enabled by default, so it must be enabled in localrc before running stack.sh.
    This example localrc file shows all of the settings required for Murano and Murano-Dashboard.
 
-> cat localrc
-[[local|localrc]]
-enable_plugin guts https://github.com/aptira/guts.git
+.. code-block:: console
+    > cat localrc
+    [[local|localrc]]
+    enable_plugin guts https://github.com/aptira/guts.git
+..    
 
-4. If user enable guts plugin in localrc file, guts plugin will automatically install guts-dashboard along with guts.
+6. If user enable guts plugin in localrc file, guts plugin will automatically install guts-dashboard along with guts.
