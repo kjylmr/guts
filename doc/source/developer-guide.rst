@@ -30,5 +30,3 @@ Contents:
    architecture.rst
    api-documenation.rst
    api/modules/guts
-   :ref:`genindex`
-   :ref:`modindex`

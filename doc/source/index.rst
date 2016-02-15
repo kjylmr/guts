@@ -49,6 +49,7 @@ Contents
 .. toctree::
    :maxdepth: 2
 
+   getting-involved.rst
    installation-guide.rst
    configuration-reference.rst
    user-guide.rst
