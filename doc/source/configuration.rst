@@ -106,8 +106,8 @@ To create the service credentials, complete these steps:
         +-------------+----------------------------------+
     ..
 
-Install And Configure Database
-------------------------------
+Install And Configure Guts
+--------------------------
 
 #.  Source the admin credentials to gain access to admin-only CLI commands:
 
