@@ -42,16 +42,6 @@ Getting Started
     configuration
     community
 
-Man Pages
-=========
-
-.. toctree::
-    :maxdepth: 1
-
-    man/guts-all
-    man/guts-api
-    man/guts-migration
-
 
 Developers Documentation
 ========================
@@ -59,6 +49,7 @@ Developers Documentation
     :maxdepth: 1
 
     developing
+    components
     architecture
     http-api
     api_curl_examples
