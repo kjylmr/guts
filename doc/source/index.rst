@@ -53,8 +53,3 @@ Contents
    configuration-reference.rst
    user-guide.rst
    developer-guide.rst
-
-Search in this guide
-~~~~~~~~~~~~~~~~~~~~
-
-* :ref:`search`
