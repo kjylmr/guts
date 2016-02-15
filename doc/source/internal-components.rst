@@ -28,14 +28,14 @@ administrative interface.
 
 GUTS consists of the following areas and their components:
 
-``guts-api`` service
+**guts-api** service:
 
   * Accepts and responds to end user migration API calls.
   * Enforces some policies and initiates most orchestration activities,
     such as start migration process.
   * guts-api listens on 7000 port by default.
 
-``guts-migration`` service
+**guts-migration** service:
 
   * A worker daemon that creates and manages migration of instances
     through hypervisor APIs. For example:
@@ -49,12 +49,12 @@ GUTS consists of the following areas and their components:
     downloading disk images from source, uploading to glance, launching
     a KVM instance and updating its state in the database.
 
-``guts`` client
+**guts** client:
 
   * Enables users to submit commands as a tenant administrator or end
     user.
 
-``The queue``
+**The queue**
 
   * A central hub for passing messages between daemons.
   * Usually implemented with `RabbitMQ <http://www.rabbitmq.com/>`__,
@@ -62,7 +62,7 @@ GUTS consists of the following areas and their components:
     Qpid <http://qpid.apache.org/>`__ or `ZeroMQ
     <http://www.zeromq.org/>`__.
 
-``SQL database``
+**SQL database**
 
   * Stores most build-time and run-time states for a cloud
     infrastructure, including:
