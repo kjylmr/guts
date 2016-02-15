@@ -14,10 +14,6 @@
        License for the specific language governing permissions and limitations
        under the License.
 
-================
-Configuring Guts
-================
-
 ===============================
 Installing and Running Manually
 ===============================
@@ -49,10 +45,10 @@ To create the database, complete these steps:
 
     .. code-block:: console
 
-    mysql> CREATE DATABASE guts;
-    mysql> GRANT ALL PRIVILEGES ON guts.* TO 'guts'@'localhost' \
-        IDENTIFIED BY 'GUTS_DBPASS';
-    mysql> exit;
+        mysql> CREATE DATABASE guts;
+        mysql> GRANT ALL PRIVILEGES ON guts.* TO 'guts'@'localhost' \
+            IDENTIFIED BY 'GUTS_DBPASS';
+        mysql> exit;
     ..
 
 Replace GUTS_DBPASS with a suitable password.
@@ -72,18 +68,18 @@ To create the service credentials, complete these steps:
 
     .. code-block:: console
 
-    $ openstack user create --password-prompt guts
-    User Password:
-    Repeat User Password:
-    +----------+----------------------------------+
-    | Field    | Value                            |
-    +----------+----------------------------------+
-    | email    | None                             |
-    | enabled  | True                             |
-    | id       | 881ab2de4f7941e79504a759a83308be |
-    | name     | guts                             |
-    | username | guts                             |
-    +----------+----------------------------------+
+        $ openstack user create --password-prompt guts
+        User Password:
+        Repeat User Password:
+        +----------+----------------------------------+
+        | Field    | Value                            |
+        +----------+----------------------------------+
+        | email    | None                             |
+        | enabled  | True                             |
+        | id       | 881ab2de4f7941e79504a759a83308be |
+        | name     | guts                             |
+        | username | guts                             |
+        +----------+----------------------------------+
     ..
 
 #.  Add the admin role to the guts user and service project:
@@ -113,6 +109,7 @@ To create the service credentials, complete these steps:
 To install and configure guts:
 
 #.  Source the admin credentials to gain access to admin-only CLI commands:
+
     .. code-block:: console
 
         SERVICE=guts
@@ -152,6 +149,7 @@ Edit the /etc/guts/guts.conf file and complete the following actions:
 #.  In the [DEFAULT] and [oslo_messaging_rabbit] sections, configure RabbitMQ message queue access:
 
     .. code-block:: console
+
         [DEFAULT]
         ...
         rpc_backend = rabbit
@@ -165,6 +163,7 @@ Edit the /etc/guts/guts.conf file and complete the following actions:
 #.  In the [DEFAULT] and [keystone_authtoken] sections, configure Identity service access:
 
     .. code-block:: console
+
         [DEFAULT]
         ...
         auth_strategy = keystone
@@ -183,12 +182,14 @@ Edit the /etc/guts/guts.conf file and complete the following actions:
 #.  Populate the Guts database:
 
     .. code-block:: console
+
         su -s /bin/sh -c "guts-manage db sync" guts
     ..
 
 #.  Start guts services
 
     .. code-block:: console
+
         guts-api --config-file /etc/guts/guts.conf
         guts-migration --config-file /etc/guts/guts.conf
     ..
