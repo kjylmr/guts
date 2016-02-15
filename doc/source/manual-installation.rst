@@ -14,57 +14,60 @@
        License for the specific language governing permissions and limitations
        under the License.
 
-===============================
-Installing and Running Manually
-===============================
+===================
+Manual Installation
+===================
 
-Install And Configure Database
-------------------------------
+This section describes how to install and configure the Migration
+service, code-named ``guts`` on Ubuntu 14.04. Assuming that OpenStack
+core components (Keystone, Glance, Nova, Cinder and Horizon) are up
+and running.
 
-This section describes how to install and configure the Migration service, code-named guts, on the controller node.
 
-Before you install and configure the Migration service, you must create a database, service credentials, and API endpoints.
+Prerequisites
+~~~~~~~~~~~~~
 
-To create the database, complete these steps:
+Before you install and configure the Migration service, you must create
+a database, service credentials, and API endpoints.
 
-#.  Use the database access client to connect to the database server as the root user:
+1. To create the database, complete these steps:
+
+  * Use the database access client to connect to the database server as
+    the root user:
 
     .. code-block:: console
 
         $ mysql -u root -p
-    ..
 
-#.  Create the guts database:
+  * Create the guts database:
 
     .. code-block:: console
 
         CREATE DATABASE guts;
-    ..
 
-#.  Grant proper access to the guts database:
+  * Grant proper access to the guts database:
 
     .. code-block:: console
 
-        mysql> CREATE DATABASE guts;
-        mysql> GRANT ALL PRIVILEGES ON guts.* TO 'guts'@'localhost' \
+        CREATE DATABASE guts;
+        GRANT ALL PRIVILEGES ON guts.* TO 'guts'@'localhost' \
             IDENTIFIED BY 'GUTS_DBPASS';
-        mysql> exit;
-    ..
+        GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' \
+            IDENTIFIED BY 'CINDER_DBPASS';
 
-Replace GUTS_DBPASS with a suitable password.
+    Replace GUTS_DBPASS with a suitable password.
 
-#.  Exit the database access client.
+  * Exit the database access client.
 
-#.  Source the admin credentials to gain access to admin-only CLI commands:
+2. Source the admin credentials to gain access to admin-only CLI commands:
 
     .. code-block:: console
 
         $ source admin-openrc.sh
-    ..
 
-To create the service credentials, complete these steps:
+3. To create the service credentials, complete these steps:
 
-#.  Create the guts user:
+  * Create the guts user:
 
     .. code-block:: console
 
@@ -80,16 +83,14 @@ To create the service credentials, complete these steps:
         | name     | guts                             |
         | username | guts                             |
         +----------+----------------------------------+
-    ..
 
-#.  Add the admin role to the guts user and service project:
+  * Add the admin role to the guts user on service project:
 
     .. code-block:: console
 
         $ openstack role add --project service --user guts admin
-    ..
 
-#.  Create the guts service entity:
+  * Create the guts service entity:
 
     .. code-block:: console
 
@@ -104,12 +105,63 @@ To create the service credentials, complete these steps:
         | name        | guts                             |
         | type        | migration                        |
         +-------------+----------------------------------+
-    ..
 
-Install And Configure Guts
---------------------------
+  * Create Migration service API endpoints:
 
-#.  Source the admin credentials to gain access to admin-only CLI commands:
+    .. code-block:: console
+
+       $ openstack endpoint create --region RegionOne \
+             migration public http://controller:7000/v1/%\(tenant_id\)s
+         +--------------+-----------------------------------------+
+         | Field        | Value                                   |
+         +--------------+-----------------------------------------+
+         | enabled      | True                                    |
+         | id           | 03fa2c90153546c295bf30ca86b1344b        |
+         | interface    | public                                  |
+         | region       | RegionOne                               |
+         | region_id    | RegionOne                               |
+         | service_id   | ab3bbbef780845a1a283490d281e7fda        |
+         | service_name | gus                                     |
+         | service_type | migration                               |
+         | url          | http://controller:7000/v1/%(tenant_id)s |
+         +--------------+-----------------------------------------+
+       
+       $ openstack endpoint create --region RegionOne \
+         migration internal http://controller:7000/v1/%\(tenant_id\)s
+         +--------------+-----------------------------------------+
+         | Field        | Value                                   |
+         +--------------+-----------------------------------------+
+         | enabled      | True                                    |
+         | id           | 94f684395d1b41068c70e4ecb11364b2        |
+         | interface    | internal                                |
+         | region       | RegionOne                               |
+         | region_id    | RegionOne                               |
+         | service_id   | ab3bbbef780845a1a283490d281e7fda        |
+         | service_name | guts                                    |
+         | service_type | migration                               |
+         | url          | http://controller:7000/v1/%(tenant_id)s |
+         +--------------+-----------------------------------------+
+       
+       $ openstack endpoint create --region RegionOne \
+         migration admin http://controller:7000/v1/%\(tenant_id\)s
+         +--------------+-----------------------------------------+
+         | Field        | Value                                   |
+         +--------------+-----------------------------------------+
+         | enabled      | True                                    |
+         | id           | 4511c28a0f9840c78bacb25f10f62c98        |
+         | interface    | admin                                   |
+         | region       | RegionOne                               |
+         | region_id    | RegionOne                               |
+         | service_id   | ab3bbbef780845a1a283490d281e7fda        |
+         | service_name | guts                                    |
+         | service_type | migration                               |
+         | url          | http://controller:7000/v1/%(tenant_id)s |
+         +--------------+-----------------------------------------+
+
+Install and configure components
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. Create user and essential directories:
 
     .. code-block:: console
 
@@ -119,35 +171,37 @@ Install And Configure Guts
             --system \
             --shell /bin/false \
             $SERVICE
-        #Create essential dirs
-        
+
+        #Create essential dirs        
         mkdir -p /var/log/$SERVICE
         mkdir -p /etc/$SERVICE
         
         #Set ownership of the dirs
-        
         chown -R $SERVICE:$SERVICE /var/log/$SERVICE
         chown -R $SERVICE:$SERVICE /var/lib/$SERVICE
         chown $SERVICE:$SERVICE /etc/$SERVICE
-        
+
+2. Clone guts repository:
+
+    .. code-block:: console
+
         git clone https://github.com/aptira/guts.git
         cd $SERVICE
         cp -R $SERVICE/etc/* /etc/$SERVICE/
-        pip install –e .
-    ..
+        pip install -e .
 
-Edit the /etc/guts/guts.conf file and complete the following actions:
+3. Edit the /etc/guts/guts.conf file:
 
-#.  In the [database] section, configure database access:
+  * In the [database] section, configure database access:
 
     .. code-block:: console
 
         [database]
         ...
         connection = mysql://guts:GUTS_DBPASS@controller/guts
-    ..
 
-#.  In the [DEFAULT] and [oslo_messaging_rabbit] sections, configure RabbitMQ message queue access:
+  * In the [DEFAULT] and [oslo_messaging_rabbit] sections, configure
+    RabbitMQ message queue access:
 
     .. code-block:: console
 
@@ -159,15 +213,16 @@ Edit the /etc/guts/guts.conf file and complete the following actions:
         rabbit_host = guts
         rabbit_userid = openstack
         rabbit_password = RABBIT_PASS
-    ..
 
-#.  In the [DEFAULT] and [keystone_authtoken] sections, configure Identity service access:
+  * In the [DEFAULT] and [keystone_authtoken] sections, configure
+    Identity service access:
 
     .. code-block:: console
 
         [DEFAULT]
         ...
         auth_strategy = keystone
+
         [keystone_authtoken]
         ...
         auth_uri = http://controller:5000
@@ -178,19 +233,17 @@ Edit the /etc/guts/guts.conf file and complete the following actions:
         project_name = service
         username = guts
         password = GUTS_PASS
-    ..
 
-#.  Populate the Guts database:
+  * Populate the Guts database:
 
     .. code-block:: console
 
         su -s /bin/sh -c "guts-manage db sync" guts
     ..
 
-#.  Start guts services
+  * Start guts services
 
     .. code-block:: console
 
         guts-api --config-file /etc/guts/guts.conf
         guts-migration --config-file /etc/guts/guts.conf
-    ..

@@ -29,7 +29,8 @@ the below hardware requirements:
 
 *  Migration Node: 1 processor, 4 GB memory, and 40 GB storage
 
-
+GUTS deployment methods
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
    :maxdepth: 1

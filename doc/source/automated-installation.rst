@@ -14,32 +14,48 @@
        License for the specific language governing permissions and limitations
        under the License.
 
-===============
-Installing Guts
-===============
+==================================
+Automated Installation (Devstack)
+==================================
 
-This section describes how to install Guts and Guts-Dashboard using Devstack.
+GUTS also provides an automated way to install and configure its
+components through devstack plugin.
+
+Devstack-plugin:
+  * Installs and configures guts-api and guts-migration
+  * Sets up guts command line client python-gutsclient
+  * Provides user interface, by configuring horizon plugin
+
+
+Steps to deploy GUTS through devstack:
 
 1. Select a Linux Distribution
-	* Currently GUTS supports Ubuntu 14.04 (Trusty), Fedora 22 (or Fedora 23) and CentOS/RHEL 7.
+  * Currently GUTS supports Ubuntu 14.04 (Trusty), Fedora 22 (or Fedora
+    23) and CentOS/RHEL 7.
 
 2. Install Selected OS
-	* In order to correctly install all the dependencies, we assume a specific minimal version of the
-          supported distributions to make it as easy as possible. We recommend using a minimal install of Ubuntu
-          or Fedora server in a VM if this is your first time.
+  * In order to correctly install all the dependencies, we assume a
+    specific minimal version of the supported distributions to make it
+    as easy as possible. We recommend using a minimal install of Ubuntu
+    or Fedora server in a VM if this is your first time.
 
-3. Follow Devstack documentation to setup a host for Devstack.
-
-4. Create a localrc file as input to devstack.
-
-5. The Guts service is not enabled by default, so it must be enabled in localrc before running stack.sh.
-   This example localrc file shows all of the settings required for Murano and Murano-Dashboard.
+3. Download DevStack
 
 .. code-block:: console
 
-    > cat localrc
+   $ git clone https://git.openstack.org/openstack-dev/devstack
+
+4. Configure devstack/localrc to enable guts devstack-plugin
+
+.. code-block:: console
+
+    $ cd devstack/
+    $ cat localrc
     [[local|localrc]]
     enable_plugin guts https://github.com/aptira/guts.git
-..    
 
-6. If user enable guts plugin in localrc file, guts plugin will automatically install guts-dashboard along with guts.
+5. Start the installation
+
+.. code-block:: console
+
+    $ cd devstack; ./stack.sh
