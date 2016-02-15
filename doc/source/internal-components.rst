@@ -29,46 +29,51 @@ administrative interface.
 GUTS consists of the following areas and their components:
 
 ``guts-api`` service
-  Accepts and responds to end user migration API calls. It enforces
-  some policies and initiates most orchestration activities, such as
-  start migration process.
 
-  guts-api listens on 7000 port by default.
+  * Accepts and responds to end user migration API calls.
+  * Enforces some policies and initiates most orchestration activities,
+    such as start migration process.
+  * guts-api listens on 7000 port by default.
 
 ``guts-migration`` service
-  A worker daemon that creates and manages migration of
-  instances through hypervisor APIs. For example:
 
-  - VSphere API for VMWare
+  * A worker daemon that creates and manages migration of instances
+    through hypervisor APIs. For example:
 
-  - Hyper-V API for Hyper-V
+    - VSphere API for VMWare
 
-  Processing is fairly complex. Basically, the daemon accepts actions
-  from the queue and performs a series of system commands such as
-  downloading disk images from source, uploading to glance, launching
-  a KVM instance and updating its state in the database.
+    - Hyper-V API for Hyper-V
+
+  * Processing is fairly complex. Basically, the daemon accepts actions
+    from the queue and performs a series of system commands such as
+    downloading disk images from source, uploading to glance, launching
+    a KVM instance and updating its state in the database.
 
 ``guts`` client
-  Enables users to submit commands as a tenant administrator or end
-  user.
 
-The queue
-  A central hub for passing messages between daemons. Usually
-  implemented with `RabbitMQ <http://www.rabbitmq.com/>`__, but can be
-  implemented with an AMQP message queue, such as `Apache
-  Qpid <http://qpid.apache.org/>`__ or `Zero
-  MQ <http://www.zeromq.org/>`__.
+  * Enables users to submit commands as a tenant administrator or end
+    user.
 
-SQL database
-  Stores most build-time and run-time states for a cloud
-  infrastructure, including:
+``The queue``
 
-  -  Source hypervisor types
+  * A central hub for passing messages between daemons.
+  * Usually implemented with `RabbitMQ <http://www.rabbitmq.com/>`__,
+    but can be implemented with an AMQP message queue, such as `Apache
+    Qpid <http://qpid.apache.org/>`__ or `ZeroMQ
+    <http://www.zeromq.org/>`__.
 
-  -  Source hypervisors and connection params
+``SQL database``
 
-  -  Available VMs, Flavors and Networks
+  * Stores most build-time and run-time states for a cloud
+    infrastructure, including:
 
-  Theoretically, GUTS can support any database that SQL-Alchemy supports.
-  Common databases are SQLite3 for test and development work, MySQL, and
-  PostgreSQL.
+    -  Source hypervisor types
+
+    -  Source hypervisors and connection params
+
+    -  Available VMs, Flavors and Networks
+
+  * Theoretically, GUTS can support any database that SQL-Alchemy
+    supports.
+  * Common databases are SQLite3 for test and development work, MySQL,
+    and PostgreSQL.

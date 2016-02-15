@@ -18,7 +18,7 @@
 Architecture
 ============
 
-``GUTS`` primarily consists of a set of Python daemons, though it
+**GUTS** primarily consists of a set of Python daemons, though it
 requires and integrates with a number of native system components for
 databases, messaging and miagaration capabilities.
 

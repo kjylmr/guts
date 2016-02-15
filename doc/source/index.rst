@@ -22,7 +22,7 @@ GUTS Documentation
 Abstract
 ~~~~~~~~
 
-GUTS: A Workload migration engine designed to automatically move
+**GUTS**, a workload migration engine designed to automatically move
 existing workloads and virtual machines from various previous
 generation virtualisation platforms on to OpenStack.
 
@@ -49,8 +49,8 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   getting-involved.rst
    installation-guide.rst
    configuration-reference.rst
    user-guide.rst
    developer-guide.rst
+   getting-involved.rst

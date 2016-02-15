@@ -24,25 +24,23 @@ Currently, development of `Guts <https://github.com/aptira/guts>`_,
 powered through github.
 
 Feel free to checkout their github repos and raise an issue/suggestion
-to bring it forward.
+to bring it forward. Please offer your contribution as a pull request.
+We welcome all types of contributions.
 
-Please offer your contribution as a pull request. We welcome all types
-of contributions.
-
-guts:
+**guts:**
 
 You can find guts developers in `<irc://freenode.net/#guts>`_.
 This is usually the best place to ask questions and find your way
 around quickly.
 
-Guts Wiki:
+**Guts Wiki:**
 
 Currently there is no separate wiki. The best place to seek all
 information about guts is its official
 `documentation <http://guts.readthedocs.org>`_.
 
 
-Twitter:
+**Twitter:**
 
 Follow `@aptira <https://twitter.com/Aptira>`_ for guts related
 development or quick assistence. Also follow the

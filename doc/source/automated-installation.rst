@@ -18,7 +18,7 @@
 Automated Installation (Devstack)
 ==================================
 
-GUTS also provides an automated way to install and configure its
+**GUTS** also provides an automated way to install and configure its
 components through devstack plugin.
 
 Devstack-plugin:
