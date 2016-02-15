@@ -47,7 +47,7 @@ set corresponding environment variables::
     export OS_PASSWORD=password
     export OS_TENANT_NAME=tenant
     export OS_AUTH_URL=http://auth.example.com:5000/v2.0
-    export MURANO_URL=http://murano.example.com:7000/
+    export GUTS_URL=http://guts.example.com:7000/
 
 Once you've configured your authentication parameters, you can run ``guts
 help`` to see a complete listing of available commands and arguments and
