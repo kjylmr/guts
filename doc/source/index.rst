@@ -38,6 +38,7 @@ Getting Started
     :maxdepth: 1
 
     development.environment
+    gutsclient
     installing
     configuration
     community
