@@ -11,7 +11,7 @@ Enabling in Devstack
 
      > cat local.conf
      [[local|localrc]]
-     enable_plugin guts https://dev.aptira.com/bharat/guts
+     enable_plugin guts https://github.com/aptira/guts.git
 
 #. Install DevStack::
 
