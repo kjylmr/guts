@@ -62,7 +62,7 @@ Developers Documentation
     architecture
     http-api
     api_curl_examples
-    cli_examples
+    guts_cli
 
 
 Sample Configuration File
