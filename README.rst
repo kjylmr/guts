@@ -6,6 +6,12 @@ A Workload migration engine designed to automatically move
 existing workloads and virtual machines from various previous
 generation virtualisation platforms on to OpenStack.
 
+Guts provides seamless and fully automated migration for both Linux or Windows
+virtual machines to OpenStack infrastructure.
+
+Guts can be integrated with an existing OpenStack infrastructure
+by following `installation instructions <http://guts.readthedocs.org/en/latest/manual-installation.html>`_.
+
 OpenStack Guts is distributed under the terms of the Apache
 License, Version 2.0. The full terms and conditions of this
 license are detailed in the LICENSE file.
@@ -58,6 +64,7 @@ Other Components
 ----------------
 
 Guts Documentation:
+
 * Documentation for GUTS
 * http://guts.readthedocs.org/en/latest/
 
@@ -76,10 +83,12 @@ Devstack Plugin:
 * Guts also provides devstack plugin, which provides an automated way to deploy Guts through devstack.
 * https://github.com/aptira/guts/tree/master/devstack
 
-Guts demo on
+Guts demo:
+
 * A demo session recording, explaining GUTS command line tools
 * https://asciinema.org/a/1nwd6vpvm93ajaik6xl9y834w
 
-Guts on GUI
+Guts on Horizon:
+
 * A dashboard plugin which explains guts workflow as part of horizon
 * http://guts-dashboard.readthedocs.org/en/latest/example_screenshots.html
