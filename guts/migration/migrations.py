@@ -43,6 +43,7 @@ def check_policy(context, action, target_obj=None):
 
 def get_all_migrations(ctxt, inactive=0):
     """Get all non-deleted source hypervisors.
+
     Pass true as argument if you want deleted sources returned also.
     """
     check_policy(ctxt, 'get_all_migrations')

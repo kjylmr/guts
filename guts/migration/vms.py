@@ -19,12 +19,11 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from guts import context
 from guts import db
 from guts import exception
-from guts import policy
 from guts.i18n import _
 from guts.migration import rpcapi as migration_rpcapi
+from guts import policy
 
 
 CONF = cfg.CONF
@@ -39,8 +38,10 @@ def check_policy(context, action, target_obj=None):
     _action = 'vms:%s' % action
     policy.enforce(context, _action, target)
 
+
 def get_all_vms(context, inactive=0):
     """Get all non-deleted source vms.
+
     Pass true as argument if you want deleted sources returned also.
     """
     check_policy(context, 'get_all_vms')
