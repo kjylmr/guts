@@ -14,9 +14,9 @@
        License for the specific language governing permissions and limitations
        under the License.
 
-===========
-GUTS API V1
-===========
+=================
+API Documentation
+=================
 
 API versions
 ~~~~~~~~~~~~

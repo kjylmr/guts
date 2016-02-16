@@ -14,6 +14,25 @@
        License for the specific language governing permissions and limitations
        under the License.
 
-==========================
-Guts Configuration Options
-==========================
+==================
+Installation Guide
+==================
+
+This section explains how to install & configure OpenStack Migration service.
+
+You must use an account with administrative privileges to setup migration
+services. Either run the commands as the ``root`` user or configure the
+``sudo`` utility.
+
+For best performance, we recommend that your environment meets or exceeds
+the below hardware requirements:
+
+*  Migration Node: 1 processor, 4 GB memory, and 40 GB storage
+
+GUTS deployment can be in in two ways:
+
+.. toctree::
+   :maxdepth: 1
+
+   automated-installation.rst
+   manual-installation.rst

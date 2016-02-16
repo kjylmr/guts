@@ -14,6 +14,19 @@
        License for the specific language governing permissions and limitations
        under the License.
 
-=======================
-API Examples using Curl
-=======================
+===============
+Developer Guide
+===============
+
+The goal of this session is to walk you through the GUTS architecture
+and components that should be understood while contributing to GUTS.
+
+Contents:
+
+.. toctree::
+   :maxdepth: 2
+
+   internal-components.rst
+   architecture.rst
+   api-documenation.rst
+   api/modules/guts

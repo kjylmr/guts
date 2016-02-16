@@ -14,14 +14,13 @@
        License for the specific language governing permissions and limitations
        under the License.
 
-=================
-Guts Architecture
-=================
+============
+Architecture
+============
 
-GUTS primarily consists of a set of Python daemons, though
-it requires and integrates with a number of native system
-components for databases, messaging and miagaration
-capabilities.
+**GUTS** primarily consists of a set of Python daemons, though it
+requires and integrates with a number of native system components for
+databases, messaging and miagaration capabilities.
 
 GUTS architecture diagram looks like::
 
@@ -54,4 +53,5 @@ guts-api:
 guts-migration:
 
 * A worker daemon that migrates VMs from source hypervisor to OpenStack
-* Also communicates with Glance, Nova and Neutron to create VM on OpenStack
+* Also communicates with Glance, Nova and Neutron to create VM on
+  OpenStack

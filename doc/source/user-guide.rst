@@ -14,9 +14,12 @@
        License for the specific language governing permissions and limitations
        under the License.
 
-======================
-Command-line interface
-======================
+==========
+User Guide
+==========
+
+This guide shows OpenStack users how to create and manage resources
+with the OpenStack command line clients (CLI).
 
 Here is a list of common commands for reference.
 
