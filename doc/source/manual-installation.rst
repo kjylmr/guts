@@ -52,8 +52,8 @@ a database, service credentials, and API endpoints.
         CREATE DATABASE guts;
         GRANT ALL PRIVILEGES ON guts.* TO 'guts'@'localhost' \
             IDENTIFIED BY 'GUTS_DBPASS';
-        GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' \
-            IDENTIFIED BY 'CINDER_DBPASS';
+        GRANT ALL PRIVILEGES ON guts.* TO 'guts'@'%' \
+            IDENTIFIED BY 'GUTS_DBPASS';
 
     Replace GUTS_DBPASS with a suitable password.
 
@@ -247,3 +247,33 @@ Install and configure components
 
         guts-api --config-file /etc/guts/guts.conf
         guts-migration --config-file /etc/guts/guts.conf
+
+
+Horizon plugin configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. Clone guts-dashboard repository:
+
+    .. code-block:: console
+
+        git clone https://github.com/aptira/guts-dashboard.git
+
+2. Install the package:
+
+    .. code-block:: console
+
+        cd guts-dashboard
+        pip install -e .
+
+3. Enable guts horizon plugin (For devstack environment):
+
+    .. code-block:: console
+
+        cd /opt/stack/horizon/openstack_dashboard/local/enabled
+        ln -s /opt/stack/guts-dashboard/_50_guts.py.example _50_guts.py
+
+4. Restart web server to reload the configuration:
+
+    .. code-block:: console
+
+        sudo service apache2 restart
