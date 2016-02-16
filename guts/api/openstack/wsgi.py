@@ -943,7 +943,6 @@ class Resource(wsgi.Application):
     @webob.dec.wsgify(RequestClass=Request)
     def __call__(self, request):
         """WSGI method that controls (de)serialization and method dispatch."""
-
         LOG.info(_LI("%(method)s %(url)s"),
                  {"method": request.method,
                   "url": request.url})

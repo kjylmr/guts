@@ -45,7 +45,7 @@ def get_all_migrations(ctxt, inactive=0):
     """Get all non-deleted source hypervisors.
     Pass true as argument if you want deleted sources returned also.
     """
-    check_policy(context, 'get_all_migrations')
+    check_policy(ctxt, 'get_all_migrations')
     return db.migration_get_all(ctxt, inactive)
 
 
@@ -54,7 +54,7 @@ def get_migration(ctxt, id):
     if id is None:
         msg = _("ID cannot be None")
         raise exception.InvalidSource(reason=msg)
-    check_policy(context, 'get_migration')
+    check_policy(ctxt, 'get_migration')
     return db.migration_get(ctxt, id)
 
 
