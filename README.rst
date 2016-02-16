@@ -10,7 +10,7 @@ Guts provides seamless and fully automated migration for both Linux or Windows
 virtual machines to OpenStack infrastructure.
 
 Guts can be integrated with an existing OpenStack infrastructure
-by following `installation instructions <http://guts.readthedocs.org/en/latest/installing.html>`_.
+by following `installation instructions <http://guts.readthedocs.org/en/latest/manual-installation.html>`_.
 
 OpenStack Guts is distributed under the terms of the Apache
 License, Version 2.0. The full terms and conditions of this
