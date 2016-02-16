@@ -20,7 +20,6 @@ from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
 
-from guts import context
 from guts import db
 from guts import exception
 from guts import policy
@@ -42,6 +41,7 @@ def check_policy(context, action, target_obj=None):
 
 def get_all_sources(context, inactive=0):
     """Get all non-deleted source hypervisors.
+
     Pass true as argument if you want deleted sources returned also.
     """
     check_policy(context, 'get_all_sources')

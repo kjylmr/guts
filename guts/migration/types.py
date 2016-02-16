@@ -20,7 +20,6 @@ from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
 
-from guts import context
 from guts import db
 from guts import exception
 from guts import policy
