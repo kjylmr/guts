@@ -60,7 +60,6 @@ class MigrationsController(wsgi.Controller):
         return self._view_builder.index(req, mgts)
 
     def show(self, req, id):
-        """Returns the list of Migrations."""
         """Returns data about given migration."""
         context = req.environ['guts.context']
         try:
@@ -72,7 +71,6 @@ class MigrationsController(wsgi.Controller):
         return self._view_builder.show(req, migration)
 
     def create(self, req, body):
-        """Returns the list of Migrations."""
         """Creates a migration process."""
         ctxt = req.environ['guts.context']
 
@@ -108,7 +106,6 @@ class MigrationsController(wsgi.Controller):
 
     def delete(self, req, id):
         """Returns the list of Migrations."""
-        """Delete given migration."""
         context = req.environ['guts.context']
         authorize(context)
 
