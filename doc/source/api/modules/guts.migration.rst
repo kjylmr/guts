@@ -6,7 +6,6 @@ Subpackages
 
 .. toctree::
 
-    guts.migration.common
     guts.migration.drivers
 
 Submodules

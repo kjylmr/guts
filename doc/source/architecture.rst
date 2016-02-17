@@ -20,7 +20,7 @@ Architecture
 
 **GUTS** primarily consists of a set of Python daemons, though it
 requires and integrates with a number of native system components for
-databases, messaging and miagaration capabilities.
+databases, messaging and migration capabilities.
 
 GUTS architecture diagram looks like::
 
@@ -45,13 +45,12 @@ GUTS architecture diagram looks like::
                                                                           +-----------------+
 
 
-guts-api:
+**guts-api**:
 
 * Accepts and responds to end user migration API calls.
 * Exposes RESTful APIs on the port 7000
 
-guts-migration:
+**guts-migration**:
 
 * A worker daemon that migrates VMs from source hypervisor to OpenStack
-* Also communicates with Glance, Nova and Neutron to create VM on
-  OpenStack
+* Communicates with Glance, Nova and Neutron to create new VM on OpenStack

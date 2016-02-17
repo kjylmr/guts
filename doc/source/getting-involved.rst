@@ -18,22 +18,22 @@
 Getting Involved
 ================
 
-Currently, development of `Guts <https://github.com/aptira/guts>`_,
+Currently, development of `guts <https://github.com/aptira/guts>`_,
 `guts-dashboard <https://github.com/aptira/guts-dashboard>`_ &
 `python-gutsclient <https://github.com/aptira/python-gutsclient>`_ is
 powered through github.
 
-Feel free to checkout their github repos and raise an issue/suggestion
+Feel free to checkout these github repositories and raise an issue/suggestion
 to bring it forward. Please offer your contribution as a pull request.
 We welcome all types of contributions.
 
-**guts:**
+**GUTS IRC channel:**
 
 You can find guts developers in `<irc://freenode.net/#guts>`_.
 This is usually the best place to ask questions and find your way
 around quickly.
 
-**Guts Wiki:**
+**GUTS Wiki:**
 
 Currently there is no separate wiki. The best place to seek all
 information about guts is its official
@@ -42,7 +42,7 @@ information about guts is its official
 
 **Twitter:**
 
-Follow `@aptira <https://twitter.com/Aptira>`_ for guts related
-development or quick assistence. Also follow the
+Follow `@aptira <https://twitter.com/Aptira>`_ for GUTS project news or quick
+assistance. Also follow the
 `#openstack <http://search.twitter.com/search?q=%23openstack>`_
 tag for relevant tweets.

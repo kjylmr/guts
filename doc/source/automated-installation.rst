@@ -14,30 +14,30 @@
        License for the specific language governing permissions and limitations
        under the License.
 
-==================================
-Automated Installation (Devstack)
-==================================
+=================================
+Automated Installation (DevStack)
+=================================
 
-**GUTS** also provides an automated way to install and configure its
-components through devstack plugin.
+**GUTS** provides an automated way to install and configure its
+components through a devstack plugin.
 
-Devstack-plugin:
-  * Installs and configures guts-api and guts-migration
-  * Sets up guts command line client python-gutsclient
-  * Provides user interface, by configuring horizon plugin
+GUTS devstack plugin:
+  * Installs and configures guts-api and guts-migration components
+  * Sets up client library and CLI client python-gutsclient for GUTS
+  * Installs `GUTS dashboard <http://guts-dashboard.readthedocs.org>`_ as
+    plugin to Horizon.
 
+Steps to deploy GUTS components using devstack:
 
-Steps to deploy GUTS through devstack:
+1. Select a Linux distribution
+  * Currently GUTS supports Ubuntu 14.04 (Trusty), Fedora 22 and 23, and
+    CentOS/RHEL 7.
 
-1. Select a Linux Distribution
-  * Currently GUTS supports Ubuntu 14.04 (Trusty), Fedora 22 (or Fedora
-    23) and CentOS/RHEL 7.
-
-2. Install Selected OS
+2. Install selected OS
   * In order to correctly install all the dependencies, we assume a
     specific minimal version of the supported distributions to make it
-    as easy as possible. We recommend using a minimal install of Ubuntu
-    or Fedora server in a VM if this is your first time.
+    as easy as possible. We recommend using a minimal install of Ubuntu or
+    Fedora or CentOS server in a VM if this is your first time.
 
 3. Download DevStack
 
@@ -45,12 +45,12 @@ Steps to deploy GUTS through devstack:
 
    $ git clone https://git.openstack.org/openstack-dev/devstack
 
-4. Configure devstack/localrc to enable guts devstack-plugin
+4. Configure ``devstack/local.conf`` to enable GUTS devstack plugin
 
 .. code-block:: console
 
     $ cd devstack/
-    $ cat localrc
+    $ cat local.conf
     [[local|localrc]]
     enable_plugin guts https://github.com/aptira/guts.git
 
