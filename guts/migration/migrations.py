@@ -20,7 +20,6 @@ from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
 
-from guts import context
 from guts import db
 from guts import exception
 from guts import policy
@@ -32,13 +31,13 @@ CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
-def check_policy(context, action, target_obj=None):
+def check_policy(ctxt, action, target_obj=None):
     target = {
-        'project_id': context.project_id,
-        'user_id': context.user_id,
+        'project_id': ctxt.project_id,
+        'user_id': ctxt.user_id,
     }
     _action = 'migrations:%s' % action
-    policy.enforce(context, _action, target)
+    policy.enforce(ctxt, _action, target)
 
 
 def get_all_migrations(ctxt, inactive=0):
@@ -85,16 +84,16 @@ def create(ctxt, name, source_instance_id, description=None):
     return migration_ref
 
 
-def get_migration_by_name(context, name):
+def get_migration_by_name(ctxt, name):
     """Retrieves single source by name."""
     if name is None:
         msg = _("Source name cannot be None")
         raise exception.InvalidSource(reason=msg)
 
-    return db.migration_get_by_name(context, name)
+    return db.migration_get_by_name(ctxt, name)
 
 
-def migration_delete(context, id):
+def migration_delete(ctxt, id):
     """Deletes specified source."""
 
-    return db.migration_delete(context, id)
+    return db.migration_delete(ctxt, id)

@@ -21,6 +21,7 @@ import pyclbr
 import re
 import sys
 
+from oslo_concurrency import lockutils
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -35,6 +36,8 @@ from guts.i18n import _, _LI
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
+
+synchronized = lockutils.synchronized_with_prefix('guts-')
 
 
 class QemuImgInfo(object):
