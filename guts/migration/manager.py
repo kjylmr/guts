@@ -55,6 +55,30 @@ MIGRATION_EVENT = {'connect': 'Connecting to VM',
                    'done': '-'}
 
 
+def locked_migration_operation(f):
+    """Lock decorator for migration operations.
+
+    Takes a named lock prior to executing the migration operation. The lock is
+    named with the operation executed and the id of the source VM. This lock
+    can then be used by other operations to avoid operation conflicts on shared
+    resources.
+
+    Example use:
+    If a migration operation uses this decorator, it will block until the named
+    lock is free. This is used to protect concurrent migration operations of
+    the same source VM.
+    """
+    def lvo_inner1(inst, context, migration_ref, **kwargs):
+        source_vm_id = migration_ref.get('source_instance_id')
+
+        @utils.synchronized("%s-%s" % (source_vm_id, f.__name__),
+                            external=True)
+        def lvo_inner2(*_args, **_kwargs):
+            return f(*_args, **_kwargs)
+        return lvo_inner2(inst, context, migration_ref, **kwargs)
+    return lvo_inner1
+
+
 class MigrationManager(manager.Manager):
     """Creates & manages VM migrations."""
 
@@ -151,6 +175,7 @@ class MigrationManager(manager.Manager):
         server_id = nc.create(context, disks, vm_name)
         return server_id
 
+    @locked_migration_operation
     def create_migration(self, context, migration_ref):
         """Creates the migration process of a VM."""
         try:
