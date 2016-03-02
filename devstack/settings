@@ -2,7 +2,7 @@
 # -------------------------------------
 # Set up default repos
 GUTS_REPO="https://github.com/aptira/guts.git"
-GUTS_BRANCH=${GUTS_BRANCH:-master}
+GUTS_BRANCH=${GUTS_BRANCH:-mysql-backend}
 GUTS_PYTHONCLIENT_REPO="https://github.com/aptira/python-gutsclient.git"
 GUTS_PYTHONCLIENT_BRANCH=${GUTS_PYTHONCLIENT_BRANCH:-master}
 GUTS_PYTHONCLIENT_DIR=$DEST/python-gutsclient
@@ -18,6 +18,18 @@ GUTS_ENABLE_MODEL_POLICY_ENFORCEMENT=${GUTS_ENABLE_MODEL_POLICY_ENFORCEMENT:-Fal
 
 GUTS_AUTH_CACHE_DIR=${GUTS_AUTH_CACHE_DIR:-/var/cache/guts}
 GUTS_STATE_PATH=${GUTS_STATE_PATH:=$DATA_DIR/guts}
+
+# Set up default repos
+GUTS_DASHBOARD_REPO="https://github.com/aptira/guts-dashboard.git"
+GUTS_DASHBOARD_BRANCH=${GUTS_DASHBOARD_BRANCH:-master}
+
+# Set up default directories
+GUTS_DASHBOARD_DIR=$DEST/guts-dashboard
+HORIZON_DIR=$DEST/horizon
+GUTS_DASHBOARD_CACHE_DIR=${GUTS_DASHBOARD_CACHE_DIR:-/tmp/guts}
+
+HORIZON_SETTINGS=${HORIZON_SETTINGS:-$HORIZON_DIR/openstack_dashboard/settings.py}
+HORIZON_LOCAL_SETTINGS=${HORIZON_LOCAL_SETTINGS:-$HORIZON_DIR/openstack_dashboard/local/local_settings.py}
 
 # Set up guts service endpoint
 GUTS_SERVICE_HOST=${GUTS_SERVICE_HOST:-$SERVICE_HOST}

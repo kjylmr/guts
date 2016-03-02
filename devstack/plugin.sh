@@ -24,6 +24,7 @@ fi
 # cleanup_guts() - Remove residual data files, anything left over from previous
 # runs that a clean run would need to clean up
 function cleanup_guts {
+
     sudo rm -rf $GUTS_AUTH_CACHE_DIR $GUTS_AUTH_CACHE_DIR $GUTS_STATE_PATH
 }
 
@@ -207,61 +208,35 @@ function cleanup_guts() {
 }
 
 
-# Dependencies:
-#
-# - ``functions`` file
-# - ``DEST``, ``DATA_DIR``, ``STACK_USER`` must be defined
-# - ``SERVICE_HOST``
-
-# ``stack.sh`` calls the entry points in this order:
-#
-# - install_guts_dashboard
-# - configure_guts_dashboard
-# - cleanup_guts_dashboard
-
-source $TOP_DIR/lib/horizon
-
-# Defaults
-# --------
-
-HORIZON_CONFIG=${HORIZON_CONFIG:-$HORIZON_DIR/openstack_dashboard/settings.py}
-HORIZON_LOCAL_CONFIG=${HORIZON_LOCAL_CONFIG:-$HORIZON_DIR/openstack_dashboard/local/local_settings.py}
-
-# Set up default repos
-GUTS_DASHBOARD_REPO="https://github.com/aptira/guts-dashboard.git"
-GUTS_DASHBOARD_BRANCH=${GUTS_DASHBOARD_BRANCH:-master}
-
-# Set up default directories
-GUTS_DASHBOARD_DIR=$DEST/guts-dashboard
-
-GUTS_DASHBOARD_CACHE_DIR=${GUTS_DASHBOARD_CACHE_DIR:-/tmp/guts}
-
-
 # Functions
 # ---------
 
 function remove_config_block() {
-    local config_file="$1"
-    local label="$2"
 
-    if [[ -f "$config_file" ]] && [[ -n "$label" ]]; then
-        sed -e "/^#${label}_BEGIN/,/^#${label}_END/ d" -i "$config_file"
-    fi
+    sed -e "/^#GUTS_CONFIG_SECTION_BEGIN/,/^#GUTS_CONFIG_SECTION_END/ d" -i "$HORIZON_LOCAL_SETTINGS"
+    sed -i '/OPENSTACK_API_VERSIONS/s/^#//g' "$HORIZON_LOCAL_SETTINGS"
+    sed -i '/OPENSTACK_KEYSTONE_URL/s/^#//g' "$HORIZON_LOCAL_SETTINGS"
+    
 }
 
 
-# Entry points
-# ------------
+# install_guts_dashboard() - Collect source and prepare
+function install_guts_dashboard() {
 
-# configure_guts_dashboard() - Set config files, create data dirs, etc
-function configure_guts_dashboard() {
-
-    remove_config_block "$HORIZON_CONFIG" "GUTS_CONFIG_SECTION"
-    configure_local_settings_py
-    restart_apache_server
+    echo_summary "Install guts Dashboard"
+    git_clone $GUTS_DASHBOARD_REPO $GUTS_DASHBOARD_DIR $GUTS_DASHBOARD_BRANCH
+    setup_develop $GUTS_DASHBOARD_DIR
 }
+
 
 function configure_local_settings_py() {
+
+    if [[ -f "$HORIZON_LOCAL_SETTINGS" ]]; then
+        sed -e "s/\(^\s*OPENSTACK_HOST\s*=\).*$/\1 '$HOST_IP'/" -i "$HORIZON_LOCAL_SETTINGS"
+        sed -e '/OPENSTACK_API_VERSIONS/s/^/#/g' -i "$HORIZON_LOCAL_SETTINGS"
+        sed -e '/OPENSTACK_KEYSTONE_URL/s/^/#/g' -i "$HORIZON_LOCAL_SETTINGS"
+    fi
+
     local horizon_config_part=$(mktemp)
 
     sudo install -d -o $STACK_USER -m 755 $GUTS_DASHBOARD_CACHE_DIR
@@ -272,59 +247,36 @@ function configure_local_settings_py() {
 #GUTS_CONFIG_SECTION_BEGIN
 #-------------------------------------------------------------------------------
 METADATA_CACHE_DIR = '$GUTS_DASHBOARD_CACHE_DIR'
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join('$GUTS_DASHBOARD_DIR', 'openstack-dashboard.sqlite')
-    }
-}
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+OPENSTACK_KEYSTONE_URL="http://$HOST_IP:5000/v2.0"
 #-------------------------------------------------------------------------------
 #GUTS_CONFIG_SECTION_END
 
 EOF
 
-    cat "$horizon_config_part" >> "$HORIZON_LOCAL_CONFIG"
-
-    if [[ -f "$HORIZON_LOCAL_CONFIG" ]]; then
-        sed -e "s/\(^\s*OPENSTACK_HOST\s*=\).*$/\1 '$HOST_IP'/" -i "$HORIZON_LOCAL_CONFIG"
-    fi
-
+    cat "$horizon_config_part" >> "$HORIZON_LOCAL_SETTINGS"
     # Install Guts as plugin for Horizon
     ln -sf $GUTS_DASHBOARD_DIR/gutsdashboard/local/_50_guts.py $HORIZON_DIR/openstack_dashboard/local/enabled/
 }
 
-# init_guts_dashboard() - Initialize databases, etc.
-function init_guts_dashboard() {
-    # clean up from previous (possibly aborted) runs
-    # create required data files
 
-    local horizon_manage_py="$HORIZON_DIR/manage.py"
+# configure_guts_dashboard() - Set config files, create data dirs, etc
+function configure_guts_dashboard() {
 
-    python "$horizon_manage_py" collectstatic --noinput
-    python "$horizon_manage_py" compress --force
-    python "$horizon_manage_py" migrate --noinput
-
+    remove_config_block
+    configure_local_settings_py
     restart_apache_server
 }
 
 
-# install_guts_dashboard() - Collect source and prepare
-function install_guts_dashboard() {
-    echo_summary "Install guts Dashboard"
-
-    git_clone $GUTS_DASHBOARD_REPO $GUTS_DASHBOARD_DIR $GUTS_DASHBOARD_BRANCH
-
-    setup_develop $GUTS_DASHBOARD_DIR
-}
-
 # cleanup_guts_dashboard() - Remove residual data files, anything left over from previous
 # runs that a clean run would need to clean up
 function cleanup_guts_dashboard() {
+
     echo_summary "Cleanup Guts Dashboard"
-    remove_config_block "$HORIZON_CONFIG" "GUTS_CONFIG_SECTION"
+    remove_config_block
     rm $HORIZON_DIR/openstack_dashboard/local/enabled/_50_guts.py
 }
+
 
 # Main dispatcher
 
@@ -350,9 +302,6 @@ if is_service_enabled guts; then
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
         echo_summary "Initializing Guts"
         init_guts
-        if is_service_enabled horizon; then
-            init_guts_dashboard
-        fi
         echo_summary "Starting Guts"
         start_guts
 
