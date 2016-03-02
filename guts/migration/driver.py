@@ -23,7 +23,7 @@ class MigrationDriver(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def initialize(self, *args, **kwargs):
+    def initialize(self, connection_dict):
         """Initialize Migration Driver.
 
         This is for drivers that don't implement initialize().
@@ -32,7 +32,7 @@ class MigrationDriver(object):
                 "implemented by the driver.")
         raise NotImplementedError(msg)
 
-    def get_vms_list(self, source_uuid):
+    def get_vms_list(self):
         """Get all VMs stub.
 
         This is for drivers that don't implement get_vms_list().
@@ -41,11 +41,11 @@ class MigrationDriver(object):
                 "implemented by the driver.")
         raise NotImplementedError(msg)
 
-    def migrate_vm(self, source_uuid):
-        """Migrate VM stub.
+    def download_vm_disks(self, context, vm_uuid, base_path):
+        """Download VM disks stub.
 
-        This is for drivers that don't implement migrate_vm().
+        This is for drivers that don't implement download_vm_disks().
         """
-        msg = _("Migrate VM from source hypervisor to OpenStack "
-                "is not implemented by the driver.")
+        msg = _("Method to download VM disks from source hypervisor to "
+                "base_path is not implemented by the driver.")
         raise NotImplementedError(msg)
