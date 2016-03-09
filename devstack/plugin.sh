@@ -211,16 +211,6 @@ function cleanup_guts() {
 # Functions
 # ---------
 
-function remove_config_block() {
-
-    sed -e "/^#GUTS_CONFIG_SECTION_BEGIN/,/^#GUTS_CONFIG_SECTION_END/ d" -i "$HORIZON_LOCAL_SETTINGS"
-    sed -i '/OPENSTACK_API_VERSIONS/s/^#//g' "$HORIZON_LOCAL_SETTINGS"
-    sed -i '/OPENSTACK_KEYSTONE_URL/s/^#//g' "$HORIZON_LOCAL_SETTINGS"
-    
-}
-
-
-# install_guts_dashboard() - Collect source and prepare
 function install_guts_dashboard() {
 
     echo_summary "Install guts Dashboard"
@@ -233,27 +223,8 @@ function configure_local_settings_py() {
 
     if [[ -f "$HORIZON_LOCAL_SETTINGS" ]]; then
         sed -e "s/\(^\s*OPENSTACK_HOST\s*=\).*$/\1 '$HOST_IP'/" -i "$HORIZON_LOCAL_SETTINGS"
-        sed -e '/OPENSTACK_API_VERSIONS/s/^/#/g' -i "$HORIZON_LOCAL_SETTINGS"
-        sed -e '/OPENSTACK_KEYSTONE_URL/s/^/#/g' -i "$HORIZON_LOCAL_SETTINGS"
     fi
 
-    local horizon_config_part=$(mktemp)
-
-    sudo install -d -o $STACK_USER -m 755 $GUTS_DASHBOARD_CACHE_DIR
-
-    # Write changes for dashboard config to a separate file
-    cat << EOF >> "$horizon_config_part"
-
-#GUTS_CONFIG_SECTION_BEGIN
-#-------------------------------------------------------------------------------
-METADATA_CACHE_DIR = '$GUTS_DASHBOARD_CACHE_DIR'
-OPENSTACK_KEYSTONE_URL="http://$HOST_IP:5000/v2.0"
-#-------------------------------------------------------------------------------
-#GUTS_CONFIG_SECTION_END
-
-EOF
-
-    cat "$horizon_config_part" >> "$HORIZON_LOCAL_SETTINGS"
     # Install Guts as plugin for Horizon
     ln -sf $GUTS_DASHBOARD_DIR/gutsdashboard/local/_50_guts.py $HORIZON_DIR/openstack_dashboard/local/enabled/
 }
@@ -262,7 +233,6 @@ EOF
 # configure_guts_dashboard() - Set config files, create data dirs, etc
 function configure_guts_dashboard() {
 
-    remove_config_block
     configure_local_settings_py
     restart_apache_server
 }
@@ -273,7 +243,6 @@ function configure_guts_dashboard() {
 function cleanup_guts_dashboard() {
 
     echo_summary "Cleanup Guts Dashboard"
-    remove_config_block
     rm $HORIZON_DIR/openstack_dashboard/local/enabled/_50_guts.py
 }
 
