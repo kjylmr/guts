@@ -34,10 +34,17 @@ from guts import utils
 
 CHUNK_SIZE = 512 * 1024
 
-CONNECTION_PARAMS = {"host": "Hostname/IP address of VSphere server",
-                     "username": "Username of VShpere server",
-                     "password": "Password of VShpere server",
-                     "port": "Port to connect to VShpere server"}
+CONNECTION_PARAMS = {"host":
+                         {'message': 'Host name/IP of VSphere server'},
+                     "username":
+                         {'message': 'Username of VShpere server'},
+                     "password":
+                         {'mask': True,
+                          'message': 'Password of VShpere server'},
+                     "port":
+                         {'default': 443,
+                          'message': 'Port to connect to VShpere server'}
+                    }
 
 
 def get_obj(content, vimtype):
@@ -188,5 +195,5 @@ def get_migration_driver(context):
     return VSphereDriver(context)
 
 
-def get_connection_params_dict(context):
+def get_connection_params_dict():
     return CONNECTION_PARAMS
