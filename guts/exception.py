@@ -21,16 +21,19 @@ SHOULD include dedicated exception logging.
 
 """
 
+import functools
+import six
 import sys
+import webob.exc
 
 from oslo_config import cfg
 from oslo_log import log as logging
-import six
-import webob.exc
+from oslo_utils import excutils
 from webob.util import status_generic_reasons
 from webob.util import status_reasons
 
 from guts.i18n import _, _LE
+from guts import safe_utils
 
 
 LOG = logging.getLogger(__name__)
@@ -69,6 +72,47 @@ class ConvertedException(webob.exc.WSGIHTTPException):
 
 class Error(Exception):
     pass
+
+
+def _cleanse_dict(original):
+    """Strip all admin_password, new_pass, rescue_pass keys from a dict."""
+    return {k: v for k, v in six.iteritems(original) if "_pass" not in k}
+
+
+def wrap_exception(notifier=None, get_notifier=None):
+    """Wraps a method to catch any exceptions that may get thrown
+
+    This decorator wraps a method to catch any exceptions that may
+    get thrown. It also optionally sends the exception to the notification
+    system.
+    """
+
+    def inner(f):
+        def wrapped(self, context, *args, **kw):
+            # Don't store self or context in the payload, it now seems to
+            # contain confidential information.
+            try:
+                return f(self, context, *args, **kw)
+            except Exception as e:
+                with excutils.save_and_reraise_exception():
+                    if notifier or get_notifier:
+                        payload = dict(exception=e)
+                        call_dict = safe_utils.getcallargs(f, context,
+                                                           *args, **kw)
+                        cleansed = _cleanse_dict(call_dict)
+                        payload.update({'args': cleansed})
+
+                        # If f has multiple decorators, they must use
+                        # functools.wraps to ensure the name is
+                        # propagated.
+                        event_type = f.__name__
+
+                        (notifier or get_notifier()).error(context,
+                                                           event_type,
+                                                           payload)
+
+        return functools.wraps(f)(wrapped)
+    return inner
 
 
 class GutsException(Exception):
@@ -264,3 +308,13 @@ class OrphanedObjectError(GutsException):
 
 class ObjectActionError(GutsException):
     msg_fmt = _('Object action %(action)s failed because: %(reason)s')
+
+
+class InstanceNotReadyForMigration(GutsException):
+    message = _("Failed to create migration %(name)s. %(reason)s")
+    safe = True
+
+
+class InvalidPowerState(Invalid):
+    message = _("Instance: %(instance_id)s cannot be migrated in its current "
+                "power state. Please shutdown virtual instance and retry.")

@@ -18,6 +18,7 @@
 Migration Service
 """
 
+import functools
 import os
 
 from oslo_config import cfg
@@ -27,9 +28,12 @@ from oslo_utils import importutils
 
 from guts.compute import nova
 from guts import db
+from guts import exception
 from guts.image import glance
 from guts import manager
+from guts import rpc
 from guts import utils
+
 
 migration_manager_opts = [
     cfg.StrOpt('conversion_dir',
@@ -41,6 +45,10 @@ CONF = cfg.CONF
 CONF.register_opts(migration_manager_opts)
 
 LOG = logging.getLogger(__name__)
+
+get_notifier = functools.partial(rpc.get_notifier, service='migration')
+wrap_exception = functools.partial(exception.wrap_exception,
+                                   get_notifier=get_notifier)
 
 MIGRATION_STATUS = {'init': 'Initiating',
                     'inprogress': 'Inprogress',
@@ -174,6 +182,26 @@ class MigrationManager(manager.Manager):
 
         server_id = nc.create(context, disks, vm_name)
         return server_id
+
+    @wrap_exception()
+    def validate_for_migration(self, context, migration_ref):
+        """Validates if all conditions before actual migration
+
+        Raises:
+            InvalidPowerState: Virtual Instance not in correct power state.
+        """
+        instance_id = migration_ref.get('source_instance_id')
+        vm = db.vm_get(context, instance_id)
+        source = db.source_get(context, vm.get('source_id'))
+        driver = self._get_driver_from_source(context, source)
+        try:
+            driver.validate_for_migration(vm.get('uuid_at_source'))
+        except exception.InvalidPowerState:
+            self._migration_status_update(context,
+                                          migration_ref.get('id'),
+                                          MIGRATION_EVENT['done'],
+                                          MIGRATION_STATUS['error'])
+            raise exception.InvalidPowerState(instance_id=instance_id)
 
     @locked_migration_operation
     def create_migration(self, context, migration_ref):
