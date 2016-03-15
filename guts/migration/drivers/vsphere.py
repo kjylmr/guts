@@ -35,16 +35,16 @@ from guts import utils
 CHUNK_SIZE = 512 * 1024
 
 CONNECTION_PARAMS = {"host":
-                         {'message': 'Host name/IP of VSphere server'},
+                     {'message': 'Host name/IP of VSphere server'},
                      "username":
-                         {'message': 'Username of VShpere server'},
+                     {'message': 'Username of VShpere server'},
                      "password":
-                         {'mask': True,
-                          'message': 'Password of VShpere server'},
+                     {'mask': True,
+                      'message': 'Password of VShpere server'},
                      "port":
-                         {'default': 443,
-                          'message': 'Port to connect to VShpere server'}
-                    }
+                     {'default': 443,
+                      'message': 'Port to connect to VShpere server'}
+                     }
 
 
 def get_obj(content, vimtype):

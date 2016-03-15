@@ -14,8 +14,8 @@
 #    under the License.
 
 
-from oslo_utils import importutils
 from guts.api import common
+from oslo_utils import importutils
 
 
 def get_connection_params(driver_path):
@@ -32,7 +32,7 @@ class ViewBuilder(common.ViewBuilder):
                        name=source_type.get('name'),
                        driver=source_type.get('driver_class_path'),
                        description=source_type.get('description'))
-        trimmed['connection_parameters'] = get_connection_params(trimmed['driver'])
+        trimmed['con_params'] = get_connection_params(trimmed['driver'])
 
         return trimmed if brief else dict(source_type=trimmed)
 
