@@ -29,7 +29,6 @@ HORIZON_DIR=$DEST/horizon
 GUTS_DASHBOARD_CACHE_DIR=${GUTS_DASHBOARD_CACHE_DIR:-/tmp/guts}
 
 HORIZON_SETTINGS=${HORIZON_SETTINGS:-$HORIZON_DIR/openstack_dashboard/settings.py}
-HORIZON_LOCAL_SETTINGS=${HORIZON_LOCAL_SETTINGS:-$HORIZON_DIR/openstack_dashboard/local/local_settings.py}
 
 # Set up guts service endpoint
 GUTS_SERVICE_HOST=${GUTS_SERVICE_HOST:-$SERVICE_HOST}
