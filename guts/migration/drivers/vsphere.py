@@ -26,8 +26,11 @@ from pyVim import connect
 from pyVmomi import vim
 from threading import Thread
 
+
+from guts import exception
 from guts.migration import driver
 from guts import utils
+
 
 CHUNK_SIZE = 512 * 1024
 
@@ -113,6 +116,19 @@ class VSphereDriver(driver.MigrationDriver):
             time.sleep(5)
             count += 1
         return lease
+
+    def validate_for_migration(self, vm_uuid):
+        """Validates for all instance migration conditions for this hypervisor
+
+        Raises:
+            InvalidPowerState: VMWare requires virtual instances to be
+                in poweredoff state for migration. Raises this error if
+                not the case.
+        """
+        vm = self._find_vm_by_uuid(vm_uuid)
+        POWERED_OFF = vim.VirtualMachine.PowerState.poweredOff
+        if not vm.runtime.powerState == POWERED_OFF:
+            raise exception.InvalidPowerState(instance_id='random')
 
     def download_vm_disks(self, context, vm_uuid, base_path):
         vm = self._find_vm_by_uuid(vm_uuid)

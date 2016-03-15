@@ -41,6 +41,11 @@ class MigrationAPI(object):
         self.client = rpc.get_client(target, version_cap=None,
                                      serializer=serializer)
 
+    def validate_for_migration(self, ctxt, migration_ref):
+        cctxt = self.client.prepare(version='1.8')
+        return cctxt.call(ctxt, 'validate_for_migration',
+                          migration_ref=migration_ref)
+
     def create_migration(self, ctxt, migration_ref):
         cctxt = self.client.prepare(version='1.8')
         cctxt.cast(ctxt, 'create_migration', migration_ref=migration_ref)

@@ -15,17 +15,18 @@
 
 """Built-in sources properties."""
 
+import six
 
 from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
+import oslo_messaging as messaging
 
 from guts import db
 from guts import exception
 from guts import policy
 from guts.i18n import _, _LE
 from guts.migration import rpcapi as migration_rpcapi
-
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -67,7 +68,13 @@ def update_migration(ctxt, id, values):
 
 
 def create(ctxt, name, source_instance_id, description=None):
-    """Creates migration."""
+    """Creates migration.
+
+    Raises:
+        MigrationCreateFailed: If there is error during migration creation.
+        InstanceNotReadyForMigration: Migrating instance failed
+                                        pre-migration validations
+    """
     try:
         migration_ref = db.migration_create(
             ctxt,
@@ -79,6 +86,15 @@ def create(ctxt, name, source_instance_id, description=None):
         raise exception.MigrationCreateFailed(name=name)
 
     migration_api = migration_rpcapi.MigrationAPI()
+
+    try:
+        migration_api.validate_for_migration(ctxt, migration_ref)
+    except messaging.RemoteError as ex:
+        raise exception.InstanceNotReadyForMigration(
+            name=name,
+            reason=six.text_type(ex.value)
+        )
+
     migration_api.create_migration(ctxt, migration_ref)
 
     return migration_ref
