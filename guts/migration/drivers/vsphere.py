@@ -128,7 +128,8 @@ class VSphereDriver(driver.MigrationDriver):
         vm = self._find_vm_by_uuid(vm_uuid)
         POWERED_OFF = vim.VirtualMachine.PowerState.poweredOff
         if not vm.runtime.powerState == POWERED_OFF:
-            raise exception.InvalidPowerState(instance_id='random')
+            return (False, exception.InvalidPowerState)
+        return (True, None)
 
     def download_vm_disks(self, context, vm_uuid, base_path):
         vm = self._find_vm_by_uuid(vm_uuid)

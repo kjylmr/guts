@@ -315,6 +315,10 @@ class InstanceNotReadyForMigration(GutsException):
     safe = True
 
 
-class InvalidPowerState(Invalid):
+class MigrationValidationFailed(Invalid):
+    pass
+
+
+class InvalidPowerState(MigrationValidationFailed):
     message = _("Instance: %(instance_id)s cannot be migrated in its current "
                 "power state. Please shutdown virtual instance and retry.")

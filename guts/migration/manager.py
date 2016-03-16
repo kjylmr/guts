@@ -194,14 +194,12 @@ class MigrationManager(manager.Manager):
         vm = db.vm_get(context, instance_id)
         source = db.source_get(context, vm.get('source_id'))
         driver = self._get_driver_from_source(context, source)
-        try:
-            driver.validate_for_migration(vm.get('uuid_at_source'))
-        except exception.InvalidPowerState:
-            self._migration_status_update(context,
-                                          migration_ref.get('id'),
-                                          MIGRATION_EVENT['done'],
-                                          MIGRATION_STATUS['error'])
-            raise exception.InvalidPowerState(instance_id=instance_id)
+        continue_migration, error_cls = driver.validate_for_migration(
+            vm.get('uuid_at_source')
+        )
+        if (not continue_migration and
+                issubclass(error_cls, exception.MigrationValidationFailed)):
+            raise error_cls(instance_id=instance_id)
 
     @locked_migration_operation
     def create_migration(self, context, migration_ref):
