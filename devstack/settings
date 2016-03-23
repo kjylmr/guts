@@ -2,7 +2,7 @@
 # -------------------------------------
 # Set up default repos
 GUTS_REPO="https://github.com/aptira/guts.git"
-GUTS_BRANCH=${GUTS_BRANCH:-master}
+GUTS_BRANCH=${GUTS_BRANCH:-storage_calculation}
 GUTS_PYTHONCLIENT_REPO="https://github.com/aptira/python-gutsclient.git"
 GUTS_PYTHONCLIENT_BRANCH=${GUTS_PYTHONCLIENT_BRANCH:-master}
 GUTS_PYTHONCLIENT_DIR=$DEST/python-gutsclient

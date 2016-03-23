@@ -76,6 +76,16 @@ class VSphereDriver(driver.MigrationDriver):
             vm_dict = {}
             vm_dict["uuid_at_source"] = vm.config.instanceUuid
             vm_dict["name"] = vm.config.name
+            vm_dict["memory"] = vm.config.hardware.memoryMB
+            vm_disks = []
+            for vm_hardware in vm.config.hardware.device:
+                if (vm_hardware.key >= 2000) and (vm_hardware.key < 3000):
+                    vm_disks.append('{} | {:.1f}GB | Thin: {} | {}'.format(vm_hardware.deviceInfo.label,
+                                                                 vm_hardware.capacityInKB/1024/1024,
+                                                                 vm_hardware.backing.thinProvisioned,
+                                                                 vm_hardware.backing.fileName))
+            disks = '\n'.join(vm_disks)
+            vm_dict["virtual_disks"] = disks
             vms_list.append(vm_dict)
 
         return vms_list

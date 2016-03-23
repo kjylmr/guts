@@ -61,6 +61,8 @@ def define_tables(meta):
         Column('migrated', Boolean),
         Column('dest_id', String(length=36)),
         Column('uuid_at_source', String(36)),
+        Column('memory', String(36)),
+        Column('virtual_disks', String(length=255)),
         Column('source_id',
                String(length=36), ForeignKey('sources.id'),
                nullable=False),
