@@ -20,7 +20,7 @@ SQLAlchemy models for guts data.
 from oslo_config import cfg
 from oslo_db.sqlalchemy import models
 from oslo_utils import timeutils
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, VARCHAR
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import ForeignKey, DateTime, Boolean
 
@@ -76,7 +76,7 @@ class VMs(BASE, GutsBase):
     migrated = Column(Boolean, default=False)
     dest_id = Column(String(36))
     memory = Column(String(36))
-    virtual_disks = Column(String(36))
+    virtual_disks = Column(VARCHAR(1020))
     source_id = Column(String(36), ForeignKey('source_types.id'),
                        nullable=False)
 
