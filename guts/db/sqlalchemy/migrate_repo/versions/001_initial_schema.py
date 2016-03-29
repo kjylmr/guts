@@ -14,7 +14,7 @@
 #    under the License.
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey
-from sqlalchemy import Integer, MetaData, String, Table
+from sqlalchemy import Integer, MetaData, String, Table, VARCHAR
 
 
 def define_tables(meta):
@@ -61,6 +61,8 @@ def define_tables(meta):
         Column('migrated', Boolean),
         Column('dest_id', String(length=36)),
         Column('uuid_at_source', String(36)),
+        Column('memory', String(36)),
+        Column('virtual_disks', VARCHAR(1020)),
         Column('source_id',
                String(length=36), ForeignKey('sources.id'),
                nullable=False),
