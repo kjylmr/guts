@@ -27,6 +27,7 @@ class ViewBuilder(common.ViewBuilder):
                        uuid_at_source=vm.get('uuid_at_source'),
                        migrated=vm.get('migrated'),
                        memory=vm.get('memory'),
+                       vcpus=vm.get('vcpus'),
                        virtual_disks=vm.get('virtual_disks'),
                        destination_vm_id=vm.get('dest_id'))
         src = sources.get_source(context, vm.get('source_id'))
