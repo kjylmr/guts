@@ -64,7 +64,7 @@ global_opts = [
     cfg.StrOpt('glance_api_server',
                 default='http://$glance_host:$glance_port/v$glance_api_version',
                 help='A list of the URLs of glance API servers available to '
-                     'cinder ([http[s]://][hostname|ip]:port). If protocol '
+                     'guts ([http[s]://][hostname|ip]:port). If protocol '
                      'is not specified it defaults to http.'),
     cfg.StrOpt('project_domain_name',
                default='default',
@@ -99,6 +99,9 @@ global_opts = [
     cfg.StrOpt('migration_api_class',
                default='guts.migration.api.API',
                help='The full class name of the migration API class to use'),
+    cfg.StrOpt('scheduler_manager',
+               default='guts.scheduler.manager.SchedulerManager',
+               help='Full class name for the Manager for scheduler'),
     cfg.StrOpt('migration_manager',
                default='guts.migration.manager.MigrationManager',
                help='Full class name for the Manager for migration'),
