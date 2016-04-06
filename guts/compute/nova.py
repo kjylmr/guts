@@ -15,9 +15,9 @@
 
 import time
 
-from keystoneclient.auth.identity import v3
+from keystoneclient.auth.identity import v2
 from keystoneclient import session
-from novaclient import client as novaclient
+from novaclient import client
 
 from oslo_config import cfg
 from oslo_utils import units
@@ -37,13 +37,11 @@ def _get_admin_auth_url(ctxt):
 
 class NovaAPI(object):
     def __init__(self, ctxt):
-        auth = v3.Token(auth_url=_get_admin_auth_url(ctxt),
-                        token=ctxt.auth_token,
-                        project_name=ctxt.project_name,
-                        project_domain_name=CONF.project_domain_name)
-
+        auth  = v2.Token(auth_url=_get_admin_auth_url(ctxt),
+                         token=ctxt.auth_token,
+                         tenant_name=ctxt.project_name)
         sess = session.Session(auth=auth)
-        self._nc = novaclient.Client(NOVA_API_VERSION, session=sess)
+        self._nc = client.Client('2', session=sess, region_name='RegionOne')
 
     def create(self, ctxt, disks, vm_name):
         image_id = None
