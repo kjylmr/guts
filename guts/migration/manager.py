@@ -247,6 +247,7 @@ class MigrationManager(manager.Manager):
             memory = int(vm.get('memory'))
             cpus = int(vm.get('vcpus'))
             root_gb = int(disks[0].get('size'))/1024/1024/1024
+
             flavor = self._flavor_create(context, name, memory, cpus, root_gb)
 
             dest_id = self._boot_vm(context, migration_id,

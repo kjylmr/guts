@@ -41,7 +41,7 @@ class NovaAPI(object):
                          token=ctxt.auth_token,
                          tenant_name=ctxt.project_name)
         sess = session.Session(auth=auth)
-        self._nc = client.Client('2', session=sess, region_name='RegionOne')
+        self._nc = client.Client(NOVA_API_VERSION, session=sess)
 
     def create(self, ctxt, disks, vm_name, flavor):
         image_id = None
@@ -59,11 +59,10 @@ class NovaAPI(object):
 
         name = vm_name
         image = self._nc.images.find(id=image_id)
-        flavor_id = flavor.id
         network = self._nc.networks.find(label="private")
 
         server = self._nc.servers.create(name=name, image=image.id,
-                                         flavor=flavor_id,
+                                         flavor=flavor.id,
                                          nics=[{'net-id': network.id}])
         self.create_volumes(volumes, server)
         return server.id
