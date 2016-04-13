@@ -76,6 +76,7 @@ class VMs(BASE, GutsBase):
     migrated = Column(Boolean, default=False)
     dest_id = Column(String(36))
     memory = Column(String(36))
+    vcpus = Column(String(36))
     virtual_disks = Column(VARCHAR(1020))
     source_id = Column(String(36), ForeignKey('source_types.id'),
                        nullable=False)

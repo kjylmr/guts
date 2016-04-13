@@ -77,6 +77,7 @@ class VSphereDriver(driver.MigrationDriver):
             vm_dict["uuid_at_source"] = vm.config.instanceUuid
             vm_dict["name"] = vm.config.name
             vm_dict["memory"] = vm.config.hardware.memoryMB
+            vm_dict['vcpus'] = vm.config.hardware.numCPU
             vm_disks = []
             for vm_hardware in vm.config.hardware.device:
                 if (vm_hardware.key >= 2000) and (vm_hardware.key < 3000):

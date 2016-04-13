@@ -62,6 +62,7 @@ def define_tables(meta):
         Column('dest_id', String(length=36)),
         Column('uuid_at_source', String(36)),
         Column('memory', String(36)),
+        Column('vcpus', String(36)),
         Column('virtual_disks', VARCHAR(1020)),
         Column('source_id',
                String(length=36), ForeignKey('sources.id'),

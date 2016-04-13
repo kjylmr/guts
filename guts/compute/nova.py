@@ -15,9 +15,9 @@
 
 import time
 
-from keystoneclient.auth.identity import v3
+from keystoneclient.auth.identity import v2
 from keystoneclient import session
-from novaclient import client as novaclient
+from novaclient import client
 
 from oslo_config import cfg
 from oslo_utils import units
@@ -37,15 +37,13 @@ def _get_admin_auth_url(ctxt):
 
 class NovaAPI(object):
     def __init__(self, ctxt):
-        auth = v3.Token(auth_url=_get_admin_auth_url(ctxt),
-                        token=ctxt.auth_token,
-                        project_name=ctxt.project_name,
-                        project_domain_name=CONF.project_domain_name)
-
+        auth  = v2.Token(auth_url=_get_admin_auth_url(ctxt),
+                         token=ctxt.auth_token,
+                         tenant_name=ctxt.project_name)
         sess = session.Session(auth=auth)
-        self._nc = novaclient.Client(NOVA_API_VERSION, session=sess)
+        self._nc = client.Client(NOVA_API_VERSION, session=sess)
 
-    def create(self, ctxt, disks, vm_name):
+    def create(self, ctxt, disks, vm_name, flavor):
         image_id = None
         volumes = []
         for disk in disks:
@@ -61,7 +59,6 @@ class NovaAPI(object):
 
         name = vm_name
         image = self._nc.images.find(id=image_id)
-        flavor = self._nc.flavors.find(name="m1.small")
         network = self._nc.networks.find(label="private")
 
         server = self._nc.servers.create(name=name, image=image.id,
@@ -69,6 +66,10 @@ class NovaAPI(object):
                                          nics=[{'net-id': network.id}])
         self.create_volumes(volumes, server)
         return server.id
+
+    def flavor_create(self, context, name, memory, cpus, root_gb):
+        flavor = self._nc.flavors.create(name, memory, cpus, root_gb)
+        return flavor
 
     def _create_volume_and_attach(self, volume, server):
         size = int((volume['size'] / units.Gi) + 1)

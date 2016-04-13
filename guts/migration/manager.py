@@ -175,13 +175,18 @@ class MigrationManager(manager.Manager):
             image = gc.create(image_meta, disk['dest_path'])
             disk['image_id'] = image.id
 
-    def _boot_vm(self, context, migration_id, disks, vm_name):
+    def _boot_vm(self, context, migration_id, disks, vm_name, flavor):
         self._migration_status_update(context, migration_id,
                                       MIGRATION_EVENT['boot'])
         nc = nova.NovaAPI(context)
 
-        server_id = nc.create(context, disks, vm_name)
+        server_id = nc.create(context, disks, vm_name, flavor)
         return server_id
+
+    def _flavor_create(self, context, name, memory, cpus, root_gb):
+        nc = nova.NovaAPI(context)
+        flavor = nc.flavor_create(context, name, memory, cpus, root_gb)
+        return flavor
 
     @wrap_exception()
     def validate_for_migration(self, context, migration_ref):
@@ -238,8 +243,15 @@ class MigrationManager(manager.Manager):
             self._upload_to_glance(context, migration_id,
                                    image_name_prefix, disks)
 
+            name = vm.get('id')
+            memory = int(vm.get('memory'))
+            cpus = int(vm.get('vcpus'))
+            root_gb = int(disks[0].get('size'))/1024/1024/1024
+
+            flavor = self._flavor_create(context, name, memory, cpus, root_gb)
+
             dest_id = self._boot_vm(context, migration_id,
-                                    disks, image_name_prefix)
+                                    disks, image_name_prefix, flavor)
 
             self._migration_status_update(context, migration_id,
                                           MIGRATION_EVENT['done'],
