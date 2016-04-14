@@ -15,6 +15,13 @@
 
 
 from guts.api import common
+from oslo_utils import importutils
+
+
+def get_connection_params(driver_path):
+    driver_path = importutils.import_module(driver_path)
+    connection_params = driver_path.get_connection_params_dict()
+    return connection_params
 
 
 class ViewBuilder(common.ViewBuilder):
@@ -25,6 +32,8 @@ class ViewBuilder(common.ViewBuilder):
                        name=source_type.get('name'),
                        driver=source_type.get('driver_class_path'),
                        description=source_type.get('description'))
+        trimmed['con_params'] = get_connection_params(trimmed['driver'])
+
         return trimmed if brief else dict(source_type=trimmed)
 
     def index(self, request, source_types):
