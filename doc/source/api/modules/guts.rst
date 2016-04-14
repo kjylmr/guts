@@ -1,6 +1,5 @@
-=========
-Code Base
-=========
+guts package
+============
 
 Subpackages
 -----------
@@ -16,9 +15,11 @@ Subpackages
     guts.image
     guts.migration
     guts.objects
-    guts.openstack
     guts.tests
     guts.wsgi
+
+Submodules
+----------
 
 guts.context module
 -------------------
@@ -96,6 +97,15 @@ guts.version module
 -------------------
 
 .. automodule:: guts.version
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: guts
     :members:
     :undoc-members:
     :show-inheritance:

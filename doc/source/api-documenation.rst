@@ -18,6 +18,26 @@
 API Documentation
 =================
 
+Glossary
+========
+
+* **Source Hypervisor Types**
+
+    Please add description.
+
+* **Source Hypervisors**
+
+    Please add description.
+
+* **Source Instances**
+
+    Please add description.
+
+* **Migrations**
+
+    Please add description.
+
+
 API versions
 ~~~~~~~~~~~~
 
@@ -55,8 +75,8 @@ API extensions
      - List API extensions
 
 
-Source Hypervisor Types
-~~~~~~~~~~~~~~~~~~~~~~~
+Source Hypervisor Types API
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
@@ -91,8 +111,9 @@ Source Hypervisor Types
      - 202
      - Delete source hypervisor type
 
-Source Hypervisors
-~~~~~~~~~~~~~~~~~~
+
+Source Hypervisors API
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
@@ -128,8 +149,8 @@ Source Hypervisors
      - Delete source
 
 
-Source Instances
-~~~~~~~~~~~~~~~~
+Source Instances API
+~~~~~~~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
@@ -152,8 +173,8 @@ Source Instances
      - 200
      - Show details of a VM
 
-Migrations
-~~~~~~~~~~
+Migrations API
+~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1

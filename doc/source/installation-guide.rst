@@ -18,7 +18,7 @@
 Installation Guide
 ==================
 
-This section explains how to install & configure OpenStack Migration service.
+This section explains how to install & configure GUTS migration engine.
 
 You must use an account with administrative privileges to setup migration
 services. Either run the commands as the ``root`` user or configure the
@@ -29,7 +29,7 @@ the below hardware requirements:
 
 *  Migration Node: 1 processor, 4 GB memory, and 40 GB storage
 
-GUTS deployment can be in in two ways:
+GUTS deployment can be in two ways:
 
 .. toctree::
    :maxdepth: 1

@@ -21,38 +21,37 @@ Internal Components
 Use GUTS to migrate computing instances across cloud. The main modules
 are implemented in Python.
 
-GUTS interacts with OpenStack Identity for authentication; OpenStack
+GUTS employs OpenStack Identity service for authentication; OpenStack
 Compute service to boot instance; OpenStack Image service to store and
-retrieving disk images; and OpenStack dashboard for the user and
-administrative interface.
+retrieve disk images; and OpenStack Dashboard to offer users an UI for GUTS.
 
-GUTS consists of the following areas and their components:
+GUTS consists of the following components:
 
 **guts-api** service:
 
   * Accepts and responds to end user migration API calls.
   * Enforces some policies and initiates most orchestration activities,
     such as start migration process.
-  * guts-api listens on 7000 port by default.
+  * guts-api listens on ``7000`` port by default.
 
 **guts-migration** service:
 
-  * A worker daemon that creates and manages migration of instances
+  * A worker daemon that creates and manages migration of VM instances
     through hypervisor APIs. For example:
 
     - VSphere API for VMWare
 
     - Hyper-V API for Hyper-V
 
-  * Processing is fairly complex. Basically, the daemon accepts actions
-    from the queue and performs a series of system commands such as
-    downloading disk images from source, uploading to glance, launching
-    a KVM instance and updating its state in the database.
+  * Migration process is fairly complex. Basically, the daemon accepts actions
+    from queue and performs a series of system commands such as downloading
+    disk images from source hypervisor, uploading to Glance, launching a new
+    VM instance in Nova, and updating its state in database. And of course,
+    ``guts-migration`` can get it all done automatically. 
 
-**guts** client:
+**python-gutsclient**:
 
-  * Enables users to submit commands as a tenant administrator or end
-    user.
+  * Empowers users to manage migration process with client libraries and a CLI.
 
 **The queue**
 
@@ -64,16 +63,13 @@ GUTS consists of the following areas and their components:
 
 **SQL database**
 
-  * Stores most build-time and run-time states for a cloud
-    infrastructure, including:
+  * Stores most build-time and run-time states for migration, including:
 
     -  Source hypervisor types
 
-    -  Source hypervisors and connection params
+    -  Source hypervisors and connection parameters
 
     -  Available VMs, Flavors and Networks
 
-  * Theoretically, GUTS can support any database that SQL-Alchemy
-    supports.
-  * Common databases are SQLite3 for test and development work, MySQL,
-    and PostgreSQL.
+  * Theoretically, GUTS can support any database that SQL-Alchemy supports.
+  * Common databases are SQLite3, MySQL, and PostgreSQL.
