@@ -34,6 +34,8 @@ from osprofiler import profiler
 
 import guts.context
 import guts.exception
+from guts import objects
+from guts.objects import base
 
 CONF = cfg.CONF
 TRANSPORT = None
@@ -158,3 +160,24 @@ def get_notifier(service=None, host=None, publisher_id=None):
     if not publisher_id:
         publisher_id = "%s.%s" % (service, host or CONF.host)
     return NOTIFIER.prepare(publisher_id=publisher_id)
+
+
+LAST_RPC_VERSIONS = {}
+LAST_OBJ_VERSIONS = {}
+
+
+class RPCAPI(object):
+    """Mixin class aggregating methods related to RPC API compatibility."""
+
+    RPC_API_VERSION = '1.0'
+    TOPIC = ''
+    BINARY = ''
+
+    def __init__(self):
+        target = messaging.Target(topic=self.TOPIC,
+                                  version=self.RPC_API_VERSION)
+        serializer = base.GutsObjectSerializer()
+
+        rpc_version_cap = "1.8"
+        self.client = get_client(target, version_cap=rpc_version_cap,
+                                 serializer=serializer)

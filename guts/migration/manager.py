@@ -25,6 +25,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging as messaging
 from oslo_utils import importutils
+from oslo_service import periodic_task
 
 from guts.compute import nova
 from guts import db
@@ -87,7 +88,7 @@ def locked_migration_operation(f):
     return lvo_inner1
 
 
-class MigrationManager(manager.Manager):
+class MigrationManager(manager.SchedulerDependentManager):
     """Creates & manages VM migrations."""
 
     RPC_API_VERSION = '1.11'
@@ -263,3 +264,13 @@ class MigrationManager(manager.Manager):
             self._migration_status_update(context, migration_id,
                                           None, MIGRATION_STATUS['error'])
             raise
+
+    @periodic_task.periodic_task
+    def _report_driver_status(self, context):
+        status = {"YES": "I got something..."}
+        self.update_service_capabilities(status)
+
+    def publish_service_capabilities(self, context):
+        """Collect driver status and then publish."""
+        self._report_driver_status(context)
+        self._publish_service_capabilities(context)

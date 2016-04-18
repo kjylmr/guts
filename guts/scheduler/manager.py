@@ -25,6 +25,7 @@ from oslo_utils import importutils
 
 from guts import context
 from guts import manager
+from guts.migration import rpcapi as migration_rpcapi
 
 
 scheduler_driver_opt = cfg.StrOpt('scheduler_driver',
@@ -41,7 +42,7 @@ LOG = logging.getLogger(__name__)
 class SchedulerManager(manager.Manager):
     """Chooses a host to perform migration operation."""
 
-    RPC_API_VERSION = '2.0'
+    RPC_API_VERSION = '1.8'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -63,3 +64,15 @@ class SchedulerManager(manager.Manager):
     def reset(self):
         super(SchedulerManager, self).reset()
         self.driver.reset()
+
+    def request_service_capabilities(self, context):
+        migration_rpcapi.MigrationAPI().publish_service_capabilities(context)
+
+    def update_service_capabilities(self, context, service_name=None,
+                                    host=None, capabilities=None, **kwargs):
+        """Process a capability update from a service node."""
+        if capabilities is None:
+            capabilities = {}
+        self.driver.update_service_capabilities(service_name,
+                                                host,
+                                                capabilities)

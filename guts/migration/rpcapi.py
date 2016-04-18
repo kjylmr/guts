@@ -54,3 +54,7 @@ class MigrationAPI(object):
         cctxt = self.client.prepare(version='1.8')
         cctxt.cast(ctxt, 'fetch_vms',
                    source_hypervisor_id=source_hypervisor_id)
+
+    def publish_service_capabilities(self, ctxt):
+        cctxt = self.client.prepare(fanout=True, version='1.8')
+        cctxt.cast(ctxt, 'publish_service_capabilities')

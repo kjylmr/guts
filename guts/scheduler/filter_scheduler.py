@@ -22,11 +22,19 @@ Weighing Functions.
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from guts.scheduler import driver
+
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
-class FilterScheduler(object):
+class FilterScheduler(driver.Scheduler):
     """Scheduler that can be used for filtering and weighing."""
     def __init__(self, *args, **kwargs):
+        super(FilterScheduler, self).__init__(*args, **kwargs)
+        self.options = scheduler_options.SchedulerOptions()
+        self.max_attempts = self._max_attempts()
+
+    def schedule(self, context, topic, method, *args, **kwargs):
+        """Schedule contract that returns best-suited host for this request."""
         pass

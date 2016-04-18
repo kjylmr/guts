@@ -52,6 +52,7 @@ import oslo_messaging as messaging
 from oslo_service import periodic_task
 
 from guts.db import base
+from guts.scheduler import rpcapi as scheduler_rpcapi
 from guts import version
 
 
@@ -117,3 +118,38 @@ class Manager(base.Base, PeriodicTasks):
         manager is working correctly.
         """
         return True
+
+class SchedulerDependentManager(Manager):
+    """Periodically send capability updates to the Scheduler services.
+
+    Services that need to update the Scheduler of their capabilities
+    should derive from this class. Otherwise they can derive from
+    manager.Manager directly. Updates are only sent after
+    update_service_capabilities is called with non-None values.
+
+    """
+
+    def __init__(self, host=None, db_driver=None, service_name='undefined'):
+        self.last_capabilities = None
+        self.service_name = service_name
+        self.scheduler_rpcapi = scheduler_rpcapi.SchedulerAPI()
+        super(SchedulerDependentManager, self).__init__(host, db_driver)
+
+    def update_service_capabilities(self, capabilities):
+        """Remember these capabilities to send on next periodic update."""
+        self.last_capabilities = capabilities
+
+    @periodic_task.periodic_task
+    def _publish_service_capabilities(self, context):
+        """Pass data back to the scheduler at a periodic interval."""
+        if self.last_capabilities:
+            LOG.debug('Notifying Schedulers of capabilities ...')
+            self.scheduler_rpcapi.update_service_capabilities(
+                context,
+                self.service_name,
+                self.host,
+                self.last_capabilities)
+
+    def reset(self):
+        super(SchedulerDependentManager, self).reset()
+        self.scheduler_rpcapi = scheduler_rpcapi.SchedulerAPI()
