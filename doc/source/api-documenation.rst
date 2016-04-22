@@ -23,19 +23,23 @@ Glossary
 
 * **Source Hypervisor Types**
 
-    Please add description.
+    These are types of source hypervisors, which are having migration driver implementation.
+    E.g: OpenStack, VMWare, Hyper-V, etc...
 
 * **Source Hypervisors**
 
-    Please add description.
+    Instances of source hypervisor types, which contains VMs to migrate.
+    E.g: AU_OpenStack is of type OpenStack; VMWare1 is of type VMWare, etc...
 
 * **Source Instances**
 
-    Please add description.
+    VMs/instances exist on source hypervisors.
+    E.g: VM1, VM2 on AU_OpenStack, VM3, VM4 on VMWare1, etc...
 
 * **Migrations**
 
-    Please add description.
+    Instances of migration process. Which provides state and detailed information of migration processes.
+    E.g: Mig1, which migrates VM3 from VMWare1 to AU_OpenStack.
 
 
 API versions

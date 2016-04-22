@@ -264,11 +264,12 @@ Install and configure GUTS components
 
 6. Start GUTS services:
 
-  * Start ``guts-api`` and ``guts-migration`` services:
+  * Start ``guts-api``, ``guts-scheduler`` and ``guts-migration`` services:
 
     .. code-block:: console
 
         $ guts-api --config-file /etc/guts/guts.conf
+        $ guts-scheduler --config-file /etc/guts/guts.conf
         $ guts-migration --config-file /etc/guts/guts.conf
 
 

@@ -34,6 +34,14 @@ GUTS consists of the following components:
     such as start migration process.
   * guts-api listens on ``7000`` port by default.
 
+**guts-scheduler** service:
+
+  * Schedules migration process.
+  * Takes a migration request from the queue and determines on which
+    migration server host it runs.
+  * Selects a migration node based on conversion space available on the
+    node.
+
 **guts-migration** service:
 
   * A worker daemon that creates and manages migration of VM instances
