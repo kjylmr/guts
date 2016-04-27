@@ -325,3 +325,12 @@ def qemu_img_info(path, run_as_root=True):
         cmd = cmd[2:]
     out, _err = execute(*cmd, run_as_root=run_as_root)
     return QemuImgInfo(out)
+
+
+def service_is_up(service):
+    """Check whether a service is up based on last heartbeat."""
+    last_heartbeat = service['updated_at'] or service['created_at']
+    # Timestamps in DB are UTC.
+    elapsed = (timeutils.utcnow(with_timezone=True) -
+               last_heartbeat).total_seconds()
+    return abs(elapsed) <= CONF.service_down_time

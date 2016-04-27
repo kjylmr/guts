@@ -97,7 +97,8 @@ class MigrationManager(manager.SchedulerDependentManager):
 
     def __init__(self, service_name=None,
                  *args, **kwargs):
-        super(MigrationManager, self).__init__(*args, **kwargs)
+        super(MigrationManager, self).__init__(service_name='migration',
+                                               *args, **kwargs)
 
     def _prepare_connection_dict(self, con_string):
         con_dict = {}

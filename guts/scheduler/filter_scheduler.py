@@ -23,6 +23,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 
 from guts.scheduler import driver
+from guts.scheduler import scheduler_options
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -38,3 +39,11 @@ class FilterScheduler(driver.Scheduler):
     def schedule(self, context, topic, method, *args, **kwargs):
         """Schedule contract that returns best-suited host for this request."""
         pass
+
+    def _max_attempts(self):
+        max_attempts = CONF.scheduler_max_attempts
+        if max_attempts < 1:
+            raise exception.InvalidParameterValue(
+                err=_("Invalid value for 'scheduler_max_attempts', "
+                      "must be >=1"))
+        return max_attempts
