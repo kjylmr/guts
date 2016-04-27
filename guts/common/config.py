@@ -34,7 +34,7 @@ logging.register_options(CONF)
 
 core_opts = [
     cfg.StrOpt('api_paste_config',
-               default="api-paste.ini",
+               default="/etc/guts/api-paste.ini",
                help='File name for the paste.deploy config for guts-api'),
     cfg.StrOpt('state_path',
                default='/var/lib/guts',
