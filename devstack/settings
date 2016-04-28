@@ -17,7 +17,7 @@ GUTS_API_PASTE_INI=$GUTS_CONF_DIR/api-paste.ini
 GUTS_ENABLE_MODEL_POLICY_ENFORCEMENT=${GUTS_ENABLE_MODEL_POLICY_ENFORCEMENT:-False}
 
 GUTS_AUTH_CACHE_DIR=${GUTS_AUTH_CACHE_DIR:-/var/cache/guts}
-GUTS_STATE_PATH=${GUTS_STATE_PATH:=$DATA_DIR/guts}
+GUTS_STATE_PATH=${GUTS_STATE_PATH:-/var/lib/guts}
 
 # Set up default repos
 GUTS_DASHBOARD_REPO="https://github.com/aptira/guts-dashboard.git"
@@ -50,13 +50,8 @@ GUTS_RABBIT_VHOST=${GUTS_RABBIT_VHOST:-''}
 # Change the default nova_catalog_info and nova_catalog_admin_info values in
 # guts so that the service name guts is searching for matches that set for
 # nova in keystone.
-GUTS_NOVA_CATALOG_INFO=${GUTS_NOVA_CATALOG_INFO:-compute:nova:publicURL}
-GUTS_NOVA_CATALOG_ADMIN_INFO=${GUTS_NOVA_CATALOG_ADMIN_INFO:-compute:nova:adminURL}
 
-GUTS_PERIODIC_INTERVAL=${GUTS_PERIODIC_INTERVAL:-60}
-GUTS_ISCSI_HELPER=${GUTS_ISCSI_HELPER:-tgtadm}
 GUTS_OSAPI_MIGRATION_WORKERS=${GUTS_OSAPI_MIGRATION_WORKERS:-2}
-GRACEFUL_SHUTDOWN_TIMEOUT=${GRACEFUL_SHUTDOWN_TIMEOUT:-5}
 GUTS_USE_MOD_WSGI=${GUTS_USE_MOD_WSGI:-False}
 
 
