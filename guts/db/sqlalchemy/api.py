@@ -799,8 +799,8 @@ def service_get_by_args(context, host, binary):
         if host == result['host']:
             return result
 
-    raise exception.HostBinaryNotFound(host=host, binary=binary)
-
+    raise exception.ServiceNotFound(service_id=binary,
+                                    host=host)
 
 @require_admin_context
 def service_create(context, values):

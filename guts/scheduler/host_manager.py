@@ -76,7 +76,7 @@ class ReadOnlyDict(collections.Mapping):
 
 
 class HostState(object):
-    """Mutable and immutable information tracked for a migration backend."""
+    """Mutable and immutable information tracked for a hosts."""
 
     def __init__(self, host, capabilities=None, service=None):
         self.capabilities = None
@@ -119,9 +119,6 @@ class HostState(object):
         self.updated = capability['timestamp']
 
     def __repr__(self):
-        # FIXME(zhiteng) backend level free_capacity_gb isn't as
-        # meaningful as it used to be before pool is introduced, we'd
-        # come up with better representation of HostState.
         return ("host '%s': free_capacity_gb: %s, pools: %s" %
                 (self.host, self.free_capacity_gb, self.pools))
 
@@ -148,7 +145,7 @@ class HostManager(object):
         """Return a list of available filter names.
 
         This function checks input filter names against a predefined set
-        of acceptable filterss (all loaded filters).  If input is None,
+        of acceptable filters (all loaded filters).  If input is None,
         it uses CONF.scheduler_default_filters instead.
         """
         if filter_cls_names is None:
@@ -217,7 +214,7 @@ class HostManager(object):
 
     def update_service_capabilities(self, service_name, host, capabilities):
         """Update the per-service capabilities based on this notification."""
-        if service_name != 'migration':
+        if not (service_name != 'source' or service_name != 'destination'):
             LOG.debug('Ignoring %(service_name)s service update '
                       'from %(host)s',
                       {'service_name': service_name, 'host': host})
@@ -226,6 +223,7 @@ class HostManager(object):
         # Copy the capabilities, so we don't modify the original dict
         capab_copy = dict(capabilities)
         capab_copy["timestamp"] = timeutils.utcnow()  # Reported time
+
         self.service_states[host] = capab_copy
 
         LOG.debug("Received %(service_name)s service update from "
@@ -240,17 +238,19 @@ class HostManager(object):
 
     def _update_host_state_map(self, context):
 
-        # Get resource usage across the available volume nodes:
-        topic = CONF.migration_topic
-        migration_services = objects.ServiceList.get_all_by_topic(context,
-                                                               topic,
-                                                               disabled=False)
+        # Get resource usage across the available nodes:
+        sources = objects.ServiceList.get_all_by_topic(context,
+                                                       CONF.source_topic,
+                                                       disabled=False)
+        dests = objects.ServiceList.get_all_by_topic(context,
+                                                     CONF.destination_topic,
+                                                     disabled=False)
         active_hosts = set()
         no_capabilities_hosts = set()
-        for service in migration_services.objects:
+        for service in sources.objects + dests.objects:
             host = service.host
             if not utils.service_is_up(service):
-                LOG.warning(_LW("Migration service is down. (host: %s)"), host)
+                LOG.warning(_LW("Service is down. (host: %s)"), host)
                 continue
             capabilities = self.service_states.get(host, None)
             if capabilities is None:

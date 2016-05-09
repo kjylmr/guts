@@ -334,3 +334,8 @@ def service_is_up(service):
     elapsed = (timeutils.utcnow(with_timezone=True) -
                last_heartbeat).total_seconds()
     return abs(elapsed) <= CONF.service_down_time
+
+
+def extract_host(host):
+    """Extract host from host string."""
+    return host.split('@')[0]

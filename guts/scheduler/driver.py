@@ -45,11 +45,13 @@ class Scheduler(object):
     def __init__(self):
         self.host_manager = importutils.import_object(
             CONF.scheduler_host_manager)
-        self.migration_rpcapi = migration_rpcapi.MigrationAPI()
+        self.source_rpcapi = migration_rpcapi.SourceAPI()
+        self.destination_rpcapi = migration_rpcapi.DestinationAPI()
 
     def reset(self):
         """Reset migration RPC API object to load new version pins."""
-        self.migration_rpcapi = migration_rpcapi.MigrationAPI()
+        self.source_rpcapi = migration_rpcapi.SourceAPI()
+        self.destination_rpcapi = migration_rpcapi.DestinationAPI()
 
     def is_ready(self):
         """Returns True if Scheduler is ready to accept requests.

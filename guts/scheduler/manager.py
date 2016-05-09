@@ -66,7 +66,8 @@ class SchedulerManager(manager.Manager):
         self.driver.reset()
 
     def request_service_capabilities(self, context):
-        migration_rpcapi.MigrationAPI().publish_service_capabilities(context)
+        migration_rpcapi.SourceAPI().publish_service_capabilities(context)
+        migration_rpcapi.DestinationAPI().publish_service_capabilities(context)
 
     def update_service_capabilities(self, context, service_name=None,
                                     host=None, capabilities=None, **kwargs):
