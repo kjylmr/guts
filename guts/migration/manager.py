@@ -42,7 +42,7 @@ from guts.migration import configuration as config
 
 source_manager_opts = [
     cfg.StrOpt('source_driver',
-               default='guts.migration.source_drivers.vmware.VSphere',
+               default='guts.migration.drivers.sources.openstack.OpenStackSourceDriver',
                help='Driver to use for source hypervisor'),
     cfg.StrOpt('conversion_dir',
                default='$state_path/migrations',
@@ -54,7 +54,7 @@ source_manager_opts = [
 
 destination_manager_opts = [
     cfg.StrOpt('destination_driver',
-               default='guts.migration.destination_drivers.openstack.OpenStack',
+               default='guts.migration.drivers.destinations.openstack.OpenStackDestinationDriver',
                help='Driver to use for destination hypervisor'),
     cfg.StrOpt('conversion_dir',
                default='$state_path/migrations',
@@ -149,13 +149,16 @@ class SourceManager(manager.SchedulerDependentManager):
                                                   svc_host, 'guts-source')
         except exception.ServiceNotFound:
             LOG.info(_LI("Service not found for updating."))
+        self.driver = importutils.import_object(source_driver,
+                                                configuration=self.configuration,
+                                                host=self.host)
 
     @periodic_task.periodic_task
     def _report_driver_status(self, context):
         status = {}
         status["capabilities"] = self.configuration.capabilities
         status["free_space"] = _get_free_space(self.configuration.conversion_dir)
-        # Add VMs list to the status.
+        status['vms'] = self.driver.get_instances_list()
         self.update_service_capabilities(status)
 
     def publish_service_capabilities(self, context):
@@ -185,7 +188,7 @@ class DestinationManager(manager.SchedulerDependentManager):
         if not destination_driver:
             # Get from configuration, which will get the default
             # if its not using the multi backend.
-            destination = self.configuration.destination_driver
+            destination_driver = self.configuration.destination_driver
             
         svc_host = utils.extract_host(self.host)
         try:
@@ -193,6 +196,10 @@ class DestinationManager(manager.SchedulerDependentManager):
                                                   svc_host, 'guts-destination')
         except exception.ServiceNotFound:
             LOG.info(_LI("Service not found for updating."))
+
+        self.driver = importutils.import_object(destination_driver,
+                                                configuration=self.configuration,
+                                                host=self.host)
 
     @periodic_task.periodic_task
     def _report_driver_status(self, context):
