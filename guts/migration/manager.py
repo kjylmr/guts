@@ -158,7 +158,7 @@ class SourceManager(manager.SchedulerDependentManager):
         status = {}
         status["capabilities"] = self.configuration.capabilities
         status["free_space"] = _get_free_space(self.configuration.conversion_dir)
-        status['vms'] = self.driver.get_instances_list()
+        status['instances_list'] = self.driver.get_instances_list()
         self.update_service_capabilities(status)
 
     def publish_service_capabilities(self, context):

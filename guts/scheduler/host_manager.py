@@ -24,6 +24,7 @@ from oslo_log import log as logging
 from oslo_utils import timeutils
 
 from guts import context as guts_context
+from guts import db
 from guts import exception
 from guts import objects
 from guts import utils
@@ -220,6 +221,10 @@ class HostManager(object):
                       {'service_name': service_name, 'host': host})
             return
 
+        if service_name == 'source' and capabilities['instances_list']:
+            #_update_instances_list(capabilities['instances_list'])
+            pass
+            
         # Copy the capabilities, so we don't modify the original dict
         capab_copy = dict(capabilities)
         capab_copy["timestamp"] = timeutils.utcnow()  # Reported time

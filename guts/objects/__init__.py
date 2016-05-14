@@ -15,5 +15,6 @@
 
 
 def register_all():
-    # TODO(Bharat): Need to add resource objects.
     __import__('guts.objects.service')
+    __import__('guts.objects.resources')
+    __import__('guts.objects.migrations')

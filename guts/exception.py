@@ -211,11 +211,11 @@ class SourceTypeNotFoundByName(SourceTypeNotFound):
                 "could not be found.")
 
 
-class VMNotFound(NotFound):
+class InstanceNotFound(NotFound):
     message = _("Could not find VM with id '%(vm_id)s'")
 
 
-class VMNotFoundByName(NotFound):
+class InstanceNotFoundByName(NotFound):
     message = _("Could not find VM with name '%(vm_name)s'")
 
 

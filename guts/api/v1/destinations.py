@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""The source hypervisors."""
+"""The destination hypervisors."""
 
 import six
 import webob
@@ -33,15 +33,15 @@ LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 
-authorize = extensions.extension_authorizer('migration', 'sources')
+authorize = extensions.extension_authorizer('migration', 'destinations')
 
 
-class SourcesController(wsgi.Controller):
-    """The source hypervisor API controller for the OpenStack API."""
+class DestinationsController(wsgi.Controller):
+    """The destination hypervisor API controller for the OpenStack API."""
 
     def __init__(self, ext_mgr):
         self.ext_mgr = ext_mgr
-        super(SourcesController, self).__init__()
+        super(DestinationsController, self).__init__()
 
     def _notify_source_error(self, ctxt, method, err,
                              source=None, id=None, name=None):
@@ -56,43 +56,44 @@ class SourcesController(wsgi.Controller):
         """Returns the list of Source Hypervisors."""
         context = req.environ['guts.context']
         src_services = objects.ServiceList.get_all_by_topic(context,
-                                                            'guts-source')
+                                                            'guts-destination')
         now = timeutils.utcnow(with_timezone=True)
 
-        sources = []
+        destinations = []
         for service in src_services:
-            source = {}
+            dest = {}
             updated_at = service.updated_at
             delta = now - (service.updated_at or service.created_at)
             delta_sec = delta.total_seconds()
             alive = abs(delta_sec) <= CONF.service_down_time
-            source['status'] = (alive and "Up") or "Down"
-            source['host'] = service.host.split('@')[0]
-            source['hypervisor_name'] = service.host.split('@')[1]
-            source['id'] = service.id
-            sources.append(source)
-        return dict(sources=sources)
+            dest['status'] = (alive and "Up") or "Down"
+            dest['host'] = service.host.split('@')[0]
+            dest['hypervisor_name'] = service.host.split('@')[1]
+            dest['id'] = service.id
+            destinations.append(dest)
+        return dict(destinations=destinations)
 
     def show(self, req, id):
-        """Returns data about given source hypervisor."""
+        """Returns data about given destination hypervisor."""
         context = req.environ['guts.context']
         try:
             service = objects.Service.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
+        import pdb; pdb.set_trace()
         now = timeutils.utcnow(with_timezone=True)
-        source = {}
+        dest = {}
         updated_at = service.updated_at
         delta = now - (service.updated_at or service.created_at)
         delta_sec = delta.total_seconds()
         alive = abs(delta_sec) <= CONF.service_down_time
-        source['status'] = (alive and "Up") or "Down"
-        source['host'] = service.host.split('@')[0]
-        source['hypervisor_name'] = service.host.split('@')[1]
-        source['id'] = service.id
-        source['binary'] = service.binary
+        dest['status'] = (alive and "Up") or "Down"
+        dest['host'] = service.host.split('@')[0]
+        dest['hypervisor_name'] = service.host.split('@')[1]
+        dest['id'] = service.id
+        dest['binary'] = service.binary
 
-        return {'source': source}
+        return {'destination': dest}
 
 def create_resource(ext_mgr):
-    return wsgi.Resource(SourcesController(ext_mgr))
+    return wsgi.Resource(DestinationsController(ext_mgr))

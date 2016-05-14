@@ -18,77 +18,19 @@ from sqlalchemy import Integer, MetaData, String, Table, VARCHAR
 
 
 def define_tables(meta):
-    source_types = Table(
-        'source_types', meta,
+    resources = Table(
+        'resources', meta,
         Column('created_at', DateTime),
         Column('updated_at', DateTime),
         Column('deleted_at', DateTime),
         Column('id', String(length=36), primary_key=True, nullable=False),
-        Column('name', String(length=255)),
-        Column('deleted', Boolean),
-        Column('description', String(255)),
-        Column('driver_class_path', String(255)),
-        mysql_engine='InnoDB',
-        mysql_charset='utf8'
-    )
-
-    sources = Table(
-        'sources', meta,
-        Column('created_at', DateTime),
-        Column('updated_at', DateTime),
-        Column('deleted_at', DateTime),
-        Column('id', String(length=36), primary_key=True, nullable=False),
-        Column('name', String(length=255)),
-        Column('deleted', Boolean),
-        Column('description', String(255)),
-        Column('source_type_id',
-               String(length=36), ForeignKey('source_types.id'),
-               nullable=False),
-        Column('connection_params', String(255)),
-        Column('extra_specs', String(255)),
-        mysql_engine='InnoDB',
-        mysql_charset='utf8'
-    )
-
-    source_instances = Table(
-        'source_instances', meta,
-        Column('created_at', DateTime),
-        Column('updated_at', DateTime),
-        Column('deleted_at', DateTime),
-        Column('id', String(length=36), primary_key=True, nullable=False),
-        Column('name', String(length=255)),
+        Column('type', String(length=36)),
+        Column('properties', String(length=255)),
         Column('deleted', Boolean),
         Column('migrated', Boolean),
-        Column('dest_id', String(length=36)),
-        Column('uuid_at_source', String(36)),
-        Column('memory', String(36)),
-        Column('vcpus', String(36)),
-        Column('virtual_disks', VARCHAR(1020)),
-        Column('source_id',
-               String(length=36), ForeignKey('sources.id'),
+        Column('source', String(length=36),
+               ForeignKey('services.id'),
                nullable=False),
-        mysql_engine='InnoDB',
-        mysql_charset='utf8'
-    )
-
-    source_instance_disk_images = Table(
-        'source_instance_disk_images', meta,
-        Column('created_at', DateTime),
-        Column('updated_at', DateTime),
-        Column('deleted_at', DateTime),
-        Column('id', String(length=36), primary_key=True, nullable=False),
-        Column('name', String(length=255)),
-        Column('deleted', Boolean),
-        Column('source_instance_id',
-               String(length=36), ForeignKey('source_instances.id'),
-               nullable=False),
-        Column('disk_type', String(length=255)),
-        Column('operating_system', String(length=255)),
-        Column('disk_size', Integer),
-        Column('bootable', Boolean),
-        Column('migration_status', String(length=255)),
-        Column('description', String(255)),
-        Column('extra_specs', String(255)),
         mysql_engine='InnoDB',
         mysql_charset='utf8'
     )
@@ -100,16 +42,17 @@ def define_tables(meta):
         Column('deleted_at', DateTime),
         Column('id', String(length=36), primary_key=True, nullable=False),
         Column('name', String(length=255)),
-        Column('start_time', DateTime),
-        Column('finish_time', DateTime),
+        Column('description', String(255)),
+        Column('resource_id',
+               String(length=36), ForeignKey('resources.id'),
+               nullable=False),
         Column('migration_status', String(length=255)),
         Column('migration_event', String(length=255)),
-        Column('dest_instance_id', String(length=255)),
-        Column('description', String(255)),
+        Column('destination_hypervisor', String(length=36),
+               ForeignKey('services.id'), nullable=False),
+        Column('start_time', DateTime),
+        Column('finish_time', DateTime),
         Column('deleted', Boolean),
-        Column('source_instance_id',
-               String(length=36), ForeignKey('source_instances.id'),
-               nullable=False),
         mysql_engine='InnoDB',
         mysql_charset='utf8'
     )
@@ -121,7 +64,7 @@ def define_tables(meta):
         Column('deleted_at', DateTime),
         Column('modified_at', DateTime),
         Column('deleted', Boolean),
-        Column('id', Integer, primary_key=True, nullable=False),
+        Column('id', String(length=36), primary_key=True, nullable=False),
         Column('host', String(length=255)),
         Column('binary', String(length=255)),
         Column('topic', String(length=255)),
@@ -132,15 +75,11 @@ def define_tables(meta):
         Column('rpc_available_version', String(36)),
         Column('object_current_version', String(36)),
         Column('object_available_version', String(36)),
-        mysql_engine='InnoDB'
+        mysql_engine='InnoDB',
+        mysql_charset='utf8'
     )
 
-    return [source_types,
-            sources,
-            source_instances,
-            source_instance_disk_images,
-            migrations,
-            services]
+    return [services, resources, migrations]
 
 
 def upgrade(migrate_engine):
@@ -155,12 +94,7 @@ def upgrade(migrate_engine):
         table.create()
 
     if migrate_engine.name == "mysql":
-        tables = ["source_types",
-                  "sources",
-                  "source_instances",
-                  "source_instance_disk_images",
-                  "migrations",
-                  "services"]
+        tables = ['services', 'resources', 'migrations']
 
         migrate_engine.execute("SET foreign_key_checks = 0")
         for table in tables:
