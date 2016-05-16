@@ -25,7 +25,7 @@ from oslo_config import cfg
 openstack_source_opts = [
     cfg.StrOpt('auth_url',
                default='http://127.0.0.1:5000/v2.0',
-               help='	'),
+               help='Identity service endpoint for authorization'),
     cfg.StrOpt('username',
                default='admin',
                help='Name used for authentication with the OpenStack Identity service.'),
