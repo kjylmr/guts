@@ -26,11 +26,27 @@ class MigrationDriver(object):
         self._stats = {}
         self._initialized = False
 
+    def do_setup(self, context):
+        """Any initialization the volume driver does while starting."""
+        pass
+
 
 class SourceDriver(MigrationDriver):
     """This is the base class for all source hypervisor drivers."""
     def __init__(self, *args, **kwargs):
         super(SourceDriver, self).__init__(*args, **kwargs)
+
+    def get_instances_list(self):
+        msg = _("The method get_instances_list is not implemented.")
+        raise NotImplementedError(msg)
+
+    def get_volumes_list(self):
+        msg = _("The method get_volumes_list is not implemented.")
+        raise NotImplementedError(msg)
+
+    def get_networks_list(self):
+        msg = _("The method get_networks_list is not implemented.")
+        raise NotImplementedError(msg)
 
 
 class DestinationDriver(MigrationDriver):

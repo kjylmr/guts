@@ -221,7 +221,7 @@ class HostManager(object):
                       {'service_name': service_name, 'host': host})
             return
 
-        if service_name == 'source' and capabilities['instances_list']:
+        if service_name == 'source':
             #_update_instances_list(capabilities['instances_list'])
             pass
             

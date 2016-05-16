@@ -153,19 +153,50 @@ class SourceManager(manager.SchedulerDependentManager):
                                                 configuration=self.configuration,
                                                 host=self.host)
 
+    def init_host(self):
+        """Perform any required initialization."""
+        ctxt = context.get_admin_context()
+
+        LOG.info(_LI("Starting source driver %(driver_name)s."),
+                 {'driver_name': self.driver.__class__.__name__})
+        try:
+            self.driver.do_setup(ctxt)
+        except Exception:
+            LOG.exception(_LE("Failed to initialize driver."),
+                          resource={'type': 'driver',
+                                    'id': self.__class__.__name__})
+            # we don't want to continue since we failed
+            # to initialize the driver correctly.
+            return
+
     @periodic_task.periodic_task
     def _report_driver_status(self, context):
         status = {}
-        status["capabilities"] = self.configuration.capabilities
+        status["capabilities"] = self.configuration.capabilities.split(',')
         status["free_space"] = _get_free_space(self.configuration.conversion_dir)
-        status['instances_list'] = self.driver.get_instances_list()
+        resources = {}
+        for capab in status["capabilities"]:
+            if capab == 'instance':
+                instances = self.driver.get_instances_list()
+                if instances:
+                    resources['instance'] = instances
+            elif capab == 'volume':
+                volumes = self.driver.get_volumes_list()
+                if volumes:
+                    resources['volume'] = volumes
+            elif capab == 'network':
+                networks = self.driver.get_networks_list()
+                if networks:
+                    resources['network'] = networks
+            else:
+                LOG.debug("Invalid Capability %s" %(capab))
+        status['resources'] = resources
         self.update_service_capabilities(status)
 
     def publish_service_capabilities(self, context):
         """Collect driver status and then publish."""
         self._report_driver_status(context)
         self._publish_service_capabilities(context)
-
 
 
 class DestinationManager(manager.SchedulerDependentManager):

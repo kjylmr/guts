@@ -64,10 +64,6 @@ def main():
             else:
                 launcher.launch_service(server)
                 source_service_started = True
-    else:
-        server = service.Service.create(binary='guts-source')
-        launcher.launch_service(server)
-        source_service_started = True
 
     if CONF.enabled_destination_hypervisors:
         for dest in CONF.enabled_destination_hypervisors:
@@ -82,10 +78,6 @@ def main():
             else:
                 launcher.launch_service(server)
                 destination_service_started = True
-    else:
-        server = service.Service.create(binary='guts-destination')
-        launcher.launch_service(server)
-        destination_service_started = True
 
     if not (source_service_started or destination_service_started):
         msg = _('No migration service(s) started successfully, terminating.')
