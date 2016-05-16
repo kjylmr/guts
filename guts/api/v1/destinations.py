@@ -80,7 +80,6 @@ class DestinationsController(wsgi.Controller):
             service = objects.Service.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
-        import pdb; pdb.set_trace()
         now = timeutils.utcnow(with_timezone=True)
         dest = {}
         updated_at = service.updated_at

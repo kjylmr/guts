@@ -140,7 +140,8 @@ class HostManager(object):
         self.weight_classes = self.weight_handler.get_all_classes()
 
         self._no_capabilities_hosts = set()  # Hosts having no capabilities
-        self._update_host_state_map(guts_context.get_admin_context())
+        self._context = guts_context.get_admin_context()
+        self._update_host_state_map(self._context)
 
     def _choose_host_filters(self, filter_cls_names):
         """Return a list of available filter names.
@@ -221,9 +222,28 @@ class HostManager(object):
                       {'service_name': service_name, 'host': host})
             return
 
-        if service_name == 'source' and capabilities['instances_list']:
-            #_update_instances_list(capabilities['instances_list'])
-            pass
+        if service_name == 'source':
+            resources = capabilities['resources']
+            # objects.ResourceList.delete_all_by_source(self._context, host)
+            for capab in resources.keys():
+                if capab not in capabilities['capabilities']:
+                    continue
+                for resource in resources[capab]:
+                    try:
+                        objects.Resource.get_by_id_at_source(self._context,
+                                                             resource.get('id'))
+                    except exception.ResourceNotFound:
+                        pass
+                    else:
+                        continue
+                    kwargs = {'type': capab,
+                              'source': host,
+                              'name': resource.get('name'),
+                              'id_at_source': resource.get('id'),
+                              'properties': str(resource)}
+                    resource_ref = objects.Resource(context=self._context,
+                                                    **kwargs)
+                    resource_ref.create()
             
         # Copy the capabilities, so we don't modify the original dict
         capab_copy = dict(capabilities)

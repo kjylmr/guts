@@ -55,28 +55,30 @@ class InstancesController(wsgi.Controller):
     def index(self, req):
         """Returns the list of Instances."""
         context = req.environ['guts.context']
-        instances = objects.ResourceList.get_all_by_type(context, 'instance')
+        db_instances = objects.ResourceList.get_all_by_type(context, 'instance')
 
         instances = []
-        for i in instances:
+        for i in db_instances:
             instance = {}
             instance['id'] = i.id
+            instance['name'] = i.name
+            instance['hypervisor_name'] = i.source.split('@')[1]
             instance['migrated'] = i.migrated
-            instance['source'] = i.source
 
             instances.append(instance)
         return dict(instances=instances)
 
-    def show(self, req, instance_id):
+    def show(self, req, id):
         """Returns data about given instance."""
         context = req.environ['guts.context']
         try:
-            inst = objects.Resource.get(context, instance_id)
+            inst = objects.Resource.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
 
         instance = {}
         instance['id'] = inst.id
+        instance['name'] = inst.name
         instance['migrated'] = inst.migrated
         instance['source'] = inst.source
         instance['properties'] = inst.properties

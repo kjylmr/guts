@@ -65,5 +65,5 @@ class APIRouter(guts.api.openstack.APIRouter):
                         controller=self.resources['networks'])
 
         self.resources['migrations'] = migrations.create_resource(ext_mgr)
-        mapper.resource("migrations", "migrations",
+        mapper.resource("migration", "migrations",
                         controller=self.resources['migrations'])

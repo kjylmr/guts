@@ -38,10 +38,12 @@ class Resource(base.GutsPersistentObject, base.GutsObject,
 
     fields = {
         'id': fields.StringField(),
+        'id_at_source': fields.StringField(nullable=True),
+        'name': fields.StringField(nullable=True),
         'type': fields.StringField(nullable=True),
         'source': fields.StringField(nullable=True),
         'properties': fields.StringField(nullable=True),
-        'is_migrated': fields.BooleanField(default=False),
+        'migrated': fields.BooleanField(default=False),
         'deleted': fields.BooleanField(default=False),
     }
 
@@ -62,6 +64,11 @@ class Resource(base.GutsPersistentObject, base.GutsObject,
         resource._context = context
         resource.obj_reset_changes()
         return resource
+
+    @base.remotable_classmethod
+    def get_by_id_at_source(cls, context, id_at_source):
+        db_resource = db.resource_get_by_id_at_source(context, id_at_source)
+        return cls._from_db_object(context, cls(context), db_resource)
 
     @base.remotable_classmethod
     def get(cls, context, resource_id):
@@ -112,3 +119,13 @@ class ResourceList(base.ObjectListBase, base.GutsObject):
         resources = db.resource_get_all_by_type(context, resource_type)
         return base.obj_make_list(context, cls(context), objects.Resource,
                                   resources)
+
+    @base.remotable_classmethod
+    def get_all_by_source(cls, context, source, disabled=None):
+        resources = db.resource_get_all_by_source(context, source)
+        return base.obj_make_list(context, cls(context), objects.Resource,
+                                  resources)
+
+    @base.remotable_classmethod
+    def delete_all_by_source(cls, context, source, disabled=None):
+        resources = db.resource_delete_all_by_source(context, source)
