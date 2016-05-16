@@ -55,31 +55,33 @@ class VolumesController(wsgi.Controller):
     def index(self, req):
         """Returns the list of Volumes."""
         context = req.environ['guts.context']
-        volumes = objects.ResourceList.get_all_by_type(context, 'volume')
+        db_volumes = objects.ResourceList.get_all_by_type(context, 'volume')
 
         volumes = []
-        for i in volumes:
+        for v in db_volumes:
             volume = {}
-            volume['id'] = i.id
-            volume['migrated'] = i.migrated
-            volume['source'] = i.source
+            volume['id'] = v.id
+            volume['migrated'] = v.migrated
+            volume['name'] = v.name
+            volume['hypervisor_name'] = v.source.split('@')[1]
 
             volumes.append(volume)
         return dict(volumes=volumes)
 
-    def show(self, req, volume_id):
+    def show(self, req, id):
         """Returns data about given volume."""
         context = req.environ['guts.context']
         try:
-            inst = objects.Resource.get(context, volume_id)
+            vol = objects.Resource.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
 
         volume = {}
-        volume['id'] = inst.id
-        volume['migrated'] = inst.migrated
-        volume['source'] = inst.source
-        volume['properties'] = inst.properties
+        volume['id'] = vol.id
+        volume['migrated'] = vol.migrated
+        volume['name'] = vol.name
+        volume['source'] = vol.source
+        volume['properties'] = vol.properties
 
         return {'volume': volume}
 

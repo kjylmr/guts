@@ -50,11 +50,12 @@ class Resources(BASE, GutsBase):
     """Represent resources to migrate."""
     __tablename__ = "resources"
     id = Column(String(36), primary_key=True)
+    name = Column(String(36))
+    id_at_source = Column(String(36))
     type = Column(String(36))
-    properties = Column(String(255))
+    properties = Column(String(1024))
     migrated = Column(Boolean, default=False)
-    source = Column(String(36),
-                    ForeignKey('services.id'),
+    source = Column(String(255),
                     nullable=False)
 
 

@@ -55,31 +55,33 @@ class NetworksController(wsgi.Controller):
     def index(self, req):
         """Returns the list of Networks."""
         context = req.environ['guts.context']
-        networks = objects.ResourceList.get_all_by_type(context, 'network')
+        db_networks = objects.ResourceList.get_all_by_type(context, 'network')
 
         networks = []
-        for i in networks:
+        for i in db_networks:
             network = {}
             network['id'] = i.id
+            network['name'] = i.name
             network['migrated'] = i.migrated
-            network['source'] = i.source
+            network['hypervisor_name'] = i.source.split('@')[1]
             networks.append(network)
 
         return dict(networks=networks)
 
-    def show(self, req, network_id):
+    def show(self, req, id):
         """Returns data about given network."""
         context = req.environ['guts.context']
         try:
-            inst = objects.Resource.get(context, network_id)
+            net = objects.Resource.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
 
         network = {}
-        network['id'] = inst.id
-        network['migrated'] = inst.migrated
-        network['source'] = inst.source
-        network['properties'] = inst.properties
+        network['id'] = net.id
+        network['name'] = net.name
+        network['migrated'] = net.migrated
+        network['source'] = net.source
+        network['properties'] = net.properties
 
         return {'network': network}
 

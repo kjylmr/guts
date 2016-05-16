@@ -224,13 +224,7 @@ def resource_get_all(context, inactive=False):
     read_deleted = "yes" if inactive else "no"
     query = _resource_get_query(context, read_deleted=read_deleted)
 
-    rows = query.order_by("id").all()
-
-    result = {}
-    for row in rows:
-        result[row['id']] = row
-
-    return result
+    return query.order_by("id").all()
 
 
 @require_context
@@ -294,18 +288,31 @@ def resource_get_all_by_type(context, resource_type, session=None):
 
 
 @require_context
-def _resources_get_by_source(context, source_id, session=None):
+def resource_get_by_id_at_source(context, id_at_source, session=None):
+    result = _resource_get_query(
+        context, session).\
+        filter_by(id_at_source=id_at_source).\
+        first()
+
+    if not result:
+        raise exception.ResourceNotFound(resource_id=id_at_source)
+
+    return result
+
+
+@require_context
+def _resources_get_by_source(context, source, session=None):
     result = model_query(context, models.Resources, session=session).\
-        filter_by(source=sorce_id)
+        filter_by(source=source)
 
     return result
 
 
 @require_admin_context
-def delete_resources_by_source(context, source_id):
+def resource_delete_all_by_source(context, source):
     session = get_session()
     with session.begin():
-        resources = _resources_get_by_source(context, source_id,
+        resources = _resources_get_by_source(context, source,
                                              session)
 
         for resource in resources:
@@ -344,13 +351,7 @@ def migration_get_all(context, inactive=False):
     read_deleted = "yes" if inactive else "no"
     query = _migration_get_query(context, read_deleted=read_deleted)
 
-    rows = query.order_by("name").all()
-
-    result = {}
-    for row in rows:
-        result[row['id']] = row
-
-    return result
+    return query.order_by("name").all()
 
 
 @require_context

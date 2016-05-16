@@ -55,29 +55,31 @@ class ResourcesController(wsgi.Controller):
     def index(self, req):
         """Returns the list of Resources."""
         context = req.environ['guts.context']
-        resources = objects.ResourceList.get_all(context)
+        db_resources = objects.ResourceList.get_all(context)
 
         resources = []
-        for r in resources:
+        for r in db_resources:
             resource = {}
             resource['id'] = r.id
+            resource['name'] = r.name
             resource['type'] = r.type
             resource['migrated'] = r.migrated
-            resource['source'] = r.source
+            resource['hypervisor_name'] = r.source.split('@')[1]
 
             resources.append(resource)
         return dict(resources=resources)
 
-    def show(self, req, resource_id):
+    def show(self, req, id):
         """Returns data about given resource."""
         context = req.environ['guts.context']
         try:
-            resource = objects.Resource.get(context, resource_id)
-        except exception.NotFound:
+            r = objects.Resource.get(context, id)
+        except exception.ResourceNotFound:
             raise webob.exc.HTTPNotFound()
 
         resource = {}
         resource['id'] = r.id
+        resource['name'] = r.name
         resource['type'] = r.type
         resource['migrated'] = r.migrated
         resource['source'] = r.source

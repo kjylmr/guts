@@ -191,9 +191,9 @@ def resource_delete(context, resource_id):
     return IMPL.resource_delete(context, resorce_id)
 
 
-def delete_resources_by_source_id(context, source_id):
+def resource_delete_all_by_source(context, source):
     """Deletes all resources list of give source."""
-    return IMPL.delete_resources_by_source(context, source_id)
+    return IMPL.resource_delete_all_by_source(context, source)
 
 
 def resource_update(context, resource_id, values):
@@ -208,6 +208,10 @@ def resource_get_all_by_type(context, resource_type):
     """Return a resources of similar types."""
 
     return IMPL.resource_get_all_by_type(context, resource_type)
+
+def resource_get_by_id_at_source(context, id_at_source):
+    """Return a resources based on it at source."""
+    return IMPL.resource_get_by_id_at_source(context, id_at_source)
 
 
 # Migrations
