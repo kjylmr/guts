@@ -27,14 +27,14 @@ from guts import rpc
 CONF = cfg.CONF
 
 
-class MigrationAPI(object):
-    """Client side of the migration rpc API."""
+class SourceAPI(rpc.RPCAPI):
+    """Client side of the source rpc API."""
 
-    BASE_RPC_API_VERSION = '1.0'
+    BASE_RPC_API_VERSION = '1.8'
 
     def __init__(self, topic=None):
-        super(MigrationAPI, self).__init__()
-        target = messaging.Target(topic=CONF.migration_topic,
+        super(SourceAPI, self).__init__()
+        target = messaging.Target(topic='guts-source',
                                   version=self.BASE_RPC_API_VERSION)
         serializer = objects_base.GutsObjectSerializer()
 
@@ -42,7 +42,7 @@ class MigrationAPI(object):
                                      serializer=serializer)
 
     def validate_for_migration(self, ctxt, migration_ref):
-        cctxt = self.client.prepare(version='1.8')
+        cctxt = self.client.prepare(version=self.BASE_RPC_API_VERSION)
         return cctxt.call(ctxt, 'validate_for_migration',
                           migration_ref=migration_ref)
 
@@ -51,6 +51,31 @@ class MigrationAPI(object):
         cctxt.cast(ctxt, 'create_migration', migration_ref=migration_ref)
 
     def fetch_vms(self, ctxt, source_hypervisor_id):
-        cctxt = self.client.prepare(version='1.8')
+        cctxt = self.client.prepare(version=self.BASE_RPC_API_VERSION)
         cctxt.cast(ctxt, 'fetch_vms',
                    source_hypervisor_id=source_hypervisor_id)
+
+    def publish_service_capabilities(self, ctxt):
+        cctxt = self.client.prepare(fanout=True,
+                                    version=self.BASE_RPC_API_VERSION)
+        cctxt.cast(ctxt, 'publish_service_capabilities')
+
+
+class DestinationAPI(rpc.RPCAPI):
+    """Client side of the destination rpc API."""
+
+    BASE_RPC_API_VERSION = '1.8'
+
+    def __init__(self, topic=None):
+        super(DestinationAPI, self).__init__()
+        target = messaging.Target(topic='guts-destination',
+                                  version=self.BASE_RPC_API_VERSION)
+        serializer = objects_base.GutsObjectSerializer()
+
+        self.client = rpc.get_client(target, version_cap=None,
+                                     serializer=serializer)
+
+    def publish_service_capabilities(self, ctxt):
+        cctxt = self.client.prepare(fanout=True,
+                                    version=self.BASE_RPC_API_VERSION)
+        cctxt.cast(ctxt, 'publish_service_capabilities')

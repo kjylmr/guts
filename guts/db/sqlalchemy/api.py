@@ -202,11 +202,13 @@ def model_query(context, *args, **kwargs):
     return query
 
 
-def _source_type_get_query(context, session=None, read_deleted=None,
-                           expected_fields=None):
+# Resources
+
+def _resource_get_query(context, session=None, read_deleted=None,
+                        expected_fields=None):
     expected_fields = expected_fields or []
     query = model_query(context,
-                        models.SourceTypes,
+                        models.Resources,
                         session=session,
                         read_deleted=read_deleted)
 
@@ -217,348 +219,36 @@ def _source_type_get_query(context, session=None, read_deleted=None,
 
 
 @require_context
-def source_type_get_all(context, inactive=False):
-    """Returns a source hypervisor types with name as key."""
+def resource_get_all(context, inactive=False):
+    """Returns a dict describing all resources with id as key."""
     read_deleted = "yes" if inactive else "no"
-    query = _source_type_get_query(context, read_deleted=read_deleted)
+    query = _resource_get_query(context, read_deleted=read_deleted)
 
-    rows = query.order_by("name").all()
-
-    result = {}
-    for row in rows:
-        result[row['id']] = row
-
-    return result
+    return query.order_by("id").all()
 
 
 @require_context
-def _source_type_get(context, id, session=None):
-    result = _source_type_get_query(
+def _resource_get(context, resource_id, session=None):
+    result = _resource_get_query(
         context, session).\
-        filter_by(id=id).\
+        filter_by(id=resource_id).\
         first()
 
     if not result:
-        raise exception.SourceTypeNotFound(source_type_id=id)
+        raise exception.ResourceNotFound(resource_id=resource_id)
 
     return result
 
 
 @require_context
-def source_type_get(context, id, session=None):
-    """Return a dict describing specific source type."""
-    return _source_type_get(context, id, session)
-
-
-@require_context
-def _source_type_get_by_name(context, name, session=None):
-    result = model_query(context, models.SourceTypes, session=session).\
-        filter_by(name=name).\
-        first()
-
-    if not result:
-        raise exception.SourceTypeNotFoundByName(source_type_name=name)
-
-    return result
-
-
-@require_admin_context
-def source_type_create(context, values, projects=None):
-    """Create a new source type."""
-    if not values.get('id'):
-        values['id'] = str(uuid.uuid4())
-
-    session = get_session()
-
-    with session.begin():
-        # Check, if any source_type exist with the same ID.
-        try:
-            _source_type_get(context, values['id'], session)
-            raise exception.SourceTypeExists(id=values['id'])
-        except exception.SourceTypeNotFound:
-            pass
-
-        try:
-            source_type_ref = models.SourceTypes()
-            source_type_ref.update(values)
-            session.add(source_type_ref)
-        except Exception as e:
-            raise db_exc.DBError(e)
-
-        return source_type_ref
-
-
-@require_admin_context
-def source_type_update(context, source_type_id, values):
-    session = get_session()
-    with session.begin():
-        # Check it exists
-        source_type_ref = _source_type_get(context,
-                                           source_type_id,
-                                           session)
-        if not source_type_ref:
-            raise exception.SourceTypeNotFound(type_id=source_type_id)
-
-        # No description change
-        if values['description'] is None:
-            del values['description']
-
-        # No driver change
-        if values['driver'] is None:
-            del values['driver']
-
-        # No name change
-        if values['name'] is None:
-            del values['name']
-
-        source_type_ref.update(values)
-        source_type_ref.save(session=session)
-        source_type = source_type_get(context, source_type_id)
-
-        return source_type
-
-
-@require_context
-def source_type_get_by_name(context, name):
-    """Return a dict describing specific source_type."""
-
-    return _source_type_get_by_name(context, name)
-
-
-@require_admin_context
-def source_type_delete(context, type_id):
-    session = get_session()
-    with session.begin():
-        stype = source_type_get(context, type_id,
-                                session)
-        if not stype:
-            raise exception.SourceTypeNotFound(
-                type_id=type_id)
-        stype.update({'deleted': True,
-                      'deleted_at': timeutils.utcnow(),
-                      'updated_at': literal_column('updated_at')})
-
-
-# Sources
-
-def _source_get_query(context, session=None, read_deleted=None,
-                      expected_fields=None):
-    expected_fields = expected_fields or []
-    query = model_query(context,
-                        models.Sources,
-                        session=session,
-                        read_deleted=read_deleted)
-
-    if 'projects' in expected_fields:
-        query = query.options(joinedload('projects'))
-
-    return query
-
-
-@require_context
-def source_get_all(context, inactive=False):
-    """Returns a all source hypervisor with name as key."""
-    read_deleted = "yes" if inactive else "no"
-    query = _source_get_query(context, read_deleted=read_deleted)
-
-    rows = query.order_by("name").all()
-
-    result = {}
-    for row in rows:
-        result[row['id']] = row
-
-    return result
-
-
-@require_context
-def _source_get(context, id, session=None):
-    result = _source_get_query(
-        context, session).\
-        filter_by(id=id).\
-        first()
-
-    if not result:
-        raise exception.SourceNotFound(source_id=id)
-
-    return result
-
-
-@require_context
-def source_get(context, id, session=None):
-    """Return a dict describing specific source."""
-    return _source_get(context, id, session)
-
-
-@require_context
-def _source_get_by_name(context, name, session=None):
-    result = model_query(context, models.Sources, session=session).\
-        filter_by(name=name).\
-        first()
-
-    if not result:
-        raise exception.SourceNotFoundByName(source_name=name)
-
-    return result
-
-
-@require_admin_context
-def source_create(context, values, projects=None):
-    """Create a new source."""
-    if not values.get('id'):
-        values['id'] = str(uuid.uuid4())
-
-    session = get_session()
-
-    with session.begin():
-        # Check, if any source exist with the same ID.
-        try:
-            _source_get(context, values['id'], session)
-            raise exception.SourceExists(id=values['id'])
-        except exception.SourceNotFound:
-            pass
-        try:
-            source_ref = models.Sources()
-            source_ref.update(values)
-            session.add(source_ref)
-        except Exception as e:
-            raise db_exc.DBError(e)
-
-        return source_ref
-
-
-@require_admin_context
-def source_update(context, source_id, values):
-    session = get_session()
-    with session.begin():
-        # Check it exists
-        source_ref = _source_get(context,
-                                 source_id,
-                                 session)
-        if not source_ref:
-            raise exception.SourceNotFound(source_id=source_id)
-
-        # No description change
-        if values['description'] is None:
-            del values['description']
-
-        # No connection_params change
-        if values['connection_params'] is None:
-            del values['connection_params']
-
-        # No stype change
-        if values['source_type_id'] is None:
-            del values['source_type_id']
-
-        # No name change
-        if values['name'] is None:
-            del values['name']
-
-        source_ref.update(values)
-        source_ref.save(session=session)
-        return source_ref
-
-
-@require_context
-def source_get_by_name(context, name):
-    """Return a dict describing specific source."""
-
-    return _source_get_by_name(context, name)
-
-
-@require_admin_context
-def source_delete(context, source_id):
-    session = get_session()
-    with session.begin():
-        source = source_get(context, source_id,
-                            session)
-        if not source:
-            raise exception.SourceNotFound(
-                source_id=source_id)
-        source.update({'deleted': True,
-                       'deleted_at': timeutils.utcnow(),
-                       'updated_at': literal_column('updated_at')})
-
-
-# VMs
-
-def _vm_get_query(context, session=None, read_deleted=None,
-                  expected_fields=None):
-    expected_fields = expected_fields or []
-    query = model_query(context,
-                        models.VMs,
-                        session=session,
-                        read_deleted=read_deleted)
-
-    if 'projects' in expected_fields:
-        query = query.options(joinedload('projects'))
-
-    return query
-
-
-@require_context
-def vm_get_all(context, inactive=False):
-    """Returns a dict describing all source vm with name as key."""
-    read_deleted = "yes" if inactive else "no"
-    query = _vm_get_query(context, read_deleted=read_deleted)
-
-    rows = query.order_by("name").all()
-
-    result = {}
-    for row in rows:
-        result[row['id']] = row
-
-    return result
-
-
-@require_context
-def _vm_get(context, id, session=None):
-    result = _vm_get_query(
-        context, session).\
-        filter_by(id=id).\
-        first()
-
-    if not result:
-        raise exception.VMNotFound(vm_id=id)
-
-    return result
-
-
-@require_context
-def vm_get(context, id, session=None):
-    """Return a dict describing specific source vm."""
-    return _vm_get(context, id,
+def resource_get(context, resource_id, session=None):
+    """Return a dict describing specific resource."""
+    return _resource_get(context, resource_id,
                    session)
 
 
 @require_context
-def _vm_get_by_name(context, name, session=None):
-    result = model_query(context, models.VMs, session=session).\
-        filter_by(name=name).\
-        first()
-
-    if not result:
-        raise exception.VMNotFoundByName(vm_name=name)
-
-    return result
-
-
-@require_context
-def _vms_get_by_sorce_id(context, source_id, session=None):
-    result = model_query(context, models.VMs, session=session).\
-        filter_by(source_id=source_id)
-
-    return result
-
-
-@require_context
-def vm_get_by_name(context, name):
-    """Return a dict describing specific source vm."""
-
-    return _vm_get_by_name(context, name)
-
-
-@require_context
-def vm_create(context, values):
+def resource_create(context, values):
     if not values.get('id'):
         values['id'] = str(uuid.uuid4())
 
@@ -566,49 +256,78 @@ def vm_create(context, values):
 
     with session.begin():
         try:
-            vm_ref = models.VMs()
-            vm_ref.update(values)
-            session.add(vm_ref)
+            resource_ref = models.Resources()
+            resource_ref.update(values)
+            session.add(resource_ref)
         except Exception as e:
             raise db_exc.DBError(e)
 
-        return vm_ref
+        return resource_ref
 
 
 @require_admin_context
-def vm_delete(context, vm_id):
+def resource_delete(context, resource_id):
     session = get_session()
     with session.begin():
-        vm = vm_get(context, vm_id,
-                    session)
-        if not vm:
-            raise exception.VMNotFound(
-                vm_id=vm_id)
+        resource = resource_get(context, resource_id,
+                                session)
+        if not resource:
+            raise exception.ResourceNotFound(
+                resource_id=resource_id)
         vm.update({'deleted': True,
                    'deleted_at': timeutils.utcnow(),
                    'updated_at': literal_column('updated_at')})
 
 
+@require_context
+def resource_get_all_by_type(context, resource_type, session=None):
+    result = model_query(context, models.Resources, session=session).\
+        filter_by(type=resource_type)
+
+    return result
+
+
+@require_context
+def resource_get_by_id_at_source(context, id_at_source, session=None):
+    result = _resource_get_query(
+        context, session).\
+        filter_by(id_at_source=id_at_source).\
+        first()
+
+    if not result:
+        raise exception.ResourceNotFound(resource_id=id_at_source)
+
+    return result
+
+
+@require_context
+def _resources_get_by_source(context, source, session=None):
+    result = model_query(context, models.Resources, session=session).\
+        filter_by(source=source)
+
+    return result
+
+
 @require_admin_context
-def delete_vms_by_source_id(context, source_id):
+def resource_delete_all_by_source(context, source):
     session = get_session()
     with session.begin():
-        vms = _vms_get_by_sorce_id(context, source_id,
-                                   session)
+        resources = _resources_get_by_source(context, source,
+                                             session)
 
-        for vm in vms:
-            vm.update({'deleted': True,
-                       'deleted_at': timeutils.utcnow(),
-                       'updated_at': literal_column('updated_at')})
+        for resource in resources:
+            resource.update({'deleted': True,
+                             'deleted_at': timeutils.utcnow(),
+                             'updated_at': literal_column('updated_at')})
 
 
 @require_admin_context
-def vm_update(context, vm_id, values):
+def resource_update(context, resource_id, values):
     session = get_session()
     with session.begin():
-        vm_ref = _vm_get(context, vm_id, session=session)
-        vm_ref.update(values)
-        return vm_ref
+        resource_ref = _resource_get(context, resource_id, session=session)
+        resource_ref.update(values)
+        return resource_ref
 
 # Migrations
 
@@ -632,13 +351,7 @@ def migration_get_all(context, inactive=False):
     read_deleted = "yes" if inactive else "no"
     query = _migration_get_query(context, read_deleted=read_deleted)
 
-    rows = query.order_by("name").all()
-
-    result = {}
-    for row in rows:
-        result[row['id']] = row
-
-    return result
+    return query.order_by("name").all()
 
 
 @require_context
@@ -799,18 +512,27 @@ def service_get_by_args(context, host, binary):
         if host == result['host']:
             return result
 
-    raise exception.HostBinaryNotFound(host=host, binary=binary)
-
+    raise exception.ServiceNotFound(service_id=binary,
+                                    host=host)
 
 @require_admin_context
 def service_create(context, values):
     service_ref = models.Service()
+    if not values.get('id'):
+        values['id'] = str(uuid.uuid4())
     service_ref.update(values)
     if not CONF.enable_new_services:
         service_ref.disabled = True
 
     session = get_session()
     with session.begin():
+        # Check, if any migration exist with the same ID.
+        try:
+            _service_get(context, values['id'], session)
+            raise exception.ServiceExists(id=values['id'])
+        except exception.ServiceNotFound:
+            pass
+
         service_ref.save(session)
         return service_ref
 

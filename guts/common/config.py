@@ -64,7 +64,7 @@ global_opts = [
     cfg.StrOpt('glance_api_server',
                 default='http://$glance_host:$glance_port/v$glance_api_version',
                 help='A list of the URLs of glance API servers available to '
-                     'cinder ([http[s]://][hostname|ip]:port). If protocol '
+                     'guts ([http[s]://][hostname|ip]:port). If protocol '
                      'is not specified it defaults to http.'),
     cfg.StrOpt('project_domain_name',
                default='default',
@@ -76,9 +76,15 @@ global_opts = [
     cfg.BoolOpt('monkey_patch',
                 default=False,
                 help='Enable monkey patching'),
-    cfg.StrOpt('migration_topic',
-               default='guts-migration',
-               help='The topic that migration nodes listen on'),
+    cfg.StrOpt('source_topic',
+               default='guts-source',
+               help='The topic that source nodes listen on'),
+    cfg.StrOpt('destination_topic',
+               default='guts-destination',
+               help='The topic that destination nodes listen on'),
+    cfg.StrOpt('scheduler_topic',
+               default='guts-scheduler',
+               help='The topic that migration scheduler listen on'),
     cfg.ListOpt('monkey_patch_modules',
                 default=[],
                 help='List of modules/decorators to monkey patch'),
@@ -90,6 +96,14 @@ global_opts = [
                default='keystone',
                choices=['noauth', 'keystone'],
                help='The strategy to use for auth. Supports noauth or keystone.'),
+    cfg.ListOpt('enabled_source_hypervisors',
+                help='A list of source hypervisor names to use. These names '
+                     'should be backed by a unique [CONFIG] group '
+                     'with its options'),
+    cfg.ListOpt('enabled_destination_hypervisors',
+                help='A list of target hypervisor names to use. These names '
+                     'should be backed by a unique [CONFIG] group '
+                     'with its options'),
     cfg.BoolOpt('api_rate_limit',
                 default=True,
                 help='Enables or disables rate limit of the API.'),
@@ -99,9 +113,15 @@ global_opts = [
     cfg.StrOpt('migration_api_class',
                default='guts.migration.api.API',
                help='The full class name of the migration API class to use'),
-    cfg.StrOpt('migration_manager',
-               default='guts.migration.manager.MigrationManager',
-               help='Full class name for the Manager for migration'),
+    cfg.StrOpt('scheduler_manager',
+               default='guts.scheduler.manager.SchedulerManager',
+               help='Full class name for the Manager for scheduler'),
+    cfg.StrOpt('source_manager',
+               default='guts.migration.manager.SourceManager',
+               help='Full class name for the Manager for source'),
+    cfg.StrOpt('destination_manager',
+               default='guts.migration.manager.DestinationManager',
+               help='Full class name for the Manager for destination'),
     cfg.IntOpt('service_down_time',
                default=60,
                help='Maximum time since last check-in for a service to be '

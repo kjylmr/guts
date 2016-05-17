@@ -30,7 +30,7 @@ LOG = logging.getLogger(__name__)
 
 
 @base.GutsObjectRegistry.register
-class Service(base.GutsPersistentObject, base.GutsObject,
+class Resource(base.GutsPersistentObject, base.GutsObject,
               base.GutsObjectDictCompat,
               base.GutsComparableObject):
     # Version 1.0: Initial version
@@ -38,14 +38,13 @@ class Service(base.GutsPersistentObject, base.GutsObject,
 
     fields = {
         'id': fields.StringField(),
-        'host': fields.StringField(nullable=True),
-        'binary': fields.StringField(nullable=True),
-        'topic': fields.StringField(nullable=True),
-        'report_count': fields.IntegerField(default=0),
-        'disabled': fields.BooleanField(default=False),
-        'disabled_reason': fields.StringField(nullable=True),
-
-        'modified_at': fields.DateTimeField(nullable=True),
+        'id_at_source': fields.StringField(nullable=True),
+        'name': fields.StringField(nullable=True),
+        'type': fields.StringField(nullable=True),
+        'source': fields.StringField(nullable=True),
+        'properties': fields.StringField(nullable=True),
+        'migrated': fields.BooleanField(default=False),
+        'deleted': fields.BooleanField(default=False),
     }
 
     def obj_make_compatible(self, primitive, target_version):
@@ -53,33 +52,28 @@ class Service(base.GutsPersistentObject, base.GutsObject,
         target_version = utils.convert_version_to_tuple(target_version)
 
     @staticmethod
-    def _from_db_object(context, service, db_service):
-        for name, field in service.fields.items():
+    def _from_db_object(context, resource, db_service):
+        for name, field in resource.fields.items():
             value = db_service.get(name)
             if isinstance(field, fields.IntegerField):
                 value = value or 0
             elif isinstance(field, fields.DateTimeField):
                 value = value or None
-            service[name] = value
+            resource[name] = value
 
-        service._context = context
-        service.obj_reset_changes()
-        return service
-
-    @base.remotable_classmethod
-    def get(cls, context, service_id):
-        db_service = db.service_get(context, service_id)
-        return cls._from_db_object(context, cls(context), db_service)
+        resource._context = context
+        resource.obj_reset_changes()
+        return resource
 
     @base.remotable_classmethod
-    def get_by_host_and_topic(cls, context, host, topic):
-        db_service = db.service_get_by_host_and_topic(context, host, topic)
-        return cls._from_db_object(context, cls(context), db_service)
+    def get_by_id_at_source(cls, context, id_at_source):
+        db_resource = db.resource_get_by_id_at_source(context, id_at_source)
+        return cls._from_db_object(context, cls(context), db_resource)
 
     @base.remotable_classmethod
-    def get_by_args(cls, context, host, binary_key):
-        db_service = db.service_get_by_args(context, host, binary_key)
-        return cls._from_db_object(context, cls(context), db_service)
+    def get(cls, context, resource_id):
+        db_resource = db.resource_get(context, resource_id)
+        return cls._from_db_object(context, cls(context), db_resource)
 
     @base.remotable
     def create(self):
@@ -87,28 +81,28 @@ class Service(base.GutsPersistentObject, base.GutsObject,
             raise exception.ObjectActionError(action='create',
                                               reason=_('already created'))
         updates = self.guts_obj_get_changes()
-        db_service = db.service_create(self._context, updates)
-        self._from_db_object(self._context, self, db_service)
+        db_resource = db.resource_create(self._context, updates)
+        self._from_db_object(self._context, self, db_resource)
 
     @base.remotable
     def save(self):
         updates = self.guts_obj_get_changes()
         if updates:
-            db.service_update(self._context, self.id, updates)
+            db.resource_update(self._context, self.id, updates)
             self.obj_reset_changes()
 
     @base.remotable
     def destroy(self):
         with self.obj_as_admin():
-            db.service_destroy(self._context, self.id)
+            db.resource_delete(self._context, self.id)
 
 
 @base.GutsObjectRegistry.register
-class ServiceList(base.ObjectListBase, base.GutsObject):
+class ResourceList(base.ObjectListBase, base.GutsObject):
     VERSION = '1.0'
 
     fields = {
-        'objects': fields.ListOfObjectsField('Service'),
+        'objects': fields.ListOfObjectsField('Resource'),
     }
     child_versions = {
         '1.0': '1.0'
@@ -116,13 +110,22 @@ class ServiceList(base.ObjectListBase, base.GutsObject):
 
     @base.remotable_classmethod
     def get_all(cls, context, filters=None):
-        services = db.service_get_all(context, filters)
-        return base.obj_make_list(context, cls(context), objects.Service,
-                                  services)
+        resources = db.resource_get_all(context, filters)
+        return base.obj_make_list(context, cls(context), objects.Resource,
+                                  resources)
 
     @base.remotable_classmethod
-    def get_all_by_topic(cls, context, topic, disabled=None):
-        services = db.service_get_all_by_topic(context, topic,
-                                               disabled=disabled)
-        return base.obj_make_list(context, cls(context), objects.Service,
-                                  services)
+    def get_all_by_type(cls, context, resource_type, disabled=None):
+        resources = db.resource_get_all_by_type(context, resource_type)
+        return base.obj_make_list(context, cls(context), objects.Resource,
+                                  resources)
+
+    @base.remotable_classmethod
+    def get_all_by_source(cls, context, source, disabled=None):
+        resources = db.resource_get_all_by_source(context, source)
+        return base.obj_make_list(context, cls(context), objects.Resource,
+                                  resources)
+
+    @base.remotable_classmethod
+    def delete_all_by_source(cls, context, source, disabled=None):
+        resources = db.resource_delete_all_by_source(context, source)

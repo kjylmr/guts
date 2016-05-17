@@ -90,5 +90,5 @@ Guts demo:
 
 Guts on Horizon:
 
-* A dashboard plugin which explains guts workflow as part of horizon
-* http://guts-dashboard.readthedocs.org/en/latest/example_screenshots.html
+* Screenshots of dashboard plugin which explains guts workflow as part of horizon
+* http://guts-dashboard.readthedocs.io/en/latest/user-guide.html

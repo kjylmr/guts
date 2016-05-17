@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Migrations."""
+"""The source instances."""
 
 import six
 import webob
@@ -33,15 +33,15 @@ LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 
-authorize = extensions.extension_authorizer('migration', 'migrations')
+authorize = extensions.extension_authorizer('migration', 'instances')
 
 
-class MigrationsController(wsgi.Controller):
-    """The migration API controller for the OpenStack API."""
+class InstancesController(wsgi.Controller):
+    """The instance API controller for the OpenStack API."""
 
     def __init__(self, ext_mgr):
         self.ext_mgr = ext_mgr
-        super(MigrationsController, self).__init__()
+        super(InstancesController, self).__init__()
 
     def _notify_source_error(self, ctxt, method, err,
                              source=None, id=None, name=None):
@@ -53,39 +53,37 @@ class MigrationsController(wsgi.Controller):
         rpc.get_notifier('source').info(ctxt, method, payload)
 
     def index(self, req):
-        """Returns the list of Migrations."""
+        """Returns the list of Instances."""
         context = req.environ['guts.context']
-        migrations = objects.MigrationList.get_all(context)
+        db_instances = objects.ResourceList.get_all_by_type(context, 'instance')
 
-        migrations = []
-        for m in migrations:
-            migration = {}
-            migration['id'] = m.id
-            migration['name'] = m.name
-            migration['resource_id'] = m.resource_id
-            migration['migration_status'] = m.migration_status
-            migration['migration_event'] = m.migration_event
+        instances = []
+        for i in db_instances:
+            instance = {}
+            instance['id'] = i.id
+            instance['name'] = i.name
+            instance['hypervisor_name'] = i.source.split('@')[1]
+            instance['migrated'] = i.migrated
 
-            migrations.append(migration)
-        return dict(migrations=migrations)
+            instances.append(instance)
+        return dict(instances=instances)
 
-    def show(self, req, migration_id):
-        """Returns data about given migration."""
+    def show(self, req, id):
+        """Returns data about given instance."""
         context = req.environ['guts.context']
         try:
-            inst = objects.Resource.get(context, migration_id)
+            inst = objects.Resource.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
 
-        migration = {}
-        migration['id'] = m.id
-        migration['name'] = m.name
-        migration['resource_id'] = m.resource_id
-        migration['migration_status'] = m.migration_status
-        migration['migration_event'] = m.migration_event
-        migration['description'] = m.description
+        instance = {}
+        instance['id'] = inst.id
+        instance['name'] = inst.name
+        instance['migrated'] = inst.migrated
+        instance['source'] = inst.source
+        instance['properties'] = inst.properties
 
-        return {'migration': migration}
+        return {'instance': instance}
 
 def create_resource(ext_mgr):
-    return wsgi.Resource(MigrationsController(ext_mgr))
+    return wsgi.Resource(InstancesController(ext_mgr))

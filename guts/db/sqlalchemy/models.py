@@ -46,40 +46,17 @@ class GutsBase(models.TimestampMixin,
         self.save(session=session)
 
 
-class SourceTypes(BASE, GutsBase):
-    """Represent source hypervisor types."""
-    __tablename__ = "source_types"
+class Resources(BASE, GutsBase):
+    """Represent resources to migrate."""
+    __tablename__ = "resources"
     id = Column(String(36), primary_key=True)
-    name = Column(String(255))
-    description = Column(String(255))
-    driver_class_path = Column(String(255))
-
-
-class Sources(BASE, GutsBase):
-    """Represents a source hypervisor."""
-    __tablename__ = 'sources'
-    id = Column(String(36), primary_key=True)
-    name = Column(String(255))
-    description = Column(String(255))
-    connection_params = Column(String(255))
-    source_type_id = Column(String(36),
-                            ForeignKey('source_types.id'),
-                            nullable=False)
-
-
-class VMs(BASE, GutsBase):
-    """Represent source VMs."""
-    __tablename__ = "source_instances"
-    id = Column(String(36), primary_key=True)
-    name = Column(String(255))
-    uuid_at_source = Column(String(36))
+    name = Column(String(36))
+    id_at_source = Column(String(36))
+    type = Column(String(36))
+    properties = Column(String(1024))
     migrated = Column(Boolean, default=False)
-    dest_id = Column(String(36))
-    memory = Column(String(36))
-    vcpus = Column(String(36))
-    virtual_disks = Column(VARCHAR(1020))
-    source_id = Column(String(36), ForeignKey('source_types.id'),
-                       nullable=False)
+    source = Column(String(255),
+                    nullable=False)
 
 
 class Migrations(BASE, GutsBase):
@@ -90,16 +67,17 @@ class Migrations(BASE, GutsBase):
     description = Column(String(255))
     migration_status = Column(String(255))
     migration_event = Column(String(255))
-    source_instance_id = Column(String(36),
-                                ForeignKey('source_instances.id'),
-                                nullable=False)
+    resource_id = Column(String(36),
+                         ForeignKey('resources.id'))
+    destination_hypervisor = Column(String(36),
+                                    ForeignKey('services.id'))
 
 
 class Service(BASE, GutsBase):
     """Represents a running service on a host."""
     __tablename__ = 'services'
-    id = Column(Integer, primary_key=True)
-    host = Column(String(255))  # , ForeignKey('hosts.id'))
+    id = Column(String(36), primary_key=True)
+    host = Column(String(255))
     binary = Column(String(255))
     topic = Column(String(255))
     report_count = Column(Integer, nullable=False, default=0)

@@ -202,20 +202,15 @@ class PasteAppNotFound(NotFound):
     message = _("Could not load paste app '%(name)s' from %(path)s")
 
 
-class SourceTypeNotFound(NotFound):
-    message = _("Source type %(source_type_id)s could not be found.")
+class ResourceNotFound(NotFound):
+    message = _("Resource %(resource_id)s could not be found.")
 
 
-class SourceTypeNotFoundByName(SourceTypeNotFound):
-    message = _("Source type with name %(source_type_name)s "
-                "could not be found.")
-
-
-class VMNotFound(NotFound):
+class InstanceNotFound(NotFound):
     message = _("Could not find VM with id '%(vm_id)s'")
 
 
-class VMNotFoundByName(NotFound):
+class InstanceNotFoundByName(NotFound):
     message = _("Could not find VM with name '%(vm_name)s'")
 
 
@@ -225,10 +220,6 @@ class ServiceNotFound(NotFound):
 
 class Duplicate(GutsException):
     pass
-
-
-class SourceTypeExists(Duplicate):
-    message = _("Source Type %(id)s already exists.")
 
 
 class Invalid(GutsException):
@@ -248,23 +239,6 @@ class InvalidSource(Invalid):
     message = _("Invalid source: %(reason)s.")
 
 
-class InvalidSourceType(Invalid):
-    message = _("Invalid source type: %(reason)s.")
-
-
-class SourceNotFound(NotFound):
-    message = _("Source %(source_id)s could not be found.")
-
-
-class SourceNotFoundByName(SourceNotFound):
-    message = _("Source with name %(source_name)s "
-                "could not be found.")
-
-
-class SourceExists(Duplicate):
-    message = _("Source %(id)s already exists.")
-
-
 class MalformedRequestBody(GutsException):
     message = _("Malformed message body: %(reason)s")
 
@@ -277,7 +251,7 @@ class MigrationNotFound(NotFound):
     message = _("Migration %(migration_id)s could not be found.")
 
 
-class MigrationNotFoundByName(SourceNotFound):
+class MigrationNotFoundByName(NotFound):
     message = _("Migration with name %(migration_name)s "
                 "could not be found.")
 
@@ -290,12 +264,8 @@ class SourceCreateFailed(GutsException):
     message = _("Failed to create source %(name)s")
 
 
-class SourceTypeCreateFailed(GutsException):
-    message = _("Failed to create source type %(name)s")
-
-
-class SourceTypeDriverNotFound(NotFound):
-    message = _("Source Type Driver %(type_driver)s could not be found.")
+class ResourceNotFound(NotFound):
+    message = _("Could not find resouce %(resource_id)s.")
 
 
 class HostBinaryNotFound(NotFound):
