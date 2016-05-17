@@ -69,6 +69,24 @@ function configure_guts {
     # Configure keystone auth url
     iniset $GUTS_CONF_FILE keystone auth_url "http://${KEYSTONE_AUTH_HOST}:5000/v2.0"
 
+    # Configure backends
+    iniset $GUTS_CONF DEFAULT enabled_source_hypervisors source_openstack,source_vmware
+
+    # Configure OpenStack source driver
+    iniset $GUTS_CONF source_openstack source_driver guts.migration.drivers.sources.openstack.OpenStackSourceDriver
+    iniset $GUTS_CONF source_openstack capabilities instance,volume,network
+    iniset $GUTS_CONF source_openstack #auth_url
+    iniset $GUTS_CONF source_openstack #username
+    iniset $GUTS_CONF source_openstack #password
+    iniset $GUTS_CONF source_openstack #tenant_name
+
+    # Configure VMware source driver
+    iniset $GUTS_CONF source_vmware source_driver guts.migration.drivers.sources.vsphere.VSphereSourceDriver
+    iniset $GUTS_CONF source_vmware capabilities instance
+    iniset $GUTS_CONF source_vmware #vsphere_host
+    iniset $GUTS_CONF source_vmware #vsphere_username
+    iniset $GUTS_CONF source_vmware #vsphere_password
+
     # configure rpc backend
     configure_guts_rpc_backend
 
@@ -159,14 +177,14 @@ function install_guts_pythonclient() {
 # start_guts() - Start running processes, including screen
 function start_guts() {
     screen_it gu-api "cd $GUTS_DIR && $GUTS_BIN_DIR/guts-api --config-file $GUTS_CONF"
-    screen_it gu-migration "cd $GUTS_DIR && $GUTS_BIN_DIR/guts-migration --config-file $GUTS_CONF"
+    screen_it gu-scheduler "cd $GUTS_DIR && $GUTS_BIN_DIR/guts-scheduler --config-file $GUTS_CONF"
 }
 
 
 # stop_guts() - Stop running processes
 function stop_guts() {
     # Kill the Guts screen windows
-    for service in gu-api gu-migration; do
+    for service in gu-api gu-scheduler; do
         screen -S $SCREEN_NAME -p $service -X kill
     done
 }
