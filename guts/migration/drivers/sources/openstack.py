@@ -69,13 +69,24 @@ class OpenStackSourceDriver(driver.SourceDriver):
         self.cinder  = client.Client(cinder_api_version, session=sess)
 
     def get_instances_list(self):
-        instances = self.nova.servers.list()
+        src_instances = self.nova.servers.list()
+        instances = []
+        for inst in src_instances:
+            if inst.id in self.exclude:
+                continue;
+            i = {'name': inst.name,
+                 'id': inst.id,
+                 'status': inst.status
+            }
+            instances.append(i)
         return instances
 
     def get_volumes_list(self):
         src_volumes = self.cinder.volumes.list()
         volumes = []
         for vol in src_volumes:
+            if vol.id in self.exclude:
+                continue;
             v = {'name': vol.display_name,
                  'id': vol.id,
                  'size': vol.size
@@ -87,6 +98,8 @@ class OpenStackSourceDriver(driver.SourceDriver):
         src_networks = self.nova.networks.list()
         networks = []
         for network in src_networks:
+            if network.id in self.exclude:
+                continue;
             net = {'bridge': network.bridge,
                    'dhcp_start': network.dhcp_start,
                    'id': network.id,

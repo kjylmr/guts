@@ -50,6 +50,9 @@ source_manager_opts = [
     cfg.StrOpt('capabilities',
                default='instance',
                help='Specifies types of migrations this driver supports.'),
+    cfg.StrOpt('exclude',
+               default='',
+               help='List of resource to be excluded from migration'),
 ]
 
 destination_manager_opts = [

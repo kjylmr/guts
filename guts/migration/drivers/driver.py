@@ -35,6 +35,7 @@ class SourceDriver(MigrationDriver):
     """This is the base class for all source hypervisor drivers."""
     def __init__(self, *args, **kwargs):
         super(SourceDriver, self).__init__(*args, **kwargs)
+        self.exclude = self.configuration.exclude.split(',')
 
     def get_instances_list(self):
         msg = _("The method get_instances_list is not implemented.")

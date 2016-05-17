@@ -80,6 +80,8 @@ class VSphereSourceDriver(driver.SourceDriver):
 
         instance_list = []
         for instance in instances:
+            if instance.config.instanceUuid in self.exclude:
+                continue;
             inst = {}
             inst["id"] = instance.config.instanceUuid
             inst["name"] = instance.config.name

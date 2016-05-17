@@ -55,25 +55,26 @@ class MigrationsController(wsgi.Controller):
     def index(self, req):
         """Returns the list of Migrations."""
         context = req.environ['guts.context']
-        migrations = objects.MigrationList.get_all(context)
+        db_migrations = objects.MigrationList.get_all(context)
 
         migrations = []
-        for m in migrations:
+        for m in db_migrations:
             migration = {}
             migration['id'] = m.id
             migration['name'] = m.name
             migration['resource_id'] = m.resource_id
-            migration['migration_status'] = m.migration_status
-            migration['migration_event'] = m.migration_event
+            migration['status'] = m.migration_status
+            migration['event'] = m.migration_event
+            migration['destination_hypervisor'] = m.destination_hypervisor
 
             migrations.append(migration)
         return dict(migrations=migrations)
 
-    def show(self, req, migration_id):
+    def show(self, req, id):
         """Returns data about given migration."""
         context = req.environ['guts.context']
         try:
-            inst = objects.Resource.get(context, migration_id)
+            m = objects.Migration.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
 
@@ -81,11 +82,47 @@ class MigrationsController(wsgi.Controller):
         migration['id'] = m.id
         migration['name'] = m.name
         migration['resource_id'] = m.resource_id
-        migration['migration_status'] = m.migration_status
-        migration['migration_event'] = m.migration_event
+        migration['status'] = m.migration_status
+        migration['event'] = m.migration_event
+        migration['destination_hypervisor'] = m.destination_hypervisor
         migration['description'] = m.description
 
         return {'migration': migration}
+
+    def create(self, req, body):
+        """Create a new migration process."""
+        context = req.environ['guts.context']
+        mig_values = body['migration']
+        kwargs = {'name': mig_values['name'],
+                  'description': mig_values['description'],
+                  'resource_id': mig_values['resource_id'],
+                  'migration_status': 'Initiating',
+                  'migration_event': 'Scheduling',
+                  'destination_hypervisor': mig_values['destination_hypervisor'],
+                 }
+        mig_ref = objects.Migration(context=context, **kwargs)
+        mig_ref.create()
+
+        migration = {}
+        migration['id'] = mig_ref.id
+        migration['name'] = mig_ref.name
+        migration['resource_id'] = mig_ref.resource_id
+        migration['status'] = mig_ref.migration_status
+        migration['event'] = mig_ref.migration_event
+        migration['destination_hypervisor'] = mig_ref.destination_hypervisor
+        migration['description'] = mig_ref.description
+
+        return {'migration': migration}
+
+    def delete(self, req, id):
+        """Deletes given migration entry from database."""
+        context = req.environ['guts.context']
+        try:
+            m = objects.Migration.get(context, id)
+        except exception.NotFound:
+            raise webob.exc.HTTPNotFound()
+        m.destroy()
+
 
 def create_resource(ext_mgr):
     return wsgi.Resource(MigrationsController(ext_mgr))
