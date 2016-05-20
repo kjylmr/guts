@@ -20,12 +20,14 @@ import webob
 
 from oslo_config import cfg
 from oslo_log import log as logging
+import oslo_messaging as messaging
 from oslo_utils import timeutils
 
 from guts.api import extensions
 from guts.api.openstack import wsgi
 from guts import exception
 from guts import objects
+from guts.objects import base as objects_base
 from guts import rpc
 from guts import utils
 
@@ -112,7 +114,26 @@ class MigrationsController(wsgi.Controller):
         migration['destination_hypervisor'] = mig_ref.destination_hypervisor
         migration['description'] = mig_ref.description
 
+        resource_ref = objects.Resource.get(context, mig_ref.resource_id)
+        self._cast_to_source(context, mig_ref, resource_ref)
         return {'migration': migration}
+
+    def _cast_to_source(self, context, mig_ref, resource_ref):
+        src_host = resource_ref.source
+        dest_ref = objects.Service.get(context, mig_ref.destination_hypervisor)
+        dest_host = dest_ref.host
+        src_topic = ('guts-source.%s' %(src_host))
+        target = messaging.Target(topic=src_topic,
+                                  version='1.8')
+        serializer = objects_base.GutsObjectSerializer()
+        client = rpc.get_client(target, version_cap=None,
+                                serializer=serializer)
+
+        ctxt = client.prepare(version='1.8')
+        ctxt.cast(context, 'get_resource',
+                  migration_ref=mig_ref,
+                  resource_ref=resource_ref,
+                  dest_host=dest_host)
 
     def delete(self, req, id):
         """Deletes given migration entry from database."""

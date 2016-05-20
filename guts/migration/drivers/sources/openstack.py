@@ -14,11 +14,16 @@
 #    under the License.
 
 
+import os
+
+from guts import utils
 from guts.migration.drivers import driver
+from guts import exception
 from keystoneclient.auth.identity import v2
 from keystoneclient import session
-from novaclient import client as n_client
-from cinderclient import client
+from novaclient import client as nova_client
+from cinderclient import client as cinder_client
+from glanceclient import client as glance_client
 from oslo_config import cfg
 
 
@@ -35,12 +40,6 @@ openstack_source_opts = [
     cfg.StrOpt('tenant_name',
                default='admin',
                help='Tenant to request authorization on.'),
-    cfg.StrOpt('nova_api_version',
-               default='2',
-               help='Shows the client version.'),
-    cfg.StrOpt('cinder_api_version',
-               default='1',
-               help='File with the list of available gluster shares'),
 ]
 
 CONF = cfg.CONF
@@ -62,13 +61,19 @@ class OpenStackSourceDriver(driver.SourceDriver):
         tenant_name = self.configuration.tenant_name
         nova_api_version = self.configuration.nova_api_version
         cinder_api_version = self.configuration.cinder_api_version
+        glance_api_version = self.configuration.glance_api_version
 
         auth = v2.Password(auth_url, username=username, password=password, tenant_name=tenant_name)
         sess = session.Session(auth=auth)
-        self.nova  = n_client.Client(nova_api_version, session=sess)
-        self.cinder  = client.Client(cinder_api_version, session=sess)
+        self.nova  = nova_client.Client(nova_api_version, session=sess)
+        self.cinder  = cinder_client.Client(cinder_api_version, session=sess)
+        #self.glance  = glance_client.Client(glance_api_version, session=sess)
+        self.glance  = glance_client.Client(2, session=sess)
+        self._initialized = True
 
-    def get_instances_list(self):
+    def get_instances_list(self, context):
+        if not self._initialized:
+            self.do_setup(context)
         src_instances = self.nova.servers.list()
         instances = []
         for inst in src_instances:
@@ -81,7 +86,9 @@ class OpenStackSourceDriver(driver.SourceDriver):
             instances.append(i)
         return instances
 
-    def get_volumes_list(self):
+    def get_volumes_list(self, context):
+        if not self._initialized:
+            self.do_setup(context)
         src_volumes = self.cinder.volumes.list()
         volumes = []
         for vol in src_volumes:
@@ -94,24 +101,57 @@ class OpenStackSourceDriver(driver.SourceDriver):
             volumes.append(v)
         return volumes
 
-    def get_networks_list(self):
+    def get_networks_list(self, context):
+        if not self._initialized:
+            self.do_setup(context)
         src_networks = self.nova.networks.list()
         networks = []
         for network in src_networks:
             if network.id in self.exclude:
                 continue;
-            net = {'bridge': network.bridge,
-                   'dhcp_start': network.dhcp_start,
-                   'id': network.id,
-                   'gateway': network.gateway,
+            net = {'id': network.id,
                    'name': network.label,
-                   'broadcast': network.broadcast,
-                   'netmask': network.netmask,
+                   'bridge': network.bridge,
+                   'gateway': network.gateway,
+                   'label': network.label,
                    'cidr': network.cidr,
                    'enable_dhcp': network.enable_dhcp,
                    'dhcp_server': network.dhcp_server,
-                   'dns': network.dns1
+                   'dns1': network.dns1
             }
             networks.append(net)
 
         return networks
+
+    def get_network(self, context, network_id):
+        """As network migration is just an local migration, we don't need
+           anything from source hypervisor. Required network information
+           already stored in guts database.
+        """
+        pass
+
+    def get_volume(self, context, volume_id, migration_ref_id):
+        """Downloads given volume to local conversion directory."""
+        if not self._initialized:
+            self.do_setup()
+        try:
+            vol = self.cinder.volumes.get(volume_id)
+            status = self.cinder.volumes.upload_to_image(vol, True, migration_ref_id,
+                                                         'bare', 'raw')
+            vol_img = self.glance.images.get(status[1]['os-volume_upload_image']['image_id'])
+            while vol_img.status != 'active':
+                vol_img = self.glance.images.get(status[1]['os-volume_upload_image']['image_id'])
+            image_path = os.path.join(self.configuration.conversion_dir,
+                                      migration_ref_id)
+            self._download_image_from_glance(vol_img.id, image_path)
+            self.glance.images.delete(vol_img.id)
+        except Exception as e:
+            raise exception.VolumeDownloadFailed(reason=e.message)
+        return image_path
+
+    def _download_image_from_glance(self, image_id, file_path):
+            out, err = utils.execute('glance', '--os-username', self.configuration.username,
+                                     '--os-password', self.configuration.password, '--os-tenant-name',
+                                     self.configuration.tenant_name, '--os-auth-url',
+                                     self.configuration.auth_url, 'image-download', '--file',
+                                     file_path, image_id, run_as_root=True)

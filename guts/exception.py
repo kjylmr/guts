@@ -289,6 +289,18 @@ class MigrationValidationFailed(Invalid):
     pass
 
 
+class NetworkCreationFailed(GutsException):
+    message = _("Failed to create network on destination. Reason: %(reason)s")
+
+
+class VolumeCreationFailed(GutsException):
+    message = _("Failed to create volume on destination. Reason: %(reason)s")
+
+
+class VolumeDownloadFailed(GutsException):
+    message = _("Failed to download volume from destination. Reason: %(reason)s")
+
+
 class InvalidPowerState(MigrationValidationFailed):
     message = _("Instance: %(instance_id)s cannot be migrated in its current "
                 "power state. Please shutdown virtual instance and retry.")

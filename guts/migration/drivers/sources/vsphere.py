@@ -15,14 +15,18 @@
 
 
 import atexit
+import os
+import requests
+import time
 
 from oslo_config import cfg
 
 from pyVim import connect
 from pyVmomi import vim
-
+from threading import Thread
 
 from guts.migration.drivers import driver
+from guts import utils
 
 vsphere_source_opts = [
     cfg.StrOpt('vsphere_host',
@@ -75,10 +79,14 @@ class VSphereSourceDriver(driver.SourceDriver):
         except Exception:
            raise
 
-    def get_instances_list(self):
+    def get_instances_list(self, context):
+        if not self._initialized:
+            self.do_setup(context)
+
         instances = get_obj(self.content, [vim.VirtualMachine])
 
         instance_list = []
+        import pdb; pdb.set_trace()
         for instance in instances:
             if instance.config.instanceUuid in self.exclude:
                 continue;
@@ -91,8 +99,85 @@ class VSphereSourceDriver(driver.SourceDriver):
 
         return instance_list
 
-    def get_volumes_list(self):
+    def get_volumes_list(self, context):
         raise NotImplemented
 
-    def get_networks_list(self):
+    def get_networks_list(self, context):
         raise NotImplemented
+
+    def _find_instance_by_uuid(self, instance_uuid):
+        search_index = self.content.searchIndex
+        instance = search_index.FindByUuid(None, instance_uuid,
+                                           True, True)
+
+        if instance is None:
+            raise Exception
+        return instance
+
+    def _get_instance_lease(self, instance):
+        lease = instance.ExportVm()
+        count = 0
+        while lease.state != 'ready':
+            if count == 5:
+                raise Exception("Unable to take lease on sorce instance.")
+            time.sleep(5)
+            count += 1
+        return lease
+
+    def _get_device_urls(self, lease):
+        try:
+            device_urls = lease.info.deviceUrl
+        except IndexError:
+            time.sleep(2)
+            device_urls = lease.info.deviceUrl
+        return device_urls
+
+    def _get_instance_disk(self, device_url, dest_disk_path):
+        url = device_url.url
+        if not os.path.exists(dest_disk_path):
+            utils.execute('wget', url, '--no-check-certificate', '-O', dest_disk_path, run_as_root=True)
+
+    def get_instance(self, context, instance_id):
+        instance = self._find_instance_by_uuid(instance_id)
+        lease = self._get_instance_lease(instance)
+
+        def keep_lease_alive(lease):
+            """Keeps the lease alive while GETing the VMDK."""
+            while(True):
+                time.sleep(5)
+                try:
+                    # Choosing arbitrary percentage to keep the lease alive.
+                    lease.HttpNfcLeaseProgress(50)
+                    if (lease.state == vim.HttpNfcLease.State.done):
+                        return
+                    # If the lease is released, we get an exception.
+                    # Returning to kill the thread.
+                except Exception:
+                    return
+        disks = []
+        try:
+            if lease.state == vim.HttpNfcLease.State.ready:
+                keepalive_thread = Thread(target=keep_lease_alive,
+                                          args=(lease,))
+
+                keepalive_thread.daemon = True
+                keepalive_thread.start()
+                device_urls = self._get_device_urls(lease)
+
+                for device_url in device_urls:
+                    data = {}
+                    path = os.path.join(self.configuration.conversion_dir,
+                                        device_url.targetId)
+                    self._get_instance_disk(device_url, path)
+                    data = {device_url.key.split(':')[1]: path}
+                    disks.append(data)
+
+                lease.HttpNfcLeaseComplete()
+                keepalive_thread.join()
+            elif lease.state == vim.HttpNfcLease.State.error:
+                raise Exception
+            else:
+                raise Exception
+        except Exception:
+            raise
+        return disks
