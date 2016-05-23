@@ -23,6 +23,7 @@ from oslo_utils import timeutils
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import ForeignKey, DateTime, Boolean
+from sqlalchemy.orm import relationship, backref, validates
 
 
 CONF = cfg.CONF
@@ -46,6 +47,32 @@ class GutsBase(models.TimestampMixin,
         self.save(session=session)
 
 
+class Hypervisors(BASE, GutsBase):
+    """Represent source & destination Hypervisors."""
+    __tablename__ = "hypervisors"
+    id = Column(String(36), primary_key=True)
+    name = Column(String(36))
+    driver = Column(String(255))
+    type = Column(String(36))
+    preferred_hosts = Column(String(36))
+    capabilities = Column(String(36))
+
+
+class Credentials(BASE, GutsBase):
+    """Represent source & destination Hypervisor's credentials."""
+    __tablename__ = "credentials"
+    id = Column(String(36), primary_key=True)
+    name = Column(String(36))
+    value = Column(String(36))
+    hypervisor_id = Column(String(36), ForeignKey('hypervisors.id'),
+                                  nullable=False)
+    hypervisor = relationship(Hypervisors, backref="resources",
+                              foreign_keys=hypervisor_id,
+                              primaryjoin='and_('
+                              'Resources.hypervisor_id == Hypervisors.id,'
+                              'Resources.deleted == False)')
+
+
 class Resources(BASE, GutsBase):
     """Represent resources to migrate."""
     __tablename__ = "resources"
@@ -55,8 +82,13 @@ class Resources(BASE, GutsBase):
     type = Column(String(36))
     properties = Column(String(1024))
     migrated = Column(Boolean, default=False)
-    source = Column(String(255),
-                    nullable=False)
+    source_hypervisor_id = Column(String(255), ForeignKey('hypervisors.id'),
+                                  nullable=False)
+    source_hypervisor = relationship(Hypervisors, backref="resources",
+                                     foreign_keys=source_hypervisor_id,
+                                     primaryjoin='and_('
+                                     'Resources.source_hypervisor_id == Hypervisors.id,'
+                                     'Resources.deleted == False)')
 
 
 class Migrations(BASE, GutsBase):
@@ -69,8 +101,21 @@ class Migrations(BASE, GutsBase):
     migration_event = Column(String(255))
     resource_id = Column(String(36),
                          ForeignKey('resources.id'))
-    destination_hypervisor = Column(String(36),
-                                    ForeignKey('services.id'))
+    resource = relationship(
+        Resources,
+        backref="migrations",
+        foreign_keys=resource_id,
+        primaryjoin='and_(Migrations.resource_id == Resources.id,'
+                    'Migrations.deleted == False)')
+
+    destination_hypervisor_id = Column(String(36),
+                                       ForeignKey('hypervisors.id'))
+    destination_hypervisor = relationship(
+        Hypervisors,
+        backref="migrations",
+        foreign_keys=destination_hypervisor_id,
+        primaryjoin='and_(Migrations.destination_hypervisor_id == Hypervisors.id,'
+                    'Migrations.deleted == False')
 
 
 class Service(BASE, GutsBase):

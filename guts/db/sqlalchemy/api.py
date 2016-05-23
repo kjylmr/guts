@@ -202,6 +202,194 @@ def model_query(context, *args, **kwargs):
     return query
 
 
+# Hypervisors
+
+def def _hypervisor_get_query(context, session=None, read_deleted=None,
+                              expected_fields=None):
+    expected_fields = expected_fields or []
+    query = model_query(context,
+                        models.Hypervisors,
+                        session=session,
+                        read_deleted=read_deleted)
+
+    if 'projects' in expected_fields:
+        query = query.options(joinedload('projects'))
+
+    return query
+
+
+@require_context
+def hypervisor_get_all(context, inactive=False):
+    """Returns a dict describing all hypervisors."""
+    read_deleted = "yes" if inactive else "no"
+    query = _hypervisor_get_query(context, read_deleted=read_deleted)
+
+    return query.order_by("id").all()
+
+
+@require_context
+def _hypervisor_get(context, hypervisor_id, session=None):
+    result = _hypervisor_get_query(
+        context, session).\
+        filter_by(id=hypervisor_id).\
+        first()
+
+    if not result:
+        raise exception.ResourceNotFound(resource_id=hypervisor_id)
+
+    return result
+
+
+@require_context
+def hypervisor_get(context, hypervisor_id, session=None):
+    """Return a dict describing specific hypervisor."""
+    return _hypervisor_get(context, hypervisor_id,
+                           session)
+
+
+@require_context
+def hypervisor_create(context, values):
+    if not values.get('id'):
+        values['id'] = str(uuid.uuid4())
+
+    session = get_session()
+
+    with session.begin():
+        try:
+            hypervisor_ref = models.Hypervisors()
+            hypervisor_ref.update(values)
+            session.add(hypervisor_ref)
+        except Exception as e:
+            raise db_exc.DBError(e)
+
+        return hypervisor_ref
+
+
+@require_admin_context
+def hypervisor_delete(context, hypervisor_id):
+    session = get_session()
+    with session.begin():
+        hypervisor = hypervisor_get(context, hypervisor_id,
+                                    session)
+        if not hypervisor:
+            raise exception.ResourceNotFound(
+                resource_id=hypervisor_id)
+        hypervisor.update({'deleted': True,
+                           'deleted_at': timeutils.utcnow(),
+                           'updated_at': literal_column('updated_at')})
+
+
+@require_context
+def hypervisor_get_all_sources(context, session=None):
+    result = _hypervisor_get_query(
+        context, session).\
+        filter_by(type='source')
+
+    return result
+
+
+@require_context
+def hypervisor_get_all_destinations(context, session=None):
+    result = _hypervisor_get_query(
+        context, session).\
+        filter_by(type='destination')
+
+    return result
+
+
+# Credentials
+
+def def _credential_get_query(context, session=None, read_deleted=None,
+                              expected_fields=None):
+    expected_fields = expected_fields or []
+    query = model_query(context,
+                        models.Credentials,
+                        session=session,
+                        read_deleted=read_deleted)
+
+    if 'projects' in expected_fields:
+        query = query.options(joinedload('projects'))
+
+    return query
+
+
+@require_context
+def credential_create(context, values):
+    if not values.get('id'):
+        values['id'] = str(uuid.uuid4())
+
+    session = get_session()
+
+    with session.begin():
+        try:
+            credential_ref = models.Credentials()
+            credential_ref.update(values)
+            session.add(credential_ref)
+        except Exception as e:
+            raise db_exc.DBError(e)
+
+        return credential_ref
+
+
+@require_context
+def _credential_get(context, credential_id, session=None):
+    result = _credential_get_query(
+        context, session).\
+        filter_by(id=credential_id).\
+        first()
+
+    if not result:
+        raise exception.ResourceNotFound(resource_id=credential_id)
+
+    return result
+
+
+@require_context
+def credential_get(context, credential_id, session=None):
+    return _credential_get(context, credential_id,
+                           session)
+
+
+@require_admin_context
+def credential_delete(context, credential_id):
+    session = get_session()
+    with session.begin():
+        credential = credential_get(context, hypervisor_id,
+                                    session)
+        if not credential:
+            raise exception.ResourceNotFound(
+                resource_id=credential_id)
+        credential.update({'deleted': True,
+                           'deleted_at': timeutils.utcnow(),
+                           'updated_at': literal_column('updated_at')})
+
+
+@require_context
+def credential_get_all_by_hypervisor_id(context, hypervisor_id, session=None):
+    result = _credential_get_query(
+        context, session).\
+        filter_by(hypervisor_id=hypervisor_id).\
+        first()
+
+    if not result:
+        raise exception.ResourceNotFound(resource_id=hypervisor_id)
+
+    return result
+
+
+@require_admin_context
+def resource_delete_all_by_source(context, source):
+    session = get_session()
+    with session.begin():
+        resources = _resources_get_by_source(context, source,
+                                             session)
+
+        for resource in resources:
+            resource.update({'deleted': True,
+                             'deleted_at': timeutils.utcnow(),
+                             'updated_at': literal_column('updated_at')})
+
+
 # Resources
 
 def _resource_get_query(context, session=None, read_deleted=None,
@@ -328,6 +516,7 @@ def resource_update(context, resource_id, values):
         resource_ref = _resource_get(context, resource_id, session=session)
         resource_ref.update(values)
         return resource_ref
+
 
 # Migrations
 
