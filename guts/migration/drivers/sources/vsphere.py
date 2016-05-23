@@ -78,6 +78,7 @@ class VSphereSourceDriver(driver.SourceDriver):
             self.content = self.con.RetrieveContent()
         except Exception:
            raise
+        self._initialized = True
 
     def get_instances_list(self, context):
         if not self._initialized:
@@ -99,10 +100,24 @@ class VSphereSourceDriver(driver.SourceDriver):
         return instance_list
 
     def get_volumes_list(self, context):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def get_networks_list(self, context):
-        raise NotImplemented
+        if not self._initialized:
+            self.do_setup(context)
+
+        networks = get_obj(self.content, [vim.Network])
+
+        network_list = []
+        for network in networks:
+            if network.summary.name in self.exclude:
+                continue;
+            net = {'id': network.name,
+                   'name': network.name,
+                   'ip_pool': network.summary.ipPoolName,
+                   'ip_pool_id': network.summary.ipPoolId}
+            network_list.append(net)
+        return network_list
 
     def _find_instance_by_uuid(self, instance_uuid):
         search_index = self.content.searchIndex
