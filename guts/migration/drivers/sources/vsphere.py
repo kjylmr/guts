@@ -86,7 +86,6 @@ class VSphereSourceDriver(driver.SourceDriver):
         instances = get_obj(self.content, [vim.VirtualMachine])
 
         instance_list = []
-        import pdb; pdb.set_trace()
         for instance in instances:
             if instance.config.instanceUuid in self.exclude:
                 continue;

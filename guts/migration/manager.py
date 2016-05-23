@@ -192,6 +192,7 @@ class SourceManager(manager.SchedulerDependentManager):
             # we don't want to continue since we failed
             # to initialize the driver correctly.
             return
+        self.publish_service_capabilities(ctxt)
 
     # RPC Method
     def get_resource(self, context, migration_ref, resource_ref,
