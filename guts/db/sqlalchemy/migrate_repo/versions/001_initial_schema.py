@@ -13,25 +13,58 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey
-from sqlalchemy import Integer, MetaData, String, Table
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, CheckConstraint
+from sqlalchemy import Integer, MetaData, String, Table, VARCHAR
 
 
 def define_tables(meta):
+    hypervisors = Table(
+        'hypervisors', meta,
+        Column('created_at', DateTime),
+        Column('updated_at', DateTime),
+        Column('deleted_at', DateTime),
+        Column('deleted', Boolean),
+        Column('id', String(length=36), primary_key=True, nullable=False),
+        Column('name', String(length=36)),
+        Column('driver', String(length=255), nullable=False),
+        Column('type', String(length=36),
+               CheckConstraint("type in ('source', 'destination')")),
+        Column('preferred_hosts', String(length=36)),
+        Column('capabilities', String(length=36)),
+        mysql_engine='InnoDB',
+        mysql_charset='utf8'
+    )
+
+    credentials = Table(
+        'credentials', meta,
+        Column('created_at', DateTime),
+        Column('updated_at', DateTime),
+        Column('deleted_at', DateTime),
+        Column('deleted', Boolean),
+        Column('id', String(length=36), primary_key=True, nullable=False),
+        Column('hypervisor_id', String(length=36),
+               ForeignKey('hypervisors.id'), nullable=False),
+        Column('name', String(length=36)),
+        Column('value', String(length=36), nullable=False),
+        mysql_engine='InnoDB',
+        mysql_charset='utf8'
+    )
+
     resources = Table(
         'resources', meta,
         Column('created_at', DateTime),
         Column('updated_at', DateTime),
         Column('deleted_at', DateTime),
         Column('id', String(length=36), primary_key=True, nullable=False),
-        Column('type', String(length=36)),
+        Column('type', String(length=36),
+               CheckConstraint("type in ('instance', 'volume', 'network')")),
         Column('id_at_source', String(length=36)),
         Column('name', String(length=36)),
         Column('properties', String(length=1024)),
         Column('deleted', Boolean),
         Column('migrated', Boolean),
-        Column('source', String(length=255),
-               nullable=False),
+        Column('source_hypervisor_id', String(length=36),
+               ForeignKey('hypervisors.id'), nullable=False),
         mysql_engine='InnoDB',
         mysql_charset='utf8'
     )
@@ -49,8 +82,8 @@ def define_tables(meta):
                nullable=False),
         Column('migration_status', String(length=255)),
         Column('migration_event', String(length=255)),
-        Column('destination_hypervisor', String(length=36),
-               ForeignKey('services.id'), nullable=False),
+        Column('destination_hypervisor_id', String(length=36),
+               ForeignKey('hypervisors.id'), nullable=False),
         Column('start_time', DateTime),
         Column('finish_time', DateTime),
         Column('deleted', Boolean),
@@ -80,7 +113,7 @@ def define_tables(meta):
         mysql_charset='utf8'
     )
 
-    return [services, resources, migrations]
+    return [services, hypervisors, credentials, resources, migrations]
 
 
 def upgrade(migrate_engine):
@@ -95,7 +128,8 @@ def upgrade(migrate_engine):
         table.create()
 
     if migrate_engine.name == "mysql":
-        tables = ['services', 'resources', 'migrations']
+        tables = ['services', 'hypervisors', 'credentials',
+                  'resources', 'migrations']
 
         migrate_engine.execute("SET foreign_key_checks = 0")
         for table in tables:
