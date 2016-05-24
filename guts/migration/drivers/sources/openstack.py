@@ -53,9 +53,6 @@ openstack_source_opts = [
                help="User's domain ID for authentication"),
 ]
 
-CONF = cfg.CONF
-CONF.register_opts(openstack_source_opts)
-
 
 class OpenStackSourceDriver(driver.SourceDriver):
     """ OpenStack Source Hypervisor"""
@@ -90,7 +87,7 @@ class OpenStackSourceDriver(driver.SourceDriver):
 
         self.nova  = nova_client.Client(nova_api_version, session=sess)
         self.cinder  = cinder_client.Client(cinder_api_version, session=sess)
-        #self.glance  = glance_client.Client(glance_api_version, session=sess)
+        self.glance  = glance_client.Client(glance_api_version, session=sess)
         self._initialized = True
 
     def get_instances_list(self, context):

@@ -297,7 +297,7 @@ class DestinationManager(manager.SchedulerDependentManager):
         """Load the destination driver."""
         # updated_service_capabilities needs service_name to be "source".
         super(DestinationManager, self).__init__(service_name='destination',
-                                            *args, **kwargs)
+                                                 *args, **kwargs)
         self.configuration = config.Configuration(destination_manager_opts,
                                                   config_group=service_name)
         self.stats = {}
@@ -333,6 +333,7 @@ class DestinationManager(manager.SchedulerDependentManager):
             # we don't want to continue since we failed
             # to initialize the driver correctly.
             return
+        self.publish_service_capabilities(ctxt)
 
     @periodic_task.periodic_task
     def _report_driver_status(self, context):
