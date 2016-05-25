@@ -65,6 +65,8 @@ class MigrationsController(wsgi.Controller):
             migration['id'] = m.id
             migration['name'] = m.name
             migration['resource_id'] = m.resource_id
+            r = objects.Resource.get(context, m.resource_id)
+            migration['resource_type'] = r.type
             migration['status'] = m.migration_status
             migration['event'] = m.migration_event
             migration['destination_hypervisor'] = m.destination_hypervisor
@@ -84,6 +86,8 @@ class MigrationsController(wsgi.Controller):
         migration['id'] = m.id
         migration['name'] = m.name
         migration['resource_id'] = m.resource_id
+        r = objects.Resource.get(context, m.resource_id)
+        migration['resource_type'] = r.type
         migration['status'] = m.migration_status
         migration['event'] = m.migration_event
         migration['destination_hypervisor'] = m.destination_hypervisor
