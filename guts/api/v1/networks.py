@@ -85,5 +85,6 @@ class NetworksController(wsgi.Controller):
 
         return {'network': network}
 
+
 def create_resource(ext_mgr):
     return wsgi.Resource(NetworksController(ext_mgr))

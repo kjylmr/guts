@@ -119,6 +119,7 @@ class Manager(base.Base, PeriodicTasks):
         """
         return True
 
+
 class SchedulerDependentManager(Manager):
     """Periodically send capability updates to the Scheduler services.
 

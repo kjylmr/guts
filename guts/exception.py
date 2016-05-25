@@ -298,7 +298,8 @@ class VolumeCreationFailed(GutsException):
 
 
 class VolumeDownloadFailed(GutsException):
-    message = _("Failed to download volume from destination. Reason: %(reason)s")
+    message = _("Failed to download volume from destination. \
+Reason: %(reason)s")
 
 
 class InvalidPowerState(MigrationValidationFailed):

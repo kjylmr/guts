@@ -87,5 +87,6 @@ class ResourcesController(wsgi.Controller):
 
         return {'resource': resource}
 
+
 def create_resource(ext_mgr):
     return wsgi.Resource(ResourcesController(ext_mgr))

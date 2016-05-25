@@ -19,6 +19,6 @@
 
 .. automodule:: guts.scheduler
    :platform: Unix
-   :synopsis: Module that picks a migratioin node to perform a migration operation.
+   :synopsis: Module that picks a migratioin node to perform a
+              migration operation.
 """
-

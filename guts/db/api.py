@@ -209,6 +209,7 @@ def resource_get_all_by_type(context, resource_type):
 
     return IMPL.resource_get_all_by_type(context, resource_type)
 
+
 def resource_get_by_id_at_source(context, id_at_source):
     """Return a resources based on it at source."""
     return IMPL.resource_get_by_id_at_source(context, id_at_source)

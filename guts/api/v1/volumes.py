@@ -85,5 +85,6 @@ class VolumesController(wsgi.Controller):
 
         return {'volume': volume}
 
+
 def create_resource(ext_mgr):
     return wsgi.Resource(VolumesController(ext_mgr))

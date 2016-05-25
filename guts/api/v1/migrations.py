@@ -95,13 +95,14 @@ class MigrationsController(wsgi.Controller):
         """Create a new migration process."""
         context = req.environ['guts.context']
         mig_values = body['migration']
+        dest_hypervisor = mig_values['destination_hypervisor']
         kwargs = {'name': mig_values['name'],
                   'description': mig_values['description'],
                   'resource_id': mig_values['resource_id'],
                   'migration_status': 'Initiating',
                   'migration_event': 'Scheduling',
-                  'destination_hypervisor': mig_values['destination_hypervisor'],
-                 }
+                  'destination_hypervisor': dest_hypervisor, }
+
         mig_ref = objects.Migration(context=context, **kwargs)
         mig_ref.create()
 
@@ -122,9 +123,8 @@ class MigrationsController(wsgi.Controller):
         src_host = resource_ref.source
         dest_ref = objects.Service.get(context, mig_ref.destination_hypervisor)
         dest_host = dest_ref.host
-        src_topic = ('guts-source.%s' %(src_host))
-        target = messaging.Target(topic=src_topic,
-                                  version='1.8')
+        src_topic = ('guts-source.%s' % (src_host))
+        target = messaging.Target(topic=src_topic, version='1.8')
         serializer = objects_base.GutsObjectSerializer()
         client = rpc.get_client(target, version_cap=None,
                                 serializer=serializer)

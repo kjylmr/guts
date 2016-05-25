@@ -94,5 +94,6 @@ class SourcesController(wsgi.Controller):
 
         return {'source': source}
 
+
 def create_resource(ext_mgr):
     return wsgi.Resource(SourcesController(ext_mgr))

@@ -244,7 +244,7 @@ def _resource_get(context, resource_id, session=None):
 def resource_get(context, resource_id, session=None):
     """Return a dict describing specific resource."""
     return _resource_get(context, resource_id,
-                   session)
+                         session)
 
 
 @require_context
@@ -514,6 +514,7 @@ def service_get_by_args(context, host, binary):
 
     raise exception.ServiceNotFound(service_id=binary,
                                     host=host)
+
 
 @require_admin_context
 def service_create(context, values):

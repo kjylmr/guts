@@ -56,8 +56,8 @@ class Scheduler(object):
     def is_ready(self):
         """Returns True if Scheduler is ready to accept requests.
 
-        This is to handle scheduler service startup when it has no migration hosts
-        stats and will fail all the requests.
+        This is to handle scheduler service startup when it has
+        no migration hosts stats and will fail all the requests.
         """
         return self.host_manager.has_all_capabilities()
 
@@ -67,7 +67,8 @@ class Scheduler(object):
                                                       host,
                                                       capabilities)
 
-    def host_passes_filters(self, context, migration_id, host, filter_properties):
+    def host_passes_filters(self, context, migration_id, host,
+                            filter_properties):
         """Check if the specified host passes the filters."""
         raise NotImplementedError(_("Must implement host_passes_filters"))
 
@@ -75,6 +76,8 @@ class Scheduler(object):
         """Must override schedule method for scheduler to work."""
         raise NotImplementedError(_("Must implement a fallback schedule"))
 
-    def schedule_create_migration(self, context, request_spec, filter_properties):
+    def schedule_create_migration(self, context, request_spec,
+                                  filter_properties):
         """Must override schedule method for scheduler to work."""
-        raise NotImplementedError(_("Must implement schedule_create_migration"))
+        raise NotImplementedError(_("Must implement "
+                                    "schedule_create_migration"))

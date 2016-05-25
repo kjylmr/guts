@@ -43,7 +43,8 @@ from guts.migration import configuration as config
 
 source_manager_opts = [
     cfg.StrOpt('source_driver',
-               default='guts.migration.drivers.sources.openstack.OpenStackSourceDriver',
+               default='guts.migration.drivers.sources.openstack.\
+OpenStackSourceDriver',
                help='Driver to use for source hypervisor'),
     cfg.StrOpt('conversion_dir',
                default='$state_path/migrations',
@@ -67,7 +68,8 @@ source_manager_opts = [
 
 destination_manager_opts = [
     cfg.StrOpt('destination_driver',
-               default='guts.migration.drivers.destinations.openstack.OpenStackDestinationDriver',
+               default='guts.migration.drivers.destinations.openstack.\
+OpenStackDestinationDriver',
                help='Driver to use for destination hypervisor'),
     cfg.StrOpt('conversion_dir',
                default='$state_path/migrations',
@@ -97,7 +99,7 @@ wrap_exception = functools.partial(exception.wrap_exception,
 
 def _cast_to_destination(context, dest_host, method, migration_ref,
                          resource_ref, **kwargs):
-    dest_topic = ('guts-destination.%s' %(dest_host))
+    dest_topic = ('guts-destination.%s' % (dest_host))
     target = messaging.Target(topic=dest_topic,
                               version='1.8')
     serializer = objects_base.GutsObjectSerializer()
@@ -112,8 +114,8 @@ def _cast_to_destination(context, dest_host, method, migration_ref,
 def _get_free_space(conversion_dir):
     """Calculate and return free space available."""
     out = utils.execute('df', '--portability', '--block-size', '1',
-                           conversion_dir,
-                           run_as_root=True)[0]
+                        conversion_dir,
+                        run_as_root=True)[0]
     out = out.splitlines()[1]
     available = int(out.split()[3])
 

@@ -31,8 +31,8 @@ LOG = logging.getLogger(__name__)
 
 @base.GutsObjectRegistry.register
 class Resource(base.GutsPersistentObject, base.GutsObject,
-              base.GutsObjectDictCompat,
-              base.GutsComparableObject):
+               base.GutsObjectDictCompat,
+               base.GutsComparableObject):
     # Version 1.0: Initial version
     VERSION = '1.0'
 

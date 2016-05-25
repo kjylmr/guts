@@ -94,5 +94,6 @@ class DestinationsController(wsgi.Controller):
 
         return {'destination': dest}
 
+
 def create_resource(ext_mgr):
     return wsgi.Resource(DestinationsController(ext_mgr))
