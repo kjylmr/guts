@@ -13,8 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from guts.migration.drivers import driver
 
-def register_all():
-    __import__('guts.objects.service')
-    __import__('guts.objects.resources')
-    __import__('guts.objects.migrations')
+
+class OpenStackDestinationDriver(driver.DestinationDriver):
+    """ OpenStack Destination Hypervisor"""
+    def __init__(self, *args, **kwargs):
+        super(OpenStackDestinationDriver, self).__init__(*args, **kwargs)

@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Migrations."""
+"""The source networks."""
 
 import six
 import webob
@@ -33,15 +33,15 @@ LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 
-authorize = extensions.extension_authorizer('migration', 'migrations')
+authorize = extensions.extension_authorizer('migration', 'networks')
 
 
-class MigrationsController(wsgi.Controller):
-    """The migration API controller for the OpenStack API."""
+class NetworksController(wsgi.Controller):
+    """The network API controller for the OpenStack API."""
 
     def __init__(self, ext_mgr):
         self.ext_mgr = ext_mgr
-        super(MigrationsController, self).__init__()
+        super(NetworksController, self).__init__()
 
     def _notify_source_error(self, ctxt, method, err,
                              source=None, id=None, name=None):
@@ -53,39 +53,37 @@ class MigrationsController(wsgi.Controller):
         rpc.get_notifier('source').info(ctxt, method, payload)
 
     def index(self, req):
-        """Returns the list of Migrations."""
+        """Returns the list of Networks."""
         context = req.environ['guts.context']
-        migrations = objects.MigrationList.get_all(context)
+        db_networks = objects.ResourceList.get_all_by_type(context, 'network')
 
-        migrations = []
-        for m in migrations:
-            migration = {}
-            migration['id'] = m.id
-            migration['name'] = m.name
-            migration['resource_id'] = m.resource_id
-            migration['migration_status'] = m.migration_status
-            migration['migration_event'] = m.migration_event
+        networks = []
+        for i in db_networks:
+            network = {}
+            network['id'] = i.id
+            network['name'] = i.name
+            network['migrated'] = i.migrated
+            network['hypervisor_name'] = i.source.split('@')[1]
+            networks.append(network)
 
-            migrations.append(migration)
-        return dict(migrations=migrations)
+        return dict(networks=networks)
 
-    def show(self, req, migration_id):
-        """Returns data about given migration."""
+    def show(self, req, id):
+        """Returns data about given network."""
         context = req.environ['guts.context']
         try:
-            inst = objects.Resource.get(context, migration_id)
+            net = objects.Resource.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
 
-        migration = {}
-        migration['id'] = m.id
-        migration['name'] = m.name
-        migration['resource_id'] = m.resource_id
-        migration['migration_status'] = m.migration_status
-        migration['migration_event'] = m.migration_event
-        migration['description'] = m.description
+        network = {}
+        network['id'] = net.id
+        network['name'] = net.name
+        network['migrated'] = net.migrated
+        network['source'] = net.source
+        network['properties'] = net.properties
 
-        return {'migration': migration}
+        return {'network': network}
 
 def create_resource(ext_mgr):
-    return wsgi.Resource(MigrationsController(ext_mgr))
+    return wsgi.Resource(NetworksController(ext_mgr))

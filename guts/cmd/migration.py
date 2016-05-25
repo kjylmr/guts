@@ -31,6 +31,7 @@ i18n.enable_lazy()
 # Need to register global_opts
 from guts.common import config  # noqa
 from guts import objects
+from guts.i18n import _
 from guts import service
 from guts import utils
 from guts import version
@@ -45,6 +46,42 @@ def main():
          version=version.version_string())
     logging.setup(CONF, "guts")
     utils.monkey_patch()
-    server = service.Service.create(binary='guts-migration')
-    service.serve(server)
-    service.wait()
+    launcher = service.get_launcher()
+    LOG = logging.getLogger(__name__)
+    source_service_started = False
+    destination_service_started = False
+
+    if CONF.enabled_source_hypervisors:
+        for source in CONF.enabled_source_hypervisors:
+            host = "%s@%s" % (CONF.host, source)
+            try:
+                server = service.Service.create(host=host,
+                                                service_name=source,
+                                                binary="guts-source")
+            except Exception:
+                msg = _('Source service %s failed to start.') % (host)
+                LOG.exception(msg)
+            else:
+                launcher.launch_service(server)
+                source_service_started = True
+
+    if CONF.enabled_destination_hypervisors:
+        for dest in CONF.enabled_destination_hypervisors:
+            host = "%s@%s" % (CONF.host, dest)
+            try:
+                server = service.Service.create(host=host,
+                                                service_name=dest,
+                                                binary="guts-destination")
+            except Exception:
+                msg = _('Destination service %s failed to start.') % (host)
+                LOG.exception(msg)
+            else:
+                launcher.launch_service(server)
+                destination_service_started = True
+
+    if not (source_service_started or destination_service_started):
+        msg = _('No migration service(s) started successfully, terminating.')
+        LOG.error(msg)
+        sys.exit(1)
+
+    launcher.wait()

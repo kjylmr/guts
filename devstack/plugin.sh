@@ -56,46 +56,36 @@ function configure_guts {
     cp $GUTS_DIR/etc/guts/api-paste.ini $GUTS_API_PASTE_INI
 
     # Setup Default section
-    iniset $GUTS_CONF DEFAULT graceful_shutdown_timeout $GRACEFUL_SHUTDOWN_TIMEOUT
-    iniset $GUTS_CONF DEFAULT os_privileged_user_tenant $SERVICE_TENANT_NAME
-    iniset $GUTS_CONF DEFAULT os_privileged_user_password $SERVICE_PASSWORD
-    iniset $GUTS_CONF DEFAULT os_privileged_user_name nova
-    iniset $GUTS_CONF DEFAULT glance_api_servers "http://${KEYSTONE_AUTH_HOST}:9292"
     iniset $GUTS_CONF DEFAULT osapi_migration_workers $GUTS_OSAPI_MIGRATION_WORKERS
-    iniset $GUTS_CONF DEFAULT migration_clear zero
     iniset $GUTS_CONF DEFAULT rpc_backend rabbit
-    iniset $GUTS_CONF DEFAULT os_region_name $REGION_NAME
-    iniset $GUTS_CONF DEFAULT enable_v1_api true
-    iniset $GUTS_CONF DEFAULT periodic_interval $GUTS_PERIODIC_INTERVAL
-    iniset $GUTS_CONF DEFAULT osapi_migration_listen "0.0.0.0"
-    iniset $GUTS_CONF DEFAULT osapi_migration_extension "guts.api.contrib.standard_extensions"
-    iniset $GUTS_CONF DEFAULT rootwrap_config "$GUTS_CONF_DIR/rootwrap.conf"
-    iniset $GUTS_CONF DEFAULT api_paste_config $GUTS_API_PASTE_INI
-    iniset $GUTS_CONF DEFAULT iscsi_helper $GUTS_ISCSI_HELPER
     iniset $GUTS_CONF DEFAULT debug $GUTS_DEBUG
-    iniset $GUTS_CONF DEFAULT nova_catalog_info $GUTS_NOVA_CATALOG_INFO
-    iniset $GUTS_CONF DEFAULT nova_catalog_admin_info $GUTS_NOVA_CATALOG_ADMIN_INFO
     iniset $GUTS_CONF DEFAULT auth_strategy keystone
 
     # configure the database.
     iniset $GUTS_CONF database connection `database_connection_url guts`
-
-    inicomment $GUTS_API_PASTE_INI filter:authtoken auth_host
-    inicomment $GUTS_API_PASTE_INI filter:authtoken auth_port
-    inicomment $GUTS_API_PASTE_INI filter:authtoken auth_protocol
-    inicomment $GUTS_API_PASTE_INI filter:authtoken cafile
-    inicomment $GUTS_API_PASTE_INI filter:authtoken admin_tenant_name
-    inicomment $GUTS_API_PASTE_INI filter:authtoken admin_user
-    inicomment $GUTS_API_PASTE_INI filter:authtoken admin_password
-    inicomment $GUTS_API_PASTE_INI filter:authtoken signing_dir
 
     configure_auth_token_middleware $GUTS_CONF guts $GUTS_AUTH_CACHE_DIR
 
     # Configure keystone auth url
     iniset $GUTS_CONF_FILE keystone auth_url "http://${KEYSTONE_AUTH_HOST}:5000/v2.0"
 
-    # Configure Guts API URL
-    iniset $GUTS_CONF_FILE guts url "http://127.0.0.1:7000"
+    # Configure backends
+    iniset $GUTS_CONF DEFAULT enabled_source_hypervisors source_openstack,source_vmware
+
+    # Configure OpenStack source driver
+    iniset $GUTS_CONF source_openstack source_driver guts.migration.drivers.sources.openstack.OpenStackSourceDriver
+    iniset $GUTS_CONF source_openstack capabilities instance,volume,network
+    iniset $GUTS_CONF source_openstack #auth_url
+    iniset $GUTS_CONF source_openstack #username
+    iniset $GUTS_CONF source_openstack #password
+    iniset $GUTS_CONF source_openstack #tenant_name
+
+    # Configure VMware source driver
+    iniset $GUTS_CONF source_vmware source_driver guts.migration.drivers.sources.vsphere.VSphereSourceDriver
+    iniset $GUTS_CONF source_vmware capabilities instance
+    iniset $GUTS_CONF source_vmware #vsphere_host
+    iniset $GUTS_CONF source_vmware #vsphere_username
+    iniset $GUTS_CONF source_vmware #vsphere_password
 
     # configure rpc backend
     configure_guts_rpc_backend
@@ -107,7 +97,6 @@ function configure_guts {
     fi
 
     if [ -n "$GUTS_STATE_PATH" ]; then
-        iniset $GUTS_CONF DEFAULT state_path "$GUTS_STATE_PATH"
         iniset $GUTS_CONF oslo_concurrency lock_path "$GUTS_STATE_PATH"
     fi
 
@@ -188,14 +177,14 @@ function install_guts_pythonclient() {
 # start_guts() - Start running processes, including screen
 function start_guts() {
     screen_it gu-api "cd $GUTS_DIR && $GUTS_BIN_DIR/guts-api --config-file $GUTS_CONF"
-    screen_it gu-migration "cd $GUTS_DIR && $GUTS_BIN_DIR/guts-migration --config-file $GUTS_CONF"
+    screen_it gu-scheduler "cd $GUTS_DIR && $GUTS_BIN_DIR/guts-scheduler --config-file $GUTS_CONF"
 }
 
 
 # stop_guts() - Stop running processes
 function stop_guts() {
     # Kill the Guts screen windows
-    for service in gu-api gu-migration; do
+    for service in gu-api gu-scheduler; do
         screen -S $SCREEN_NAME -p $service -X kill
     done
 }

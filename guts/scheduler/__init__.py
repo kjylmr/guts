@@ -13,8 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+"""
+:mod:`guts.scheduler` -- Scheduler Nodes
+=====================================================
 
-def register_all():
-    __import__('guts.objects.service')
-    __import__('guts.objects.resources')
-    __import__('guts.objects.migrations')
+.. automodule:: guts.scheduler
+   :platform: Unix
+   :synopsis: Module that picks a migratioin node to perform a migration operation.
+"""
+

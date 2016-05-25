@@ -157,57 +157,61 @@ def source_delete(context, source_id):
     return IMPL.source_delete(context, source_id)
 
 
-# VMs
+# Resources
 
-def vm_get_all(context, inactive=False):
-    """Get all source vms.
+def resource_get_all(context, inactive=False):
+    """Get all resources.
 
     :param context: context to query under
     :param inactive: Include inactive sources to the result set
 
-    :returns: list of source vms
+    :returns: list of resources
     """
-    return IMPL.vm_get_all(context, inactive)
+    return IMPL.resource_get_all(context, inactive)
 
 
-def vm_get(context, id):
-    """Get source vm by ID.
+def resource_get(context, id):
+    """Get resource by ID.
 
     :param context: context to query under
-    :param id: Source VM id to get.
+    :param id: Resource id to get.
 
-    :returns: source vm
+    :returns: resource
     """
-    return IMPL.vm_get(context, id)
+    return IMPL.resource_get(context, id)
 
 
-def vm_create(context, vm):
-    """Create a new vm."""
-    return IMPL.vm_create(context, vm)
+def resource_create(context, resource):
+    """Create a new resource."""
+    return IMPL.resource_create(context, resource)
 
 
-def vm_delete(context, vm_id):
-    """Deletes the given source vm."""
-    return IMPL.vm_delete(context, vm_id)
+def resource_delete(context, resource_id):
+    """Deletes the given resource."""
+    return IMPL.resource_delete(context, resorce_id)
 
 
-def delete_vms_by_source_id(context, source_id):
-    """Deletes all VMs list from the given source hypervisor."""
-    return IMPL.delete_vms_by_source_id(context, source_id)
+def resource_delete_all_by_source(context, source):
+    """Deletes all resources list of give source."""
+    return IMPL.resource_delete_all_by_source(context, source)
 
 
-def vm_update(context, vm_id, values):
-    """Set the given properties on an vm and update it.
+def resource_update(context, resource_id, values):
+    """Set the given properties on a resource and update it.
 
     Raises NotFound if vm does not exist.
     """
-    return IMPL.vm_update(context, vm_id, values)
+    return IMPL.resource_update(context, resource_id, values)
 
 
-def vm_get_by_name(context, name):
-    """Return a dict describing specific source vm."""
+def resource_get_all_by_type(context, resource_type):
+    """Return a resources of similar types."""
 
-    return IMPL.vm_get_by_name(context, name)
+    return IMPL.resource_get_all_by_type(context, resource_type)
+
+def resource_get_by_id_at_source(context, id_at_source):
+    """Return a resources based on it at source."""
+    return IMPL.resource_get_by_id_at_source(context, id_at_source)
 
 
 # Migrations

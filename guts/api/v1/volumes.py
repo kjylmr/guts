@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Migrations."""
+"""The source volumes."""
 
 import six
 import webob
@@ -33,15 +33,15 @@ LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 
-authorize = extensions.extension_authorizer('migration', 'migrations')
+authorize = extensions.extension_authorizer('migration', 'volumes')
 
 
-class MigrationsController(wsgi.Controller):
-    """The migration API controller for the OpenStack API."""
+class VolumesController(wsgi.Controller):
+    """The volume API controller for the OpenStack API."""
 
     def __init__(self, ext_mgr):
         self.ext_mgr = ext_mgr
-        super(MigrationsController, self).__init__()
+        super(VolumesController, self).__init__()
 
     def _notify_source_error(self, ctxt, method, err,
                              source=None, id=None, name=None):
@@ -53,39 +53,37 @@ class MigrationsController(wsgi.Controller):
         rpc.get_notifier('source').info(ctxt, method, payload)
 
     def index(self, req):
-        """Returns the list of Migrations."""
+        """Returns the list of Volumes."""
         context = req.environ['guts.context']
-        migrations = objects.MigrationList.get_all(context)
+        db_volumes = objects.ResourceList.get_all_by_type(context, 'volume')
 
-        migrations = []
-        for m in migrations:
-            migration = {}
-            migration['id'] = m.id
-            migration['name'] = m.name
-            migration['resource_id'] = m.resource_id
-            migration['migration_status'] = m.migration_status
-            migration['migration_event'] = m.migration_event
+        volumes = []
+        for v in db_volumes:
+            volume = {}
+            volume['id'] = v.id
+            volume['migrated'] = v.migrated
+            volume['name'] = v.name
+            volume['hypervisor_name'] = v.source.split('@')[1]
 
-            migrations.append(migration)
-        return dict(migrations=migrations)
+            volumes.append(volume)
+        return dict(volumes=volumes)
 
-    def show(self, req, migration_id):
-        """Returns data about given migration."""
+    def show(self, req, id):
+        """Returns data about given volume."""
         context = req.environ['guts.context']
         try:
-            inst = objects.Resource.get(context, migration_id)
+            vol = objects.Resource.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
 
-        migration = {}
-        migration['id'] = m.id
-        migration['name'] = m.name
-        migration['resource_id'] = m.resource_id
-        migration['migration_status'] = m.migration_status
-        migration['migration_event'] = m.migration_event
-        migration['description'] = m.description
+        volume = {}
+        volume['id'] = vol.id
+        volume['migrated'] = vol.migrated
+        volume['name'] = vol.name
+        volume['source'] = vol.source
+        volume['properties'] = vol.properties
 
-        return {'migration': migration}
+        return {'volume': volume}
 
 def create_resource(ext_mgr):
-    return wsgi.Resource(MigrationsController(ext_mgr))
+    return wsgi.Resource(VolumesController(ext_mgr))
