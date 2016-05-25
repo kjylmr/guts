@@ -16,7 +16,6 @@
 
 import atexit
 import os
-import requests
 import time
 
 from oslo_config import cfg
@@ -59,7 +58,7 @@ def get_obj(content, vimtype):
 
 
 class VSphereSourceDriver(driver.SourceDriver):
-    """ VSphere Source Hypervisor"""
+    """VSphere Source Hypervisor"""
     def __init__(self, *args, **kwargs):
         super(VSphereSourceDriver, self).__init__(*args, **kwargs)
         self.configuration.append_config_values(vsphere_source_opts)
@@ -77,7 +76,7 @@ class VSphereSourceDriver(driver.SourceDriver):
             atexit.register(connect.Disconnect, self.con)
             self.content = self.con.RetrieveContent()
         except Exception:
-           raise
+            raise
         self._initialized = True
 
     def get_instances_list(self, context):
@@ -89,7 +88,7 @@ class VSphereSourceDriver(driver.SourceDriver):
         instance_list = []
         for instance in instances:
             if instance.config.instanceUuid in self.exclude:
-                continue;
+                continue
             inst = {}
             inst["id"] = instance.config.instanceUuid
             inst["name"] = instance.config.name
@@ -111,7 +110,7 @@ class VSphereSourceDriver(driver.SourceDriver):
         network_list = []
         for network in networks:
             if network.summary.name in self.exclude:
-                continue;
+                continue
             net = {'id': network.name,
                    'name': network.name,
                    'ip_pool': network.summary.ipPoolName,
@@ -149,7 +148,8 @@ class VSphereSourceDriver(driver.SourceDriver):
     def _get_instance_disk(self, device_url, dest_disk_path):
         url = device_url.url
         if not os.path.exists(dest_disk_path):
-            utils.execute('wget', url, '--no-check-certificate', '-O', dest_disk_path, run_as_root=True)
+            utils.execute('wget', url, '--no-check-certificate',
+                          '-O', dest_disk_path, run_as_root=True)
 
     def get_instance(self, context, instance_id):
         instance = self._find_instance_by_uuid(instance_id)

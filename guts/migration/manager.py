@@ -28,7 +28,6 @@ import oslo_messaging as messaging
 from oslo_utils import importutils
 from oslo_service import periodic_task
 
-from guts.compute import nova
 from guts import context
 from guts import db
 from guts import exception
@@ -112,9 +111,9 @@ def _cast_to_destination(context, dest_host, method, migration_ref,
 
 def _get_free_space(conversion_dir):
     """Calculate and return free space available."""
-    out, _ = utils.execute('df', '--portability', '--block-size', '1',
+    out = utils.execute('df', '--portability', '--block-size', '1',
                            conversion_dir,
-                           run_as_root=True)
+                           run_as_root=True)[0]
     out = out.splitlines()[1]
     available = int(out.split()[3])
 
@@ -151,7 +150,7 @@ class SourceManager(manager.SchedulerDependentManager):
     RPC_API_VERSION = '1.8'
 
     target = messaging.Target(version=RPC_API_VERSION)
-    
+
     def __init__(self, source_driver=None, service_name=None,
                  *args, **kwargs):
         """Load the source driver."""
@@ -161,21 +160,22 @@ class SourceManager(manager.SchedulerDependentManager):
         self.configuration = config.Configuration(source_manager_opts,
                                                   config_group=service_name)
         self.stats = {}
-        
+
         if not source_driver:
             # Get from configuration, which will get the default
             # if its not using the multi backend.
             source_driver = self.configuration.source_driver
-            
+
         svc_host = utils.extract_host(self.host)
         try:
-            service = objects.Service.get_by_args(context.get_admin_context(),
-                                                  svc_host, 'guts-source')
+            objects.Service.get_by_args(context.get_admin_context(),
+                                        svc_host, 'guts-source')
         except exception.ServiceNotFound:
             LOG.info(_LI("Service not found for updating."))
-        self.driver = importutils.import_object(source_driver,
-                                                configuration=self.configuration,
-                                                host=self.host)
+        self.driver = importutils.import_object(
+            source_driver,
+            configuration=self.configuration,
+            host=self.host)
 
     def init_host(self):
         """Perform any required initialization."""
@@ -204,7 +204,7 @@ class SourceManager(manager.SchedulerDependentManager):
                                dest_host)
         elif resource_type == 'volume':
             self._get_volume(context, migration_ref, resource_ref,
-                              dest_host)
+                             dest_host)
         elif resource_type == 'network':
             self._get_network(context, migration_ref, resource_ref,
                               dest_host)
@@ -240,7 +240,8 @@ class SourceManager(manager.SchedulerDependentManager):
         migration_ref.migration_status = "Inprogress"
         migration_ref.migration_event = "Fetching from source"
         migration_ref.save()
-        volume_path = self.driver.get_volume(context, volume_id, migration_ref.id)
+        volume_path = self.driver.get_volume(context, volume_id,
+                                             migration_ref.id)
         volume_info = ast.literal_eval(resource_ref.properties)
         volume_info['path'] = volume_path
         _cast_to_destination(context, dest_host, 'create_volume',
@@ -259,7 +260,8 @@ class SourceManager(manager.SchedulerDependentManager):
     def _report_driver_status(self, context):
         status = {}
         status["capabilities"] = self.configuration.capabilities.split(',')
-        status["free_space"] = _get_free_space(self.configuration.conversion_dir)
+        status["free_space"] = _get_free_space(
+            self.configuration.conversion_dir)
         resources = {}
         for capab in status["capabilities"]:
             if capab == 'instance':
@@ -275,7 +277,7 @@ class SourceManager(manager.SchedulerDependentManager):
                 if networks:
                     resources['network'] = networks
             else:
-                LOG.debug("Invalid Capability %s" %(capab))
+                LOG.debug("Invalid Capability %s" % (capab))
         status['resources'] = resources
         self.update_service_capabilities(status)
 
@@ -291,7 +293,7 @@ class DestinationManager(manager.SchedulerDependentManager):
     RPC_API_VERSION = '1.8'
 
     target = messaging.Target(version=RPC_API_VERSION)
-    
+
     def __init__(self, destination_driver=None, service_name=None,
                  *args, **kwargs):
         """Load the destination driver."""
@@ -306,17 +308,18 @@ class DestinationManager(manager.SchedulerDependentManager):
             # Get from configuration, which will get the default
             # if its not using the multi backend.
             destination_driver = self.configuration.destination_driver
-            
+
         svc_host = utils.extract_host(self.host)
         try:
-            service = objects.Service.get_by_args(context.get_admin_context(),
-                                                  svc_host, 'guts-destination')
+            objects.Service.get_by_args(context.get_admin_context(),
+                                        svc_host, 'guts-destination')
         except exception.ServiceNotFound:
             LOG.info(_LI("Service not found for updating."))
 
-        self.driver = importutils.import_object(destination_driver,
-                                                configuration=self.configuration,
-                                                host=self.host)
+        self.driver = importutils.import_object(
+            destination_driver,
+            configuration=self.configuration,
+            host=self.host)
 
     def init_host(self):
         """Perform any required initialization."""
@@ -339,7 +342,8 @@ class DestinationManager(manager.SchedulerDependentManager):
     def _report_driver_status(self, context):
         status = {}
         status["capabilities"] = self.configuration.capabilities
-        status["free_space"] = _get_free_space(self.configuration.conversion_dir)
+        con_dir = self.configuration.conversion_dir
+        status["free_space"] = _get_free_space(con_dir)
         self.update_service_capabilities(status)
 
     def publish_service_capabilities(self, context):
@@ -353,7 +357,7 @@ class DestinationManager(manager.SchedulerDependentManager):
         del kwargs['name']
         migration_ref = kwargs.pop('migration_ref')
         resource_ref = kwargs.pop('resource_ref')
-        migration_ref.migration_event='Creating at destination'
+        migration_ref.migration_event = 'Creating at destination'
         migration_ref.save()
         try:
             self.driver.create_network(context, **kwargs)
@@ -373,7 +377,7 @@ class DestinationManager(manager.SchedulerDependentManager):
         del kwargs['id']
         migration_ref = kwargs.pop('migration_ref')
         resource_ref = kwargs.pop('resource_ref')
-        migration_ref.migration_event='Creating at destination'
+        migration_ref.migration_event = 'Creating at destination'
         migration_ref.save()
         kwargs['mig_ref_id'] = migration_ref.id
         try:
@@ -393,7 +397,7 @@ class DestinationManager(manager.SchedulerDependentManager):
         """Create a new instance."""
         migration_ref = kwargs.pop('migration_ref')
         resource_ref = kwargs.pop('resource_ref')
-        migration_ref.migration_event='Creating at destination'
+        migration_ref.migration_event = 'Creating at destination'
         migration_ref.save()
         kwargs['mig_ref_id'] = migration_ref.id
         try:
@@ -408,4 +412,3 @@ class DestinationManager(manager.SchedulerDependentManager):
         migration_ref.save()
         resource_ref.migrated = True
         resource_ref.save()
-

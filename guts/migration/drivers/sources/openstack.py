@@ -16,16 +16,17 @@
 
 import os
 
-from guts import utils
-from guts.migration.drivers import driver
-from guts import exception
-from keystoneclient.auth.identity import v2
-from keystoneauth1.identity import v3
-from keystoneclient import session as v2_session
-from keystoneauth1 import session as v3_session
-from novaclient import client as nova_client
 from cinderclient import client as cinder_client
 from glanceclient import client as glance_client
+from guts import exception
+from guts.migration.drivers import driver
+from guts import utils
+from keystoneauth1.identity import v3
+from keystoneauth1 import session as v3_session
+from keystoneclient.auth.identity import v2
+from keystoneclient import session as v2_session
+from novaclient import client as nova_client
+
 from oslo_config import cfg
 
 
@@ -35,10 +36,12 @@ openstack_source_opts = [
                help='Identity service endpoint for authorization'),
     cfg.StrOpt('username',
                default='admin',
-               help='Name used for authentication with the OpenStack Identity service.'),
+               help='Name used for authentication with the '
+                    'OpenStack Identity service.'),
     cfg.StrOpt('password',
                default='password',
-               help='Password used for authentication with the OpenStack Identity service.'),
+               help='Password used for authentication with '
+                    'the OpenStack Identity service.'),
     cfg.StrOpt('tenant_name',
                default='admin',
                help='Tenant to request authorization on.'),
@@ -55,7 +58,7 @@ openstack_source_opts = [
 
 
 class OpenStackSourceDriver(driver.SourceDriver):
-    """ OpenStack Source Hypervisor"""
+    """OpenStack Source Hypervisor"""
     def __init__(self, *args, **kwargs):
         super(OpenStackSourceDriver, self).__init__(*args, **kwargs)
         self.configuration.append_config_values(openstack_source_opts)
@@ -66,7 +69,7 @@ class OpenStackSourceDriver(driver.SourceDriver):
 
         auth_url = self.configuration.auth_url
         if auth_url is None:
-            raise ValueError(_("Cannot authenticate without an auth_url"))
+            raise ValueError("Cannot authenticate without an auth_url")
         username = self.configuration.username
         password = self.configuration.password
         tenant_name = self.configuration.tenant_name
@@ -78,16 +81,18 @@ class OpenStackSourceDriver(driver.SourceDriver):
         keystone_version = self.configuration.keystone_version
 
         if keystone_version == 'v3':
-            auth = v3.Password(auth_url=auth_url, username=username, password=password,
-                               project_id=project_id, user_domain_name=user_domain_name)
+            auth = v3.Password(auth_url=auth_url, username=username,
+                               password=password, project_id=project_id,
+                               user_domain_name=user_domain_name)
             sess = v3_session.Session(auth=auth)
         elif keystone_version == 'v2':
-            auth = v2.Password(auth_url, username=username, password=password, tenant_name=tenant_name)
+            auth = v2.Password(auth_url, username=username,
+                               password=password, tenant_name=tenant_name)
             sess = v2_session.Session(auth=auth)
 
-        self.nova  = nova_client.Client(nova_api_version, session=sess)
-        self.cinder  = cinder_client.Client(cinder_api_version, session=sess)
-        self.glance  = glance_client.Client(glance_api_version, session=sess)
+        self.nova = nova_client.Client(nova_api_version, session=sess)
+        self.cinder = cinder_client.Client(cinder_api_version, session=sess)
+        self.glance = glance_client.Client(glance_api_version, session=sess)
         self._initialized = True
 
     def get_instances_list(self, context):
@@ -97,11 +102,10 @@ class OpenStackSourceDriver(driver.SourceDriver):
         instances = []
         for inst in src_instances:
             if inst.id in self.exclude:
-                continue;
+                continue
             i = {'name': inst.name,
                  'id': inst.id,
-                 'status': inst.status
-            }
+                 'status': inst.status}
             instances.append(i)
         return instances
 
@@ -112,11 +116,10 @@ class OpenStackSourceDriver(driver.SourceDriver):
         volumes = []
         for vol in src_volumes:
             if vol.id in self.exclude:
-                continue;
+                continue
             v = {'name': vol.display_name,
                  'id': vol.id,
-                 'size': vol.size
-            }
+                 'size': vol.size}
             volumes.append(v)
         return volumes
 
@@ -127,7 +130,7 @@ class OpenStackSourceDriver(driver.SourceDriver):
         networks = []
         for network in src_networks:
             if network.id in self.exclude:
-                continue;
+                continue
             net = {'id': network.id,
                    'name': network.label,
                    'bridge': network.bridge,
@@ -136,14 +139,33 @@ class OpenStackSourceDriver(driver.SourceDriver):
                    'cidr': network.cidr,
                    'enable_dhcp': network.enable_dhcp,
                    'dhcp_server': network.dhcp_server,
-                   'dns1': network.dns1
-            }
+                   'dns1': network.dns1}
             networks.append(net)
 
         return networks
 
+    def get_instance(self, context, instance_id):
+        """Downloads given instance to local conversion directory."""
+        if not self._initialized:
+            self.do_setup()
+        try:
+            instance = self.nova.servers.get(instance_id)
+            image_id = instance.create_image(instance_id)
+            img = self.glance.images.get(image_id)
+            while img.status != 'active':
+                img = self.glance.images.get(image_id)
+            image_path = os.path.join(self.configuration.conversion_dir,
+                                      image_id)
+            self._download_image_from_glance(image_id, image_path)
+            self.glance.images.delete(image_id)
+        except Exception:
+            raise exception.GutsError()
+        return [{'0': image_path}]
+
     def get_network(self, context, network_id):
-        """As network migration is just an local migration, we don't need
+        """Get Network information from source hypervisor.
+
+           As network migration is just an local migration, we don't need
            anything from source hypervisor. Required network information
            already stored in guts database.
         """
@@ -155,11 +177,13 @@ class OpenStackSourceDriver(driver.SourceDriver):
             self.do_setup()
         try:
             vol = self.cinder.volumes.get(volume_id)
-            status = self.cinder.volumes.upload_to_image(vol, True, migration_ref_id,
+            status = self.cinder.volumes.upload_to_image(vol, True,
+                                                         migration_ref_id,
                                                          'bare', 'raw')
-            vol_img = self.glance.images.get(status[1]['os-volume_upload_image']['image_id'])
+            img_id = status[1]['os-volume_upload_image']['image_id']
+            vol_img = self.glance.images.get(img_id)
             while vol_img.status != 'active':
-                vol_img = self.glance.images.get(status[1]['os-volume_upload_image']['image_id'])
+                vol_img = self.glance.images.get(img_id)
             image_path = os.path.join(self.configuration.conversion_dir,
                                       migration_ref_id)
             self._download_image_from_glance(vol_img.id, image_path)
@@ -169,8 +193,10 @@ class OpenStackSourceDriver(driver.SourceDriver):
         return image_path
 
     def _download_image_from_glance(self, image_id, file_path):
-            out, err = utils.execute('glance', '--os-username', self.configuration.username,
-                                     '--os-password', self.configuration.password, '--os-tenant-name',
-                                     self.configuration.tenant_name, '--os-auth-url',
-                                     self.configuration.auth_url, 'image-download', '--file',
-                                     file_path, image_id, run_as_root=True)
+            out, err = utils.execute(
+                'glance', '--os-username', self.configuration.username,
+                '--os-password', self.configuration.password,
+                '--os-tenant-name', self.configuration.tenant_name,
+                '--os-auth-url', self.configuration.auth_url,
+                'image-download', '--file', file_path,
+                image_id, run_as_root=True)

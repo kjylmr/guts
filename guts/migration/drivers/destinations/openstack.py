@@ -76,9 +76,9 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             auth = v2.Password(auth_url, username=username, password=password, tenant_name=tenant_name)
             sess = v2_session.Session(auth=auth)
 
-        self.nova  = nova_client.Client(nova_api_version, session=sess)
-        self.cinder  = cinder_client.Client(cinder_api_version, session=sess)
-        self.glance  = glance_client.Client(glance_api_version, session=sess)
+        self.nova = nova_client.Client(nova_api_version, session=sess)
+        self.cinder = cinder_client.Client(cinder_api_version, session=sess)
+        self.glance = glance_client.Client(glance_api_version, session=sess)
         self._initialized = True
 
     def create_network(self, context, **kwargs):
@@ -132,9 +132,12 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
         for disk in disks:
             image_name = "%s_%s" % (mig_ref, count)
             self._upload_image_to_glance(image_name, disk[str(count)])
+            if count == 0:
+                self.nova_boot(kwargs['name'], image_name)
+            else:
+                img = self.glance.images.find(name=image_name)
+                self.cinder.volumes.create(
+                    display_name="%s_vol" % kwargs['name'],
+                    size=8,
+                    imageRef=img.id)
             count += 1
-        self.nova_boot(kwargs['name'], "%s_0"%(mig_ref))
-        img = self.glance.images.find(name="%s_1"%(mig_ref))
-        vol = self.cinder.volumes.create(display_name="%s_vol"%kwargs['name'],
-                                         size=8,
-                                         imageRef=img.id)
