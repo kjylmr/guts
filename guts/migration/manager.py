@@ -18,6 +18,7 @@
 Migration Service
 """
 
+import ast
 import functools
 import os
 
@@ -27,13 +28,13 @@ import oslo_messaging as messaging
 from oslo_utils import importutils
 from oslo_service import periodic_task
 
-from guts.compute import nova
 from guts import context
 from guts import db
 from guts import exception
 from guts.i18n import _, _LW, _LE, _LI
 from guts.image import glance
 from guts import manager
+from guts.objects import base as objects_base
 from guts import objects
 from guts import rpc
 from guts import utils
@@ -50,6 +51,18 @@ source_manager_opts = [
     cfg.StrOpt('capabilities',
                default='instance',
                help='Specifies types of migrations this driver supports.'),
+    cfg.StrOpt('exclude',
+               default='',
+               help='List of resource to be excluded from migration'),
+    cfg.StrOpt('nova_api_version',
+               default='2',
+               help='Shows the client version.'),
+    cfg.StrOpt('cinder_api_version',
+               default='1',
+               help='Cinder client version.'),
+    cfg.StrOpt('glance_api_version',
+               default='1',
+               help='Glance client version.'),
 ]
 
 destination_manager_opts = [
@@ -62,11 +75,18 @@ destination_manager_opts = [
     cfg.StrOpt('capabilities',
                default='instance',
                help='Specifies types of migrations this driver supports.'),
+    cfg.StrOpt('nova_api_version',
+               default='2',
+               help='Shows the client version.'),
+    cfg.StrOpt('cinder_api_version',
+               default='1',
+               help='Cinder client version.'),
+    cfg.StrOpt('glance_api_version',
+               default='1',
+               help='Glance client version.'),
 ]
 
 CONF = cfg.CONF
-CONF.register_opts(source_manager_opts)
-CONF.register_opts(destination_manager_opts)
 
 LOG = logging.getLogger(__name__)
 
@@ -74,23 +94,26 @@ get_notifier = functools.partial(rpc.get_notifier, service='migration')
 wrap_exception = functools.partial(exception.wrap_exception,
                                    get_notifier=get_notifier)
 
-MIGRATION_STATUS = {'init': 'Initiating',
-                    'inprogress': 'Inprogress',
-                    'complete': 'Completed',
-                    'error': 'Error'}
 
-MIGRATION_EVENT = {'connect': 'Connecting to VM',
-                   'fetch': 'Fetching VM Disk(s)',
-                   'convert': 'Converting VM Disk(s)',
-                   'upload': 'Uploading to Glance',
-                   'boot': 'Booting Instance',
-                   'done': '-'}
+def _cast_to_destination(context, dest_host, method, migration_ref,
+                         resource_ref, **kwargs):
+    dest_topic = ('guts-destination.%s' %(dest_host))
+    target = messaging.Target(topic=dest_topic,
+                              version='1.8')
+    serializer = objects_base.GutsObjectSerializer()
+    client = rpc.get_client(target, version_cap=None,
+                            serializer=serializer)
+
+    ctxt = client.prepare(version='1.8')
+    ctxt.cast(context, method, migration_ref=migration_ref,
+              resource_ref=resource_ref, **kwargs)
+
 
 def _get_free_space(conversion_dir):
     """Calculate and return free space available."""
-    out, _ = utils.execute('df', '--portability', '--block-size', '1',
+    out = utils.execute('df', '--portability', '--block-size', '1',
                            conversion_dir,
-                           run_as_root=True)
+                           run_as_root=True)[0]
     out = out.splitlines()[1]
     available = int(out.split()[3])
 
@@ -127,7 +150,7 @@ class SourceManager(manager.SchedulerDependentManager):
     RPC_API_VERSION = '1.8'
 
     target = messaging.Target(version=RPC_API_VERSION)
-    
+
     def __init__(self, source_driver=None, service_name=None,
                  *args, **kwargs):
         """Load the source driver."""
@@ -137,21 +160,22 @@ class SourceManager(manager.SchedulerDependentManager):
         self.configuration = config.Configuration(source_manager_opts,
                                                   config_group=service_name)
         self.stats = {}
-        
+
         if not source_driver:
             # Get from configuration, which will get the default
             # if its not using the multi backend.
             source_driver = self.configuration.source_driver
-            
+
         svc_host = utils.extract_host(self.host)
         try:
-            service = objects.Service.get_by_args(context.get_admin_context(),
-                                                  svc_host, 'guts-source')
+            objects.Service.get_by_args(context.get_admin_context(),
+                                        svc_host, 'guts-source')
         except exception.ServiceNotFound:
             LOG.info(_LI("Service not found for updating."))
-        self.driver = importutils.import_object(source_driver,
-                                                configuration=self.configuration,
-                                                host=self.host)
+        self.driver = importutils.import_object(
+            source_driver,
+            configuration=self.configuration,
+            host=self.host)
 
     def init_host(self):
         """Perform any required initialization."""
@@ -168,28 +192,92 @@ class SourceManager(manager.SchedulerDependentManager):
             # we don't want to continue since we failed
             # to initialize the driver correctly.
             return
+        self.publish_service_capabilities(ctxt)
+
+    # RPC Method
+    def get_resource(self, context, migration_ref, resource_ref,
+                     dest_host):
+        resource_type = resource_ref.type
+
+        if resource_type == 'instance':
+            self._get_instance(context, migration_ref, resource_ref,
+                               dest_host)
+        elif resource_type == 'volume':
+            self._get_volume(context, migration_ref, resource_ref,
+                             dest_host)
+        elif resource_type == 'network':
+            self._get_network(context, migration_ref, resource_ref,
+                              dest_host)
+
+    def _convert_disks(self, disks):
+        converted_disks = []
+        for disk in disks:
+            index = disk.keys()[0]
+            path = disk[index]
+            disk[index] = path.replace('.vmdk', '.qcow2')
+            utils.convert_image(path, disk[index],
+                                'qcow2', run_as_root=False)
+            converted_disks.append(disk)
+        return converted_disks
+
+    def _get_instance(self, context, migration_ref,
+                      resource_ref, dest_host):
+        instance_id = resource_ref.id_at_source
+        migration_ref.migration_status = "Inprogress"
+        migration_ref.migration_event = "Fetching from source"
+        migration_ref.save()
+        instance_disks = self.driver.get_instance(context, instance_id)
+        instance_disks = self._convert_disks(instance_disks)
+
+        instance_info = ast.literal_eval(resource_ref.properties)
+        instance_info['disks'] = instance_disks
+        _cast_to_destination(context, dest_host, 'create_instance',
+                             migration_ref, resource_ref, **instance_info)
+
+    def _get_volume(self, context, migration_ref,
+                    resource_ref, dest_host):
+        volume_id = resource_ref.id_at_source
+        migration_ref.migration_status = "Inprogress"
+        migration_ref.migration_event = "Fetching from source"
+        migration_ref.save()
+        volume_path = self.driver.get_volume(context, volume_id,
+                                             migration_ref.id)
+        volume_info = ast.literal_eval(resource_ref.properties)
+        volume_info['path'] = volume_path
+        _cast_to_destination(context, dest_host, 'create_volume',
+                             migration_ref, resource_ref, **volume_info)
+
+    def _get_network(self, context, migration_ref,
+                     resource_ref, dest_host):
+        network_info = ast.literal_eval(resource_ref.properties)
+        migration_ref.migration_status = "Inprogress"
+        migration_ref.migration_event = "Fetching from source"
+        migration_ref.save()
+        _cast_to_destination(context, dest_host, 'create_network',
+                             migration_ref, resource_ref, **network_info)
 
     @periodic_task.periodic_task
     def _report_driver_status(self, context):
         status = {}
         status["capabilities"] = self.configuration.capabilities.split(',')
-        status["free_space"] = _get_free_space(self.configuration.conversion_dir)
+        status["free_space"] = _get_free_space(
+            self.configuration.conversion_dir)
         resources = {}
         for capab in status["capabilities"]:
             if capab == 'instance':
-                instances = self.driver.get_instances_list()
+                instances = self.driver.get_instances_list(context)
                 if instances:
                     resources['instance'] = instances
             elif capab == 'volume':
-                volumes = self.driver.get_volumes_list()
+                volumes = self.driver.get_volumes_list(context)
                 if volumes:
                     resources['volume'] = volumes
             elif capab == 'network':
-                networks = self.driver.get_networks_list()
+                networks = self.driver.get_networks_list(context)
                 if networks:
                     resources['network'] = networks
             else:
-                LOG.debug("Invalid Capability %s" %(capab))
+                LOG.debug("Invalid Capability %s" % (capab))
         status['resources'] = resources
         self.update_service_capabilities(status)
 
@@ -205,13 +293,13 @@ class DestinationManager(manager.SchedulerDependentManager):
     RPC_API_VERSION = '1.8'
 
     target = messaging.Target(version=RPC_API_VERSION)
-    
+
     def __init__(self, destination_driver=None, service_name=None,
                  *args, **kwargs):
         """Load the destination driver."""
         # updated_service_capabilities needs service_name to be "source".
         super(DestinationManager, self).__init__(service_name='destination',
-                                            *args, **kwargs)
+                                                 *args, **kwargs)
         self.configuration = config.Configuration(destination_manager_opts,
                                                   config_group=service_name)
         self.stats = {}
@@ -220,26 +308,107 @@ class DestinationManager(manager.SchedulerDependentManager):
             # Get from configuration, which will get the default
             # if its not using the multi backend.
             destination_driver = self.configuration.destination_driver
-            
+
         svc_host = utils.extract_host(self.host)
         try:
-            service = objects.Service.get_by_args(context.get_admin_context(),
-                                                  svc_host, 'guts-destination')
+            objects.Service.get_by_args(context.get_admin_context(),
+                                        svc_host, 'guts-destination')
         except exception.ServiceNotFound:
             LOG.info(_LI("Service not found for updating."))
 
-        self.driver = importutils.import_object(destination_driver,
-                                                configuration=self.configuration,
-                                                host=self.host)
+        self.driver = importutils.import_object(
+            destination_driver,
+            configuration=self.configuration,
+            host=self.host)
+
+    def init_host(self):
+        """Perform any required initialization."""
+        ctxt = context.get_admin_context()
+
+        LOG.info(_LI("Starting destination driver %(driver_name)s."),
+                 {'driver_name': self.driver.__class__.__name__})
+        try:
+            self.driver.do_setup(ctxt)
+        except Exception:
+            LOG.exception(_LE("Failed to initialize driver."),
+                          resource={'type': 'driver',
+                                    'id': self.__class__.__name__})
+            # we don't want to continue since we failed
+            # to initialize the driver correctly.
+            return
+        self.publish_service_capabilities(ctxt)
 
     @periodic_task.periodic_task
     def _report_driver_status(self, context):
         status = {}
         status["capabilities"] = self.configuration.capabilities
-        status["free_space"] = _get_free_space(self.configuration.conversion_dir)
+        con_dir = self.configuration.conversion_dir
+        status["free_space"] = _get_free_space(con_dir)
         self.update_service_capabilities(status)
 
     def publish_service_capabilities(self, context):
         """Collect driver status and then publish."""
         self._report_driver_status(context)
         self._publish_service_capabilities(context)
+
+    def create_network(self, context, **kwargs):
+        """Creates new network on destination OpenStack hypervisor."""
+        del kwargs['id']
+        del kwargs['name']
+        migration_ref = kwargs.pop('migration_ref')
+        resource_ref = kwargs.pop('resource_ref')
+        migration_ref.migration_event = 'Creating at destination'
+        migration_ref.save()
+        try:
+            self.driver.create_network(context, **kwargs)
+        except exception.NetworkCreationFailed:
+            migration_ref.migration_status = 'ERROR'
+            migration_ref.migration_event = None
+            migration_ref.save()
+            raise
+        migration_ref.migration_status = 'COMPLETE'
+        migration_ref.migration_event = None
+        migration_ref.save()
+        resource_ref.migrated = True
+        resource_ref.save()
+
+    def create_volume(self, context, **kwargs):
+        """Creats volume on destination OpenStack hypervisor."""
+        del kwargs['id']
+        migration_ref = kwargs.pop('migration_ref')
+        resource_ref = kwargs.pop('resource_ref')
+        migration_ref.migration_event = 'Creating at destination'
+        migration_ref.save()
+        kwargs['mig_ref_id'] = migration_ref.id
+        try:
+            self.driver.create_volume(context, **kwargs)
+        except exception.NetworkCreationFailed:
+            migration_ref.migration_status = 'ERROR'
+            migration_ref.migration_event = None
+            migration_ref.save()
+            raise
+        migration_ref.migration_status = 'COMPLETE'
+        migration_ref.migration_event = None
+        migration_ref.save()
+        resource_ref.migrated = True
+        resource_ref.save()
+
+    def create_instance(self, context, **kwargs):
+        """Create a new instance."""
+        migration_ref = kwargs.pop('migration_ref')
+        resource_ref = kwargs.pop('resource_ref')
+        migration_ref.migration_event = 'Creating at destination'
+        migration_ref.save()
+        kwargs['mig_ref_id'] = migration_ref.id
+        try:
+            self.driver.create_instance(context, **kwargs)
+        except exception.NetworkCreationFailed:
+            migration_ref.migration_status = 'ERROR'
+            migration_ref.migration_event = None
+            migration_ref.save()
+            raise
+        migration_ref.migration_status = 'COMPLETE'
+        migration_ref.migration_event = None
+        migration_ref.save()
+        resource_ref.migrated = True
+        resource_ref.save()

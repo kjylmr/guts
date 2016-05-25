@@ -14,9 +14,130 @@
 #    under the License.
 
 from guts.migration.drivers import driver
+from guts import exception
+from guts import utils
+from keystoneclient.auth.identity import v2
+from keystoneauth1.identity import v3
+from keystoneclient import session as v2_session
+from keystoneauth1 import session as v3_session
+from novaclient import client as nova_client
+from cinderclient import client as cinder_client
+from glanceclient import client as glance_client
+from oslo_config import cfg
+
+openstack_destination_opts = [
+    cfg.StrOpt('auth_url',
+               default='http://127.0.0.1:5000/v2.0',
+               help='Identity service endpoint for authorization'),
+    cfg.StrOpt('username',
+               help='Name used for authentication with the OpenStack Identity service.'),
+    cfg.StrOpt('password',
+               help='Password used for authentication with the OpenStack Identity service.'),
+    cfg.StrOpt('tenant_name',
+               help='Tenant to request authorization on.'),
+    cfg.StrOpt('project_id',
+               help='Project ID for project scoping.'),
+    cfg.StrOpt('user_domain_name',
+               help="User's domain ID for authentication"),
+    cfg.StrOpt('keystone_version',
+               default='v2',
+               choices=['v2', 'v3'],
+               help="User's domain ID for authentication"),
+]
 
 
 class OpenStackDestinationDriver(driver.DestinationDriver):
     """ OpenStack Destination Hypervisor"""
     def __init__(self, *args, **kwargs):
         super(OpenStackDestinationDriver, self).__init__(*args, **kwargs)
+        self.configuration.append_config_values(openstack_destination_opts)
+
+    def do_setup(self, context):
+        """Any initialization the destination driver does while starting."""
+        super(OpenStackDestinationDriver, self).do_setup(context)
+        auth_url = self.configuration.auth_url
+        if auth_url is None:
+            raise ValueError(_("Cannot authenticate without an auth_url"))
+        username = self.configuration.username
+        password = self.configuration.password
+        tenant_name = self.configuration.tenant_name
+        project_id = self.configuration.project_id
+        user_domain_name = self.configuration.user_domain_name
+        nova_api_version = self.configuration.nova_api_version
+        cinder_api_version = self.configuration.cinder_api_version
+        glance_api_version = self.configuration.glance_api_version
+        keystone_version = self.configuration.keystone_version
+
+        if keystone_version == 'v3':
+            auth = v3.Password(auth_url=auth_url, username=username, password=password,
+                               project_id=project_id, user_domain_name=user_domain_name)
+            sess = v3_session.Session(auth=auth)
+        elif keystone_version == 'v2':
+            auth = v2.Password(auth_url, username=username, password=password, tenant_name=tenant_name)
+            sess = v2_session.Session(auth=auth)
+
+        self.nova = nova_client.Client(nova_api_version, session=sess)
+        self.cinder = cinder_client.Client(cinder_api_version, session=sess)
+        self.glance = glance_client.Client(glance_api_version, session=sess)
+        self._initialized = True
+
+    def create_network(self, context, **kwargs):
+        if not self._initialized:
+            self.do_setup(context)
+        try:
+            self.nova.networks.create(**kwargs)
+        except Exception as e:
+            raise exception.NetworkCreationFailed(reason=e.message)
+
+    def create_volume(self, context, **kwargs):
+        if not self._initialized:
+            self.do_setup(context)
+        image_name = kwargs['mig_ref_id']
+        try:
+            self._upload_image_to_glance(image_name, kwargs['path'])
+            utils.execute('rm', kwargs['path'], run_as_root=True)
+            img = self.glance.images.find(name=image_name)
+            if img.status != 'active':
+                raise Exception
+            vol = self.cinder.volumes.create(display_name=kwargs['name'],
+                                             size=int(kwargs['size']),
+                                             imageRef=img.id)
+            while vol.status != 'available':
+                vol = self.cinder.volumes.get(vol.id)
+            self.glance.images.delete(img.id)
+        except Exception as e:
+            raise exception.VolumeCreationFailed(reason=e.message)
+
+    def _upload_image_to_glance(self, image_name, file_path):
+        out, err = utils.execute('glance', '--os-username', self.configuration.username,
+                                 '--os-password', self.configuration.password, '--os-tenant-name',
+                                 self.configuration.tenant_name, '--os-auth-url',
+                                 self.configuration.auth_url, 'image-create', '--file',
+                                 file_path, '--disk-format', 'raw', '--container-format', 'bare',
+                                 '--name', image_name, run_as_root=True)
+
+    def nova_boot(self, instance_name, image_name):
+        out, err = utils.execute('nova', '--os-username', self.configuration.username,
+                                 '--os-password', self.configuration.password, '--os-tenant-name',
+                                 self.configuration.tenant_name, '--os-auth-url',
+                                 self.configuration.auth_url, 'boot', '--image',
+                                 image_name, '--flavor', '2', instance_name,
+                                 run_as_root=True)
+
+
+    def create_instance(self, context, **kwargs):
+        disks = kwargs['disks']
+        mig_ref = kwargs['mig_ref_id']
+        count = 0
+        for disk in disks:
+            image_name = "%s_%s" % (mig_ref, count)
+            self._upload_image_to_glance(image_name, disk[str(count)])
+            if count == 0:
+                self.nova_boot(kwargs['name'], image_name)
+            else:
+                img = self.glance.images.find(name=image_name)
+                self.cinder.volumes.create(
+                    display_name="%s_vol" % kwargs['name'],
+                    size=8,
+                    imageRef=img.id)
+            count += 1
