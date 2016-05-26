@@ -188,7 +188,7 @@ def resource_create(context, resource):
 
 def resource_delete(context, resource_id):
     """Deletes the given resource."""
-    return IMPL.resource_delete(context, resorce_id)
+    return IMPL.resource_delete(context, resource_id)
 
 
 def resource_delete_all_by_source(context, source):

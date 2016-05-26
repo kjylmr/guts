@@ -264,10 +264,6 @@ class SourceCreateFailed(GutsException):
     message = _("Failed to create source %(name)s")
 
 
-class ResourceNotFound(NotFound):
-    message = _("Could not find resouce %(resource_id)s.")
-
-
 class HostBinaryNotFound(NotFound):
     message = _("Could not find binary %(binary)s on host %(host)s.")
 

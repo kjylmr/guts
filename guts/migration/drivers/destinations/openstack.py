@@ -13,16 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from guts.migration.drivers import driver
-from guts import exception
-from guts import utils
-from keystoneclient.auth.identity import v2
-from keystoneauth1.identity import v3
-from keystoneclient import session as v2_session
-from keystoneauth1 import session as v3_session
-from novaclient import client as nova_client
 from cinderclient import client as cinder_client
 from glanceclient import client as glance_client
+from guts import exception
+from guts.i18n import _
+from guts.migration.drivers import driver
+from guts import utils
+from keystoneauth1.identity import v3
+from keystoneauth1 import session as v3_session
+from keystoneclient.auth.identity import v2
+from keystoneclient import session as v2_session
+from novaclient import client as nova_client
 from oslo_config import cfg
 
 openstack_destination_opts = [
@@ -49,7 +50,7 @@ openstack_destination_opts = [
 
 
 class OpenStackDestinationDriver(driver.DestinationDriver):
-    """ OpenStack Destination Hypervisor"""
+    """OpenStack Destination Hypervisor"""
     def __init__(self, *args, **kwargs):
         super(OpenStackDestinationDriver, self).__init__(*args, **kwargs)
         self.configuration.append_config_values(openstack_destination_opts)

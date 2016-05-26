@@ -20,25 +20,22 @@ Migration Service
 
 import ast
 import functools
-import os
 
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging as messaging
-from oslo_utils import importutils
 from oslo_service import periodic_task
+from oslo_utils import importutils
 
 from guts import context
-from guts import db
 from guts import exception
-from guts.i18n import _, _LW, _LE, _LI
-from guts.image import glance
+from guts.migration import configuration as config
+from guts.i18n import _LI, _LE
 from guts import manager
-from guts.objects import base as objects_base
 from guts import objects
+from guts.objects import base as objects_base
 from guts import rpc
 from guts import utils
-from guts.migration import configuration as config
 
 
 source_manager_opts = [

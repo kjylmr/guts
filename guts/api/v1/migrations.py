@@ -15,13 +15,11 @@
 
 """Migrations."""
 
-import six
 import webob
 
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging as messaging
-from oslo_utils import timeutils
 
 from guts.api import extensions
 from guts.api.openstack import wsgi
@@ -29,7 +27,6 @@ from guts import exception
 from guts import objects
 from guts.objects import base as objects_base
 from guts import rpc
-from guts import utils
 
 LOG = logging.getLogger(__name__)
 

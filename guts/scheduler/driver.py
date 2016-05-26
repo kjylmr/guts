@@ -19,10 +19,8 @@ Scheduler base class that all Schedulers should inherit from
 
 from oslo_config import cfg
 from oslo_utils import importutils
-from oslo_utils import timeutils
 
 from guts.i18n import _
-from guts import objects
 from guts.migration import rpcapi as migration_rpcapi
 
 

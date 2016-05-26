@@ -128,4 +128,4 @@ class ResourceList(base.ObjectListBase, base.GutsObject):
 
     @base.remotable_classmethod
     def delete_all_by_source(cls, context, source, disabled=None):
-        resources = db.resource_delete_all_by_source(context, source)
+        db.resource_delete_all_by_source(context, source)

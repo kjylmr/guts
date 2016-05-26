@@ -24,7 +24,6 @@ from oslo_log import log as logging
 from oslo_utils import timeutils
 
 from guts import context as guts_context
-from guts import db
 from guts import exception
 from guts import objects
 from guts import utils
