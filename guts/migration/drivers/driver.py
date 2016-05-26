@@ -14,6 +14,7 @@
 #    under the License.
 
 
+from guts.i18n import _
 from guts import utils
 
 

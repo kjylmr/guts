@@ -15,19 +15,16 @@
 
 """The source resources."""
 
-import six
 import webob
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import timeutils
 
 from guts.api import extensions
 from guts.api.openstack import wsgi
 from guts import exception
 from guts import objects
 from guts import rpc
-from guts import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -86,6 +83,7 @@ class ResourcesController(wsgi.Controller):
         resource['properties'] = r.properties
 
         return {'resource': resource}
+
 
 def create_resource(ext_mgr):
     return wsgi.Resource(ResourcesController(ext_mgr))

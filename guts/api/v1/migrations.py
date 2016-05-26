@@ -15,13 +15,11 @@
 
 """Migrations."""
 
-import six
 import webob
 
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging as messaging
-from oslo_utils import timeutils
 
 from guts.api import extensions
 from guts.api.openstack import wsgi
@@ -29,7 +27,6 @@ from guts import exception
 from guts import objects
 from guts.objects import base as objects_base
 from guts import rpc
-from guts import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -99,13 +96,14 @@ class MigrationsController(wsgi.Controller):
         """Create a new migration process."""
         context = req.environ['guts.context']
         mig_values = body['migration']
+        dest_hypervisor = mig_values['destination_hypervisor']
         kwargs = {'name': mig_values['name'],
                   'description': mig_values['description'],
                   'resource_id': mig_values['resource_id'],
                   'migration_status': 'Initiating',
                   'migration_event': 'Scheduling',
-                  'destination_hypervisor': mig_values['destination_hypervisor'],
-                 }
+                  'destination_hypervisor': dest_hypervisor, }
+
         mig_ref = objects.Migration(context=context, **kwargs)
         mig_ref.create()
 
@@ -126,9 +124,8 @@ class MigrationsController(wsgi.Controller):
         src_host = resource_ref.source
         dest_ref = objects.Service.get(context, mig_ref.destination_hypervisor)
         dest_host = dest_ref.host
-        src_topic = ('guts-source.%s' %(src_host))
-        target = messaging.Target(topic=src_topic,
-                                  version='1.8')
+        src_topic = ('guts-source.%s' % (src_host))
+        target = messaging.Target(topic=src_topic, version='1.8')
         serializer = objects_base.GutsObjectSerializer()
         client = rpc.get_client(target, version_cap=None,
                                 serializer=serializer)

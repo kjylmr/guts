@@ -15,7 +15,6 @@
 
 """The destination hypervisors."""
 
-import six
 import webob
 
 from oslo_config import cfg
@@ -27,7 +26,6 @@ from guts.api.openstack import wsgi
 from guts import exception
 from guts import objects
 from guts import rpc
-from guts import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -62,7 +60,6 @@ class DestinationsController(wsgi.Controller):
         destinations = []
         for service in src_services:
             dest = {}
-            updated_at = service.updated_at
             delta = now - (service.updated_at or service.created_at)
             delta_sec = delta.total_seconds()
             alive = abs(delta_sec) <= CONF.service_down_time
@@ -82,7 +79,6 @@ class DestinationsController(wsgi.Controller):
             raise webob.exc.HTTPNotFound()
         now = timeutils.utcnow(with_timezone=True)
         dest = {}
-        updated_at = service.updated_at
         delta = now - (service.updated_at or service.created_at)
         delta_sec = delta.total_seconds()
         alive = abs(delta_sec) <= CONF.service_down_time
@@ -93,6 +89,7 @@ class DestinationsController(wsgi.Controller):
         dest['binary'] = service.binary
 
         return {'destination': dest}
+
 
 def create_resource(ext_mgr):
     return wsgi.Resource(DestinationsController(ext_mgr))

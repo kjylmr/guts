@@ -14,7 +14,7 @@
 #    under the License.
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey
-from sqlalchemy import Integer, MetaData, String, Table, VARCHAR
+from sqlalchemy import Integer, MetaData, String, Table
 
 
 def define_tables(meta):

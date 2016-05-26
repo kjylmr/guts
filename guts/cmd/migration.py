@@ -30,8 +30,8 @@ i18n.enable_lazy()
 
 # Need to register global_opts
 from guts.common import config  # noqa
-from guts import objects
 from guts.i18n import _
+from guts import objects
 from guts import service
 from guts import utils
 from guts import version

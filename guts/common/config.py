@@ -62,10 +62,10 @@ global_opts = [
                default=1,
                help='Version of the glance API to use'),
     cfg.StrOpt('glance_api_server',
-                default='http://$glance_host:$glance_port/v$glance_api_version',
-                help='A list of the URLs of glance API servers available to '
-                     'guts ([http[s]://][hostname|ip]:port). If protocol '
-                     'is not specified it defaults to http.'),
+               default='http://$glance_host:$glance_port/v$glance_api_version',
+               help='A list of the URLs of glance API servers available to '
+                    'guts ([http[s]://][hostname|ip]:port). If protocol '
+                    'is not specified it defaults to http.'),
     cfg.StrOpt('project_domain_name',
                default='default',
                help="Project domain name required to connect to Nova."),
@@ -95,7 +95,8 @@ global_opts = [
     cfg.StrOpt('auth_strategy',
                default='keystone',
                choices=['noauth', 'keystone'],
-               help='The strategy to use for auth. Supports noauth or keystone.'),
+               help='The strategy to use for auth. Supports noauth '
+                    'or keystone.'),
     cfg.ListOpt('enabled_source_hypervisors',
                 help='A list of source hypervisor names to use. These names '
                      'should be backed by a unique [CONFIG] group '

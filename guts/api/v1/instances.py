@@ -15,19 +15,16 @@
 
 """The source instances."""
 
-import six
 import webob
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import timeutils
 
 from guts.api import extensions
 from guts.api.openstack import wsgi
 from guts import exception
 from guts import objects
 from guts import rpc
-from guts import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -55,7 +52,8 @@ class InstancesController(wsgi.Controller):
     def index(self, req):
         """Returns the list of Instances."""
         context = req.environ['guts.context']
-        db_instances = objects.ResourceList.get_all_by_type(context, 'instance')
+        db_instances = objects.ResourceList.get_all_by_type(context,
+                                                            'instance')
 
         instances = []
         for i in db_instances:
@@ -84,6 +82,7 @@ class InstancesController(wsgi.Controller):
         instance['properties'] = inst.properties
 
         return {'instance': instance}
+
 
 def create_resource(ext_mgr):
     return wsgi.Resource(InstancesController(ext_mgr))

@@ -244,7 +244,7 @@ def _resource_get(context, resource_id, session=None):
 def resource_get(context, resource_id, session=None):
     """Return a dict describing specific resource."""
     return _resource_get(context, resource_id,
-                   session)
+                         session)
 
 
 @require_context
@@ -274,9 +274,9 @@ def resource_delete(context, resource_id):
         if not resource:
             raise exception.ResourceNotFound(
                 resource_id=resource_id)
-        vm.update({'deleted': True,
-                   'deleted_at': timeutils.utcnow(),
-                   'updated_at': literal_column('updated_at')})
+        resource.update({'deleted': True,
+                         'deleted_at': timeutils.utcnow(),
+                         'updated_at': literal_column('updated_at')})
 
 
 @require_context
@@ -514,6 +514,7 @@ def service_get_by_args(context, host, binary):
 
     raise exception.ServiceNotFound(service_id=binary,
                                     host=host)
+
 
 @require_admin_context
 def service_create(context, values):

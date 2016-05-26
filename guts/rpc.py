@@ -34,7 +34,6 @@ from osprofiler import profiler
 
 import guts.context
 import guts.exception
-from guts import objects
 from guts.objects import base
 
 CONF = cfg.CONF

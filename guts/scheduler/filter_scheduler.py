@@ -22,6 +22,8 @@ Weighing Functions.
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from guts import exception
+from guts.i18n import _
 from guts.scheduler import driver
 from guts.scheduler import scheduler_options
 

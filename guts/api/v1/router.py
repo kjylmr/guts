@@ -21,13 +21,13 @@ from oslo_log import log as logging
 
 from guts.api import extensions
 import guts.api.openstack
-from guts.api.v1 import sources
 from guts.api.v1 import destinations
-from guts.api.v1 import resources
 from guts.api.v1 import instances
-from guts.api.v1 import volumes
-from guts.api.v1 import networks
 from guts.api.v1 import migrations
+from guts.api.v1 import networks
+from guts.api.v1 import resources
+from guts.api.v1 import sources
+from guts.api.v1 import volumes
 
 
 LOG = logging.getLogger(__name__)

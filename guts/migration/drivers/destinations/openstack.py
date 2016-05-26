@@ -13,16 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from guts.migration.drivers import driver
-from guts import exception
-from guts import utils
-from keystoneclient.auth.identity import v2
-from keystoneauth1.identity import v3
-from keystoneclient import session as v2_session
-from keystoneauth1 import session as v3_session
-from novaclient import client as nova_client
 from cinderclient import client as cinder_client
 from glanceclient import client as glance_client
+from guts import exception
+from guts.i18n import _
+from guts.migration.drivers import driver
+from guts import utils
+from keystoneauth1.identity import v3
+from keystoneauth1 import session as v3_session
+from keystoneclient.auth.identity import v2
+from keystoneclient import session as v2_session
+from novaclient import client as nova_client
 from oslo_config import cfg
 
 openstack_destination_opts = [
@@ -30,9 +31,11 @@ openstack_destination_opts = [
                default='http://127.0.0.1:5000/v2.0',
                help='Identity service endpoint for authorization'),
     cfg.StrOpt('username',
-               help='Name used for authentication with the OpenStack Identity service.'),
+               help='Name used for authentication with the '
+                    'OpenStack Identity service.'),
     cfg.StrOpt('password',
-               help='Password used for authentication with the OpenStack Identity service.'),
+               help='Password used for authentication with the OpenStack '
+                    'Identity service.'),
     cfg.StrOpt('tenant_name',
                help='Tenant to request authorization on.'),
     cfg.StrOpt('project_id',
@@ -47,7 +50,7 @@ openstack_destination_opts = [
 
 
 class OpenStackDestinationDriver(driver.DestinationDriver):
-    """ OpenStack Destination Hypervisor"""
+    """OpenStack Destination Hypervisor"""
     def __init__(self, *args, **kwargs):
         super(OpenStackDestinationDriver, self).__init__(*args, **kwargs)
         self.configuration.append_config_values(openstack_destination_opts)
@@ -69,11 +72,13 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
         keystone_version = self.configuration.keystone_version
 
         if keystone_version == 'v3':
-            auth = v3.Password(auth_url=auth_url, username=username, password=password,
-                               project_id=project_id, user_domain_name=user_domain_name)
+            auth = v3.Password(auth_url=auth_url, username=username,
+                               password=password, project_id=project_id,
+                               user_domain_name=user_domain_name)
             sess = v3_session.Session(auth=auth)
         elif keystone_version == 'v2':
-            auth = v2.Password(auth_url, username=username, password=password, tenant_name=tenant_name)
+            auth = v2.Password(auth_url, username=username,
+                               password=password, tenant_name=tenant_name)
             sess = v2_session.Session(auth=auth)
 
         self.nova = nova_client.Client(nova_api_version, session=sess)
@@ -109,21 +114,26 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             raise exception.VolumeCreationFailed(reason=e.message)
 
     def _upload_image_to_glance(self, image_name, file_path):
-        out, err = utils.execute('glance', '--os-username', self.configuration.username,
-                                 '--os-password', self.configuration.password, '--os-tenant-name',
-                                 self.configuration.tenant_name, '--os-auth-url',
-                                 self.configuration.auth_url, 'image-create', '--file',
-                                 file_path, '--disk-format', 'raw', '--container-format', 'bare',
-                                 '--name', image_name, run_as_root=True)
-
-    def nova_boot(self, instance_name, image_name):
-        out, err = utils.execute('nova', '--os-username', self.configuration.username,
-                                 '--os-password', self.configuration.password, '--os-tenant-name',
-                                 self.configuration.tenant_name, '--os-auth-url',
-                                 self.configuration.auth_url, 'boot', '--image',
-                                 image_name, '--flavor', '2', instance_name,
+        out, err = utils.execute('glance', '--os-username',
+                                 self.configuration.username,
+                                 '--os-password', self.configuration.password,
+                                 '--os-tenant-name',
+                                 self.configuration.tenant_name,
+                                 '--os-auth-url', self.configuration.auth_url,
+                                 'image-create', '--file', file_path,
+                                 '--disk-format', 'raw', '--container-format',
+                                 'bare', '--name', image_name,
                                  run_as_root=True)
 
+    def nova_boot(self, instance_name, image_name):
+        out, err = utils.execute('nova', '--os-username',
+                                 self.configuration.username, '--os-password',
+                                 self.configuration.password,
+                                 '--os-tenant-name',
+                                 self.configuration.tenant_name,
+                                 '--os-auth-url', self.configuration.auth_url,
+                                 'boot', '--image', image_name, '--flavor',
+                                 '2', instance_name, run_as_root=True)
 
     def create_instance(self, context, **kwargs):
         disks = kwargs['disks']

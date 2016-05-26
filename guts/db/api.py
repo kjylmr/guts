@@ -188,7 +188,7 @@ def resource_create(context, resource):
 
 def resource_delete(context, resource_id):
     """Deletes the given resource."""
-    return IMPL.resource_delete(context, resorce_id)
+    return IMPL.resource_delete(context, resource_id)
 
 
 def resource_delete_all_by_source(context, source):
@@ -208,6 +208,7 @@ def resource_get_all_by_type(context, resource_type):
     """Return a resources of similar types."""
 
     return IMPL.resource_get_all_by_type(context, resource_type)
+
 
 def resource_get_by_id_at_source(context, id_at_source):
     """Return a resources based on it at source."""

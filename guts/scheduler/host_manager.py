@@ -24,7 +24,6 @@ from oslo_log import log as logging
 from oslo_utils import timeutils
 
 from guts import context as guts_context
-from guts import db
 from guts import exception
 from guts import objects
 from guts import utils
@@ -103,8 +102,8 @@ class HostState(object):
     def update_from_migration_capability(self, capability, service=None):
         """Update information about a host from its migration_node info.
 
-        'capability' is the status info reported by migration backend, a typical
-        capability looks like this:
+        'capability' is the status info reported by migration backend,
+        a typical capability looks like this:
         """
         self.update_capabilities(capability, service)
 
@@ -230,8 +229,9 @@ class HostManager(object):
                     continue
                 for resource in resources[capab]:
                     try:
-                        objects.Resource.get_by_id_at_source(self._context,
-                                                             resource.get('id'))
+                        objects.Resource.get_by_id_at_source(
+                            self._context,
+                            resource.get('id'))
                     except exception.ResourceNotFound:
                         pass
                     else:
@@ -244,7 +244,7 @@ class HostManager(object):
                     resource_ref = objects.Resource(context=self._context,
                                                     **kwargs)
                     resource_ref.create()
-            
+
         # Copy the capabilities, so we don't modify the original dict
         capab_copy = dict(capabilities)
         capab_copy["timestamp"] = timeutils.utcnow()  # Reported time
@@ -286,13 +286,11 @@ class HostManager(object):
             if not host_state:
                 host_state = self.host_state_cls(host,
                                                  capabilities=capabilities,
-                                                 service=
-                                                 dict(service))
+                                                 service=dict(service))
                 self.host_state_map[host] = host_state
             # update capabilities and attributes in host_state
             host_state.update_from_migration_capability(capabilities,
-                                                     service=
-                                                     dict(service))
+                                                        service=dict(service))
             active_hosts.add(host)
 
         self._no_capabilities_hosts = no_capabilities_hosts
