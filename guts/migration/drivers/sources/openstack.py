@@ -19,6 +19,7 @@ import os
 from cinderclient import client as cinder_client
 from glanceclient import client as glance_client
 from guts import exception
+from guts.i18n import _
 from guts.migration.drivers import driver
 from guts import utils
 from keystoneauth1.identity import v3
@@ -69,7 +70,7 @@ class OpenStackSourceDriver(driver.SourceDriver):
 
         auth_url = self.configuration.auth_url
         if auth_url is None:
-            raise ValueError("Cannot authenticate without an auth_url")
+            raise ValueError(_("Cannot authenticate without an auth_url"))
         username = self.configuration.username
         password = self.configuration.password
         tenant_name = self.configuration.tenant_name
@@ -159,7 +160,7 @@ class OpenStackSourceDriver(driver.SourceDriver):
             self._download_image_from_glance(image_id, image_path)
             self.glance.images.delete(image_id)
         except Exception:
-            raise exception.GutsError()
+            raise
         return [{'0': image_path}]
 
     def get_network(self, context, network_id):

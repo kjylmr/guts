@@ -95,6 +95,7 @@ class MigrationsController(wsgi.Controller):
     def create(self, req, body):
         """Create a new migration process."""
         context = req.environ['guts.context']
+        LOG.debug('Create migration request body: %s', body)
         mig_values = body['migration']
         dest_hypervisor = mig_values['destination_hypervisor']
         kwargs = {'name': mig_values['name'],
@@ -139,6 +140,7 @@ class MigrationsController(wsgi.Controller):
     def delete(self, req, id):
         """Deletes given migration entry from database."""
         context = req.environ['guts.context']
+        LOG.info(_LI("Delete migration with id: %s"), id, context=context)
         try:
             m = objects.Migration.get(context, id)
         except exception.NotFound:
