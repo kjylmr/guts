@@ -202,7 +202,6 @@ class SourceManager(manager.SchedulerDependentManager):
     def get_resource(self, context, migration_ref, resource_ref,
                      dest_host):
         resource_type = resource_ref.type
-        LOG.info(_LI('Getting %s list from source hypervisor'), resource_type)
 
         if resource_type == 'instance':
             self._get_instance(context, migration_ref, resource_ref,
@@ -215,7 +214,7 @@ class SourceManager(manager.SchedulerDependentManager):
                               dest_host)
 
     def _convert_disks(self, disks):
-        LOG.info(_LI('Disk conversion started: %s'), disks.keys()[0])
+        LOG.info(_LI('Disk conversion started: %s'), disks)
         converted_disks = []
         for disk in disks:
             index = disk.keys()[0]
@@ -229,7 +228,7 @@ class SourceManager(manager.SchedulerDependentManager):
     def _get_instance(self, context, migration_ref,
                       resource_ref, dest_host):
         instance_id = resource_ref.id_at_source
-        LOG.info(_LI('Getting instance from source, '
+        LOG.info(_LI('Getting instance from source hypervisor, '
                      'instance_id: %s'), instance_id)
         migration_ref.save()
         instance_disks = self.driver.get_instance(context, instance_id)
@@ -243,7 +242,7 @@ class SourceManager(manager.SchedulerDependentManager):
     def _get_volume(self, context, migration_ref,
                     resource_ref, dest_host):
         volume_id = resource_ref.id_at_source
-        LOG.info(_LI('Getting volume from source, '
+        LOG.info(_LI('Getting volume from source hypervisor, '
                      'volume_id: %s'), volume_id)
         migration_ref.migration_status = "Inprogress"
         migration_ref.migration_event = "Fetching from source"
@@ -258,7 +257,7 @@ class SourceManager(manager.SchedulerDependentManager):
     def _get_network(self, context, migration_ref,
                      resource_ref, dest_host):
         network_info = ast.literal_eval(resource_ref.properties)
-        LOG.info(_LI('Getting network information from source, '
+        LOG.info(_LI('Getting network information from source hypervisor, '
                      'network_info: %s'), network_info)
         migration_ref.migration_status = "Inprogress"
         migration_ref.migration_event = "Fetching from source"
@@ -407,8 +406,7 @@ class DestinationManager(manager.SchedulerDependentManager):
 
     def create_instance(self, context, **kwargs):
         """Create a new instance."""
-        LOG.info(_LI('Create instance started, '
-                     'instance: %s.'), kwargs['mig_ref_id'])
+        LOG.info(_LI('Create instance started.'))
         migration_ref = kwargs.pop('migration_ref')
         resource_ref = kwargs.pop('resource_ref')
         migration_ref.migration_event = 'Creating at destination'

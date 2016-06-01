@@ -275,6 +275,7 @@ class SourceCreateFailed(GutsException):
 class SchedulerHostFilterNotFound(NotFound):
     message = _("Scheduler Host Filter %(filter_name)s could not be found.")
 
+
 class SchedulerHostWeigherNotFound(NotFound):
     message = _("Scheduler Host Weigher %(weigher_name)s could not be found.")
 
@@ -310,6 +311,11 @@ class VolumeCreationFailed(GutsException):
 
 class VolumeDownloadFailed(GutsException):
     message = _("Failed to download volume from source. "
+                "Reason: %(reason)s")
+
+
+class InstanceImageDownloadFailed(GutsException):
+    message = _("Failed to download Instance image from source. "
                 "Reason: %(reason)s")
 
 

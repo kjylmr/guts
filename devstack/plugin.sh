@@ -40,8 +40,8 @@ function configure_guts_rpc_backend() {
     fi
 }
 
-mkdir -p /opt/stack/data/guts/migrations
-mkdir -p /$GUTS_STATE_PATH/migrations
+sudo mkdir -p /opt/stack/data/guts/migrations
+sudo mkdir -p $GUTS_STATE_PATH/migrations
 
 # Entry points
 # ------------
@@ -72,22 +72,31 @@ function configure_guts {
     iniset $GUTS_CONF_FILE keystone auth_url "http://${KEYSTONE_AUTH_HOST}:5000/v2.0"
 
     # Configure backends
-    iniset $GUTS_CONF DEFAULT enabled_source_hypervisors source_openstack,source_vmware
+    iniset $GUTS_CONF DEFAULT enabled_source_hypervisors source_openstack
+    iniset $GUTS_CONF DEFAULT enabled_destination_hypervisors destination_openstack
 
     # Configure OpenStack source driver
     iniset $GUTS_CONF source_openstack source_driver guts.migration.drivers.sources.openstack.OpenStackSourceDriver
     iniset $GUTS_CONF source_openstack capabilities instance,volume,network
-    iniset $GUTS_CONF source_openstack #auth_url
-    iniset $GUTS_CONF source_openstack #username
-    iniset $GUTS_CONF source_openstack #password
-    iniset $GUTS_CONF source_openstack #tenant_name
+    iniset $GUTS_CONF source_openstack auth_url
+    iniset $GUTS_CONF source_openstack username
+    iniset $GUTS_CONF source_openstack password
+    iniset $GUTS_CONF source_openstack tenant_name
+
+    # Configure OpenStack destination driver
+    iniset $GUTS_CONF destination_openstack guts.migration.drivers.destinations.openstack.OpenStackDestinationDriver
+    iniset $GUTS_CONF destination_openstack capabilities instance,volume,network
+    iniset $GUTS_CONF destination_openstack auth_url
+    iniset $GUTS_CONF destination_openstack username
+    iniset $GUTS_CONF destination_openstack password
+    iniset $GUTS_CONF destination_openstack tenant_name
 
     # Configure VMware source driver
-    iniset $GUTS_CONF source_vmware source_driver guts.migration.drivers.sources.vsphere.VSphereSourceDriver
-    iniset $GUTS_CONF source_vmware capabilities instance
-    iniset $GUTS_CONF source_vmware #vsphere_host
-    iniset $GUTS_CONF source_vmware #vsphere_username
-    iniset $GUTS_CONF source_vmware #vsphere_password
+#    iniset $GUTS_CONF source_vmware source_driver guts.migration.drivers.sources.vsphere.VSphereSourceDriver
+#    iniset $GUTS_CONF source_vmware capabilities instance
+#    iniset $GUTS_CONF source_vmware vsphere_host
+#    iniset $GUTS_CONF source_vmware vsphere_username
+#    iniset $GUTS_CONF source_vmware vsphere_password
 
     # configure rpc backend
     configure_guts_rpc_backend

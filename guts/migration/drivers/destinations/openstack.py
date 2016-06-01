@@ -16,7 +16,7 @@
 from cinderclient import client as cinder_client
 from glanceclient import client as glance_client
 from guts import exception
-from guts.i18n import _
+from guts.i18n import _, _LE
 from guts.migration.drivers import driver
 from guts import utils
 from keystoneauth1.identity import v3
@@ -47,6 +47,8 @@ openstack_destination_opts = [
                choices=['v2', 'v3'],
                help="User's domain ID for authentication"),
 ]
+
+LOG = logging.getLogger(__name__)
 
 
 class OpenStackDestinationDriver(driver.DestinationDriver):
@@ -111,7 +113,9 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
                 vol = self.cinder.volumes.get(vol.id)
             self.glance.images.delete(img.id)
         except Exception as e:
-            raise exception.VolumeCreationFailed(reason=e.message)
+            LOG.error(_LE('Failed to create volume from image at destination, '
+                          'image_id: %s'), img.id)
+            raise exception.VolumeCreationFailed(reason=e)
 
     def _upload_image_to_glance(self, image_name, file_path):
         out, err = utils.execute('glance', '--os-username',
