@@ -58,4 +58,5 @@ GUTS_USE_MOD_WSGI=${GUTS_USE_MOD_WSGI:-False}
 # settings file for template
 enable_service guts
 enable_service gu-api
+enable_service gu-migration
 enable_service gu-scheduler

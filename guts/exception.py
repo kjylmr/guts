@@ -194,6 +194,10 @@ class NotFound(GutsException):
     safe = True
 
 
+class Exists(GutsException):
+    message = _("Service already exists.")
+
+
 class ConfigNotFound(GutsException):
     message = _("Could not find config at %(path)s")
 

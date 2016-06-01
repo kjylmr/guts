@@ -40,6 +40,8 @@ function configure_guts_rpc_backend() {
     fi
 }
 
+mkdir -p /opt/stack/data/guts/migrations
+mkdir -p /$GUTS_STATE_PATH/migrations
 
 # Entry points
 # ------------
@@ -177,6 +179,7 @@ function install_guts_pythonclient() {
 # start_guts() - Start running processes, including screen
 function start_guts() {
     screen_it gu-api "cd $GUTS_DIR && $GUTS_BIN_DIR/guts-api --config-file $GUTS_CONF"
+    screen_it gu-migration "cd $GUTS_DIR && $GUTS_BIN_DIR/guts-migration --config-file $GUTS_CONF"
     screen_it gu-scheduler "cd $GUTS_DIR && $GUTS_BIN_DIR/guts-scheduler --config-file $GUTS_CONF"
 }
 
@@ -194,6 +197,8 @@ function cleanup_guts() {
 
     # Cleanup keystone signing dir
     sudo rm -rf $GUTS_STATE_PATH $GUTS_AUTH_CACHE_DIR
+    sudo rm -rf /opt/stack/data/guts/migrations
+    sudo rm -rf /$GUTS_STATE_PATH/migrations
 }
 
 

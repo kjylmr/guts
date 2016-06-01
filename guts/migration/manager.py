@@ -30,7 +30,7 @@ from oslo_utils import importutils
 from guts import context
 from guts import exception
 from guts.migration import configuration as config
-from guts.i18n import _LI, _LE
+from guts.i18n import _, _LI, _LE
 from guts import manager
 from guts import objects
 from guts.objects import base as objects_base

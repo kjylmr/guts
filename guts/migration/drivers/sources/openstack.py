@@ -19,7 +19,7 @@ import os
 from cinderclient import client as cinder_client
 from glanceclient import client as glance_client
 from guts import exception
-from guts.i18n import _
+from guts.i18n import _, _LE
 from guts.migration.drivers import driver
 from guts import utils
 from keystoneauth1.identity import v3
@@ -29,6 +29,7 @@ from keystoneclient import session as v2_session
 from novaclient import client as nova_client
 
 from oslo_config import cfg
+from oslo_log import log as logging
 
 
 openstack_source_opts = [
@@ -56,6 +57,8 @@ openstack_source_opts = [
                default='v2',
                help="User's domain ID for authentication"),
 ]
+
+LOG = logging.getLogger(__name__)
 
 
 class OpenStackSourceDriver(driver.SourceDriver):
@@ -190,6 +193,7 @@ class OpenStackSourceDriver(driver.SourceDriver):
             self._download_image_from_glance(vol_img.id, image_path)
             self.glance.images.delete(vol_img.id)
         except Exception as e:
+            LOG.error(_LE("Failed to download volume from glance at source, id: %s"), vol_img.id)
             raise exception.VolumeDownloadFailed(reason=e.message)
         return image_path
 
