@@ -180,8 +180,8 @@ class NotAuthorized(GutsException):
 
 
 class AdminRequired(NotAuthorized):
-    message = _("You are not authorized to perform the \
-requested action: admin_required")
+    message = _("You are not authorized to perform the "
+                "requested action: admin_required")
 
 
 class PolicyNotAuthorized(NotAuthorized):
@@ -194,6 +194,10 @@ class NotFound(GutsException):
     safe = True
 
 
+class Exists(GutsException):
+    message = _("Service already exists.")
+
+
 class ConfigNotFound(GutsException):
     message = _("Could not find config at %(path)s")
 
@@ -204,6 +208,10 @@ class PasteAppNotFound(NotFound):
 
 class ResourceNotFound(NotFound):
     message = _("Resource %(resource_id)s could not be found.")
+
+
+class ServiceExists(Exists):
+    message = _("A service already exists with %(id)s" )
 
 
 class InstanceNotFound(NotFound):
@@ -264,6 +272,14 @@ class SourceCreateFailed(GutsException):
     message = _("Failed to create source %(name)s")
 
 
+class SchedulerHostFilterNotFound(NotFound):
+    message = _("Scheduler Host Filter %(filter_name)s could not be found.")
+
+
+class SchedulerHostWeigherNotFound(NotFound):
+    message = _("Scheduler Host Weigher %(weigher_name)s could not be found.")
+
+
 class HostBinaryNotFound(NotFound):
     message = _("Could not find binary %(binary)s on host %(host)s.")
 
@@ -294,8 +310,13 @@ class VolumeCreationFailed(GutsException):
 
 
 class VolumeDownloadFailed(GutsException):
-    message = _("Failed to download volume from destination. \
-Reason: %(reason)s")
+    message = _("Failed to download volume from source. "
+                "Reason: %(reason)s")
+
+
+class InstanceImageDownloadFailed(GutsException):
+    message = _("Failed to download Instance image from source. "
+                "Reason: %(reason)s")
 
 
 class InvalidPowerState(MigrationValidationFailed):

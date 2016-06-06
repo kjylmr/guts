@@ -19,6 +19,7 @@ import os
 from cinderclient import client as cinder_client
 from glanceclient import client as glance_client
 from guts import exception
+from guts.i18n import _, _LE
 from guts.migration.drivers import driver
 from guts import utils
 from keystoneauth1.identity import v3
@@ -28,6 +29,7 @@ from keystoneclient import session as v2_session
 from novaclient import client as nova_client
 
 from oslo_config import cfg
+from oslo_log import log as logging
 
 
 openstack_source_opts = [
@@ -56,6 +58,8 @@ openstack_source_opts = [
                help="User's domain ID for authentication"),
 ]
 
+LOG = logging.getLogger(__name__)
+
 
 class OpenStackSourceDriver(driver.SourceDriver):
     """OpenStack Source Hypervisor"""
@@ -69,7 +73,7 @@ class OpenStackSourceDriver(driver.SourceDriver):
 
         auth_url = self.configuration.auth_url
         if auth_url is None:
-            raise ValueError("Cannot authenticate without an auth_url")
+            raise ValueError(_("Cannot authenticate without an auth_url"))
         username = self.configuration.username
         password = self.configuration.password
         tenant_name = self.configuration.tenant_name
@@ -158,8 +162,10 @@ class OpenStackSourceDriver(driver.SourceDriver):
                                       image_id)
             self._download_image_from_glance(image_id, image_path)
             self.glance.images.delete(image_id)
-        except Exception:
-            raise exception.GutsError()
+        except Exception as e:
+            LOG.error(_LE('Failed to download instance image from source, '
+                          'id: %s'), img.id)
+            raise exception.InstanceImageDownloadFailed(reason=e)
         return [{'0': image_path}]
 
     def get_network(self, context, network_id):
@@ -189,7 +195,8 @@ class OpenStackSourceDriver(driver.SourceDriver):
             self._download_image_from_glance(vol_img.id, image_path)
             self.glance.images.delete(vol_img.id)
         except Exception as e:
-            raise exception.VolumeDownloadFailed(reason=e.message)
+            LOG.error(_LE('Failed to download volume from source, id: %s'), volume_id)
+            raise exception.VolumeDownloadFailed(reason=e)
         return image_path
 
     def _download_image_from_glance(self, image_id, file_path):

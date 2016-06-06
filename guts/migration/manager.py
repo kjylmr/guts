@@ -30,7 +30,7 @@ from oslo_utils import importutils
 from guts import context
 from guts import exception
 from guts.migration import configuration as config
-from guts.i18n import _LI, _LE
+from guts.i18n import _, _LI, _LE
 from guts import manager
 from guts import objects
 from guts.objects import base as objects_base
@@ -40,8 +40,8 @@ from guts import utils
 
 source_manager_opts = [
     cfg.StrOpt('source_driver',
-               default='guts.migration.drivers.sources.openstack.\
-OpenStackSourceDriver',
+               default='guts.migration.drivers.sources.openstack.'
+                       'OpenStackSourceDriver',
                help='Driver to use for source hypervisor'),
     cfg.StrOpt('conversion_dir',
                default='$state_path/migrations',
@@ -110,11 +110,16 @@ def _cast_to_destination(context, dest_host, method, migration_ref,
 
 def _get_free_space(conversion_dir):
     """Calculate and return free space available."""
-    out = utils.execute('df', '--portability', '--block-size', '1',
-                        conversion_dir,
-                        run_as_root=True)[0]
-    out = out.splitlines()[1]
-    available = int(out.split()[3])
+    try:
+        out = utils.execute('df', '--portability', '--block-size', '1',
+                            conversion_dir,
+                            run_as_root=True)[0]
+        out = out.splitlines()[1]
+        available = int(out.split()[3])
+    except Exception:
+        msg = _("Failed to get the available free space.")
+        LOG.exception(msg)
+        raise exception.GutsException(msg)
 
     return available
 
@@ -209,6 +214,7 @@ class SourceManager(manager.SchedulerDependentManager):
                               dest_host)
 
     def _convert_disks(self, disks):
+        LOG.info(_LI('Disk conversion started: %s'), disks)
         converted_disks = []
         for disk in disks:
             index = disk.keys()[0]
@@ -222,8 +228,8 @@ class SourceManager(manager.SchedulerDependentManager):
     def _get_instance(self, context, migration_ref,
                       resource_ref, dest_host):
         instance_id = resource_ref.id_at_source
-        migration_ref.migration_status = "Inprogress"
-        migration_ref.migration_event = "Fetching from source"
+        LOG.info(_LI('Getting instance from source hypervisor, '
+                     'instance_id: %s'), instance_id)
         migration_ref.save()
         instance_disks = self.driver.get_instance(context, instance_id)
         instance_disks = self._convert_disks(instance_disks)
@@ -236,6 +242,8 @@ class SourceManager(manager.SchedulerDependentManager):
     def _get_volume(self, context, migration_ref,
                     resource_ref, dest_host):
         volume_id = resource_ref.id_at_source
+        LOG.info(_LI('Getting volume from source hypervisor, '
+                     'volume_id: %s'), volume_id)
         migration_ref.migration_status = "Inprogress"
         migration_ref.migration_event = "Fetching from source"
         migration_ref.save()
@@ -249,6 +257,8 @@ class SourceManager(manager.SchedulerDependentManager):
     def _get_network(self, context, migration_ref,
                      resource_ref, dest_host):
         network_info = ast.literal_eval(resource_ref.properties)
+        LOG.info(_LI('Getting network information from source hypervisor, '
+                     'network_info: %s'), network_info)
         migration_ref.migration_status = "Inprogress"
         migration_ref.migration_event = "Fetching from source"
         migration_ref.save()
@@ -352,6 +362,7 @@ class DestinationManager(manager.SchedulerDependentManager):
 
     def create_network(self, context, **kwargs):
         """Creates new network on destination OpenStack hypervisor."""
+        LOG.info(_LI('Create network started, network: %s.'), kwargs['id'])
         del kwargs['id']
         del kwargs['name']
         migration_ref = kwargs.pop('migration_ref')
@@ -373,6 +384,7 @@ class DestinationManager(manager.SchedulerDependentManager):
 
     def create_volume(self, context, **kwargs):
         """Creats volume on destination OpenStack hypervisor."""
+        LOG.info(_LI('Create volume started, volume: %s.'), kwargs['id'])
         del kwargs['id']
         migration_ref = kwargs.pop('migration_ref')
         resource_ref = kwargs.pop('resource_ref')
@@ -394,6 +406,7 @@ class DestinationManager(manager.SchedulerDependentManager):
 
     def create_instance(self, context, **kwargs):
         """Create a new instance."""
+        LOG.info(_LI('Create instance started.'))
         migration_ref = kwargs.pop('migration_ref')
         resource_ref = kwargs.pop('resource_ref')
         migration_ref.migration_event = 'Creating at destination'
