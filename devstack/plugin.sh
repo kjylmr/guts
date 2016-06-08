@@ -83,20 +83,12 @@ function configure_guts {
     iniset $GUTS_CONF source_openstack password
     iniset $GUTS_CONF source_openstack tenant_name
 
-    # Configure OpenStack destination driver
-    iniset $GUTS_CONF destination_openstack guts.migration.drivers.destinations.openstack.OpenStackDestinationDriver
-    iniset $GUTS_CONF destination_openstack capabilities instance,volume,network
-    iniset $GUTS_CONF destination_openstack auth_url
-    iniset $GUTS_CONF destination_openstack username
-    iniset $GUTS_CONF destination_openstack password
-    iniset $GUTS_CONF destination_openstack tenant_name
-
     # Configure VMware source driver
-#    iniset $GUTS_CONF source_vmware source_driver guts.migration.drivers.sources.vsphere.VSphereSourceDriver
-#    iniset $GUTS_CONF source_vmware capabilities instance
-#    iniset $GUTS_CONF source_vmware vsphere_host
-#    iniset $GUTS_CONF source_vmware vsphere_username
-#    iniset $GUTS_CONF source_vmware vsphere_password
+    iniset $GUTS_CONF source_vmware source_driver guts.migration.drivers.sources.vsphere.VSphereSourceDriver
+    iniset $GUTS_CONF source_vmware capabilities instance
+    iniset $GUTS_CONF source_vmware vsphere_host
+    iniset $GUTS_CONF source_vmware vsphere_username
+    iniset $GUTS_CONF source_vmware vsphere_password
 
     # configure rpc backend
     configure_guts_rpc_backend
