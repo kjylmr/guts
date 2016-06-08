@@ -9,3 +9,5 @@ mkdir: CommandFilter, mkdir, root
 qemu-img: CommandFilter, qemu-img, root
 env: CommandFilter, env, root
 glance: CommandFilter, glance, root
+nova: CommandFilter, nova, root
+rm: CommandFilter, rm, root
