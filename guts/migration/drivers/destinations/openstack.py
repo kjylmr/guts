@@ -25,6 +25,7 @@ from keystoneclient.auth.identity import v2
 from keystoneclient import session as v2_session
 from novaclient import client as nova_client
 from oslo_config import cfg
+from oslo_log import log as logging
 
 openstack_destination_opts = [
     cfg.StrOpt('auth_url',
