@@ -105,7 +105,13 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
         image_name = kwargs['mig_ref_id']
         try:
             self._upload_image_to_glance(image_name, kwargs['path'])
-            utils.execute('rm', kwargs['path'], run_as_root=True)
+            try:
+                utils.execute('rm', kwargs['path'], run_as_root=True)
+            except Exception as ex:
+                LOG.error(_LE("Failed to execute command: %s %s"
+                              ), ex.cmd, ex.stderr)
+                raise exception.Error()
+                    
             img = self.glance.images.find(name=image_name)
             if img.status != 'active':
                 raise Exception
@@ -116,21 +122,29 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
                 vol = self.cinder.volumes.get(vol.id)
             self.glance.images.delete(img.id)
         except Exception as e:
-            LOG.error(_LE('Failed to create volume from image at destination '
-                          'image_name: %s %s'), image_name, e)
-            raise exception.VolumeCreationFailed(reason=e.message)
+            msg = (_("Failed to create volume from an image at "
+                     "destination, image_name: %(id)s") %
+                    {'id': image_name})
+            LOG.error(msg)
+            raise exception.VolumeCreationFailed(reason=msg)
 
     def _upload_image_to_glance(self, image_name, file_path):
-        out, err = utils.execute('glance', '--os-username',
-                                 self.configuration.username,
-                                 '--os-password', self.configuration.password,
-                                 '--os-tenant-name',
-                                 self.configuration.tenant_name,
-                                 '--os-auth-url', self.configuration.auth_url,
-                                 'image-create', '--file', file_path,
-                                 '--disk-format', 'raw', '--container-format',
-                                 'bare', '--name', image_name,
-                                 run_as_root=True)
+        try:
+            out, err = utils.execute('glance', '--os-username',
+                                     self.configuration.username,
+                                     '--os-password', self.configuration.password,
+                                     '--os-tenant-name',
+                                     self.configuration.tenant_name,
+                                     '--os-auth-url', self.configuration.auth_url,
+                                     'image-create', '--file', file_path,
+                                     '--disk-format', 'raw', '--container-format',
+                                     'bare', '--name', image_name,
+                                     run_as_root=True)
+        except Exception as e:
+            msg = (_("Failed to execute command: %(command)s, %(error)s") %
+                   {'command': e.cmd, 'error': e.stderr})
+            LOG.error(msg)
+            raise exception.Error()
 
     def nova_boot(self, instance_name, image_name):
         out, err = utils.execute('nova', '--os-username',

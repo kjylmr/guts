@@ -212,12 +212,14 @@ class OpenStackSourceDriver(driver.SourceDriver):
             self._download_image_from_glance(vol_img.id, image_path)
             self.glance.images.delete(vol_img.id)
         except Exception as e:
-            LOG.error(_LE('Failed to download volume from source, id: %s, '
-                          '%s'), volume_id, e)
-            raise exception.VolumeDownloadFailed(reason=e.message)
+            msg = (_("Failed to download volume from source, "
+                     "id: %(id)s") % {'id': volume_id})
+            LOG.error(msg)
+            raise exception.VolumeDownloadFailed(reason=msg)
         return image_path
 
     def _download_image_from_glance(self, image_id, file_path):
+        try:
             out, err = utils.execute(
                 'glance', '--os-username', self.configuration.username,
                 '--os-password', self.configuration.password,
@@ -225,3 +227,8 @@ class OpenStackSourceDriver(driver.SourceDriver):
                 '--os-auth-url', self.configuration.auth_url,
                 'image-download', '--file', file_path,
                 image_id, run_as_root=True)
+        except Exception as e:
+            msg = (_("Failed to execute command: %(command)s, %(error)s") %
+                   {'command': e.cmd, 'error': e.stderr}
+            LOG.error(msg)
+            raise exception.Error()

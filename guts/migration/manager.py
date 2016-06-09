@@ -393,7 +393,7 @@ class DestinationManager(manager.SchedulerDependentManager):
         kwargs['mig_ref_id'] = migration_ref.id
         try:
             self.driver.create_volume(context, **kwargs)
-        except exception.NetworkCreationFailed:
+        except exception.VolumeCreationFailed:
             migration_ref.migration_status = 'ERROR'
             migration_ref.migration_event = None
             migration_ref.save()
