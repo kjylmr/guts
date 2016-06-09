@@ -180,9 +180,10 @@ class OpenStackSourceDriver(driver.SourceDriver):
             self._download_image_from_glance(image_id, image_path)
             self.glance.images.delete(image_id)
         except Exception as e:
-            LOG.error(_LE('Failed to download instance image from source, '
-                          'image_id: %s, %s'), image_id, e)
-            raise exception.InstanceImageDownloadFailed(reason=e.message)
+            msg = (_("Failed to download instance image from source "
+                     "%(id)s") % {'id': image_id})
+            LOG.error(msg)
+            raise exception.InstanceImageDownloadFailed(reason=msg)
         return [{'0': image_path}]
 
     def get_network(self, context, network_id):
@@ -229,6 +230,6 @@ class OpenStackSourceDriver(driver.SourceDriver):
                 image_id, run_as_root=True)
         except Exception as e:
             msg = (_("Failed to execute command: %(command)s, %(error)s") %
-                   {'command': e.cmd, 'error': e.stderr}
+                   {'command': e.cmd, 'error': e.stderr})
             LOG.error(msg)
             raise exception.Error()
