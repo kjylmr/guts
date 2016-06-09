@@ -102,51 +102,68 @@ class OpenStackSourceDriver(driver.SourceDriver):
     def get_instances_list(self, context):
         if not self._initialized:
             self.do_setup(context)
-        src_instances = self.nova.servers.list()
-        instances = []
-        for inst in src_instances:
-            if inst.id in self.exclude:
-                continue
-            i = {'name': inst.name,
-                 'id': inst.id,
-                 'status': inst.status}
-            instances.append(i)
-        return instances
+        try:
+            src_instances = self.nova.servers.list()
+            instances = []
+            for inst in src_instances:
+                if inst.id in self.exclude:
+                    continue
+                i = {'name': inst.name,
+                     'id': inst.id,
+                     'status': inst.status}
+                instances.append(i)
+            return instances
+        except Exception as e:
+            msg = _("Failed to get the list of instances from source "
+                    "hypervisor, Unable to establish connection to source "
+                    "hypervisor")
+            LOG.error((msg, '%(msg)s'), {'msg': e})
 
     def get_volumes_list(self, context):
         if not self._initialized:
             self.do_setup(context)
-        src_volumes = self.cinder.volumes.list()
-        volumes = []
-        for vol in src_volumes:
-            if vol.id in self.exclude:
-                continue
-            v = {'name': vol.display_name,
-                 'id': vol.id,
-                 'size': vol.size}
-            volumes.append(v)
-        return volumes
+        try:
+            src_volumes = self.cinder.volumes.list()
+            volumes = []
+            for vol in src_volumes:
+                if vol.id in self.exclude:
+                    continue
+                v = {'name': vol.display_name,
+                     'id': vol.id,
+                     'size': vol.size}
+                volumes.append(v)
+            return volumes
+        except Exception as e:
+            msg = _("Failed to get the list of volumes from source "
+                    "hypervisor, Unable to establish connection to source "
+                    "hypervisor")
+            LOG.error((msg, '%(msg)s'), {'msg': e})
 
     def get_networks_list(self, context):
         if not self._initialized:
             self.do_setup(context)
-        src_networks = self.nova.networks.list()
-        networks = []
-        for network in src_networks:
-            if network.id in self.exclude:
-                continue
-            net = {'id': network.id,
-                   'name': network.label,
-                   'bridge': network.bridge,
-                   'gateway': network.gateway,
-                   'label': network.label,
-                   'cidr': network.cidr,
-                   'enable_dhcp': network.enable_dhcp,
-                   'dhcp_server': network.dhcp_server,
-                   'dns1': network.dns1}
-            networks.append(net)
-
-        return networks
+        try:
+            src_networks = self.nova.networks.list()
+            networks = []
+            for network in src_networks:
+                if network.id in self.exclude:
+                    continue
+                net = {'id': network.id,
+                       'name': network.label,
+                       'bridge': network.bridge,
+                       'gateway': network.gateway,
+                       'label': network.label,
+                       'cidr': network.cidr,
+                       'enable_dhcp': network.enable_dhcp,
+                       'dhcp_server': network.dhcp_server,
+                       'dns1': network.dns1}
+                networks.append(net)
+            return networks
+        except Exception as e:
+            msg = _("Failed to get the list of networks from source "
+                    "hypervisor, Unable to establish connection to source "
+                    "hypervisor")
+            LOG.error((msg, '%(msg)s'), {'msg': e})
 
     def get_instance(self, context, instance_id):
         """Downloads given instance to local conversion directory."""
