@@ -95,6 +95,8 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
         try:
             self.nova.networks.create(**kwargs)
         except Exception as e:
+            LOG.error(_LE("Failed to create network '%s' on "
+                          "destination: %s"), kwargs['label'], e) 
             raise exception.NetworkCreationFailed(reason=e.message)
 
     def create_volume(self, context, **kwargs):
@@ -114,9 +116,9 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
                 vol = self.cinder.volumes.get(vol.id)
             self.glance.images.delete(img.id)
         except Exception as e:
-            LOG.error(_LE('Failed to create volume from image at destination, '
-                          'image_id: %s'), img.id)
-            raise exception.VolumeCreationFailed(reason=e)
+            LOG.error(_LE('Failed to create volume from image at destination '
+                          'image_name: %s %s'), image_name, e)
+            raise exception.VolumeCreationFailed(reason=e.message)
 
     def _upload_image_to_glance(self, image_name, file_path):
         out, err = utils.execute('glance', '--os-username',

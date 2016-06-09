@@ -164,8 +164,8 @@ class OpenStackSourceDriver(driver.SourceDriver):
             self.glance.images.delete(image_id)
         except Exception as e:
             LOG.error(_LE('Failed to download instance image from source, '
-                          'id: %s'), img.id)
-            raise exception.InstanceImageDownloadFailed(reason=e)
+                          'image_id: %s, %s'), image_id, e)
+            raise exception.InstanceImageDownloadFailed(reason=e.message)
         return [{'0': image_path}]
 
     def get_network(self, context, network_id):
@@ -195,8 +195,9 @@ class OpenStackSourceDriver(driver.SourceDriver):
             self._download_image_from_glance(vol_img.id, image_path)
             self.glance.images.delete(vol_img.id)
         except Exception as e:
-            LOG.error(_LE('Failed to download volume from source, id: %s'), volume_id)
-            raise exception.VolumeDownloadFailed(reason=e)
+            LOG.error(_LE('Failed to download volume from source, id: %s, '
+                          '%s'), volume_id, e)
+            raise exception.VolumeDownloadFailed(reason=e.message)
         return image_path
 
     def _download_image_from_glance(self, image_id, file_path):

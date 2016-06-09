@@ -32,7 +32,7 @@ from oslo_utils import units
 import six
 
 from guts import exception
-from guts.i18n import _, _LI
+from guts.i18n import _, _LI, _LE
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -290,7 +290,7 @@ def convert_image(source, dest, out_format, run_as_root=True):
            '-O', out_format, source, dest)
 
     start_time = timeutils.utcnow()
-    execute(*cmd, run_as_root=run_as_root)
+    execute(*cmd, run_as_root=True)
     duration = timeutils.delta_seconds(start_time, timeutils.utcnow())
 
     if duration < 1:
