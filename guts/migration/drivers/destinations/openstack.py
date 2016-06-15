@@ -27,6 +27,7 @@ from novaclient import client as nova_client
 from oslo_config import cfg
 from oslo_log import log as logging
 
+
 openstack_destination_opts = [
     cfg.StrOpt('auth_url',
                default='http://127.0.0.1:5000/v2.0',
@@ -94,10 +95,11 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             self.do_setup(context)
         try:
             self.nova.networks.create(**kwargs)
-        except Exception as e:
-            LOG.error(_LE("Failed to create network '%s' on "
-                          "destination: %s"), kwargs['label'], e) 
-            raise exception.NetworkCreationFailed(reason=e.message)
+        except Exception as ex:
+            msg = (_("Failed to create network: %(name)s because %(err)s") %
+                   {'name': kwargs['label']}, {'err': ex})
+            LOG.error(msg)
+            raise exception.NetworkCreationFailed(reason=msg)
 
     def create_volume(self, context, **kwargs):
         if not self._initialized:
@@ -105,7 +107,14 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
         image_name = kwargs['mig_ref_id']
         try:
             self._upload_image_to_glance(image_name, kwargs['path'])
-            utils.execute('rm', kwargs['path'], run_as_root=True)
+            try:
+                utils.execute('rm', kwargs['path'], run_as_root=True)
+            except Exception as ex:
+                msg = (_("Failed to execute command: %(cmd)s because %(err)s") %
+                       {'cmd': ex.cmd}, {'err': ex.stderr})
+                LOG.error(msg)
+                raise exception.Error()
+
             img = self.glance.images.find(name=image_name)
             if img.status != 'active':
                 raise Exception
@@ -115,44 +124,50 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             while vol.status != 'available':
                 vol = self.cinder.volumes.get(vol.id)
             self.glance.images.delete(img.id)
-        except Exception as e:
-            LOG.error(_LE('Failed to create volume from image at destination '
-                          'image_name: %s %s'), image_name, e)
-            raise exception.VolumeCreationFailed(reason=e.message)
+        except Exception as ex:
+            msg = (_("Failed to create volume from an image: %(id)s, %(err)s") %
+                    {'id': image_name}, {'err': ex})
+            LOG.error(msg)
+            raise exception.VolumeCreationFailed(reason=msg)
 
     def _upload_image_to_glance(self, image_name, file_path):
-        out, err = utils.execute('glance', '--os-username',
-                                 self.configuration.username,
-                                 '--os-password', self.configuration.password,
-                                 '--os-tenant-name',
-                                 self.configuration.tenant_name,
-                                 '--os-auth-url', self.configuration.auth_url,
-                                 'image-create', '--file', file_path,
-                                 '--disk-format', 'raw', '--container-format',
-                                 'bare', '--name', image_name,
-                                 run_as_root=True)
-
-    def nova_boot(self, instance_name, image_name):
-        out, err = utils.execute('nova', '--os-username',
-                                 self.configuration.username, '--os-password',
-                                 self.configuration.password,
-                                 '--os-tenant-name',
-                                 self.configuration.tenant_name,
-                                 '--os-auth-url', self.configuration.auth_url,
-                                 'boot', '--image', image_name, '--flavor',
-                                 '2', instance_name, run_as_root=True)
+        image_meta = {'name': image_name,
+                      'disk_format': 'qcow2',
+                      'container_format': 'bare'}
+        try:
+            image = self.glance.images.create(**image_meta)
+            image.update(data=open(file_path, 'rb'))
+            return image
+        except Exception as ex:
+            msg = (_("Glance image upload failed: %(err)s") %
+                   {'err': ex})
+            LOG.error(msg)
+            raise exception.NotAuthorized(reason=msg)
 
     def create_instance(self, context, **kwargs):
         disks = kwargs['disks']
         mig_ref = kwargs['mig_ref_id']
         count = 0
+        network = self.nova.networks.find(label="private")
+        flavor = self.nova.flavors.find(name="m1.small")
         for disk in disks:
             image_name = "%s_%s" % (mig_ref, count)
-            self._upload_image_to_glance(image_name, disk[str(count)])
+            image = self._upload_image_to_glance(image_name, disk[str(count)])
             if count == 0:
-                self.nova_boot(kwargs['name'], image_name)
+                if image.id is None:
+                    raise Exception("Glance Image Not Found.")
+                try:
+                    self.nova.servers.create(name=kwargs['name'],
+                                             image=image.id,
+                                             flavor=flavor.id,
+                                             nics=[{'net-id': network.id}])
+                except Exception as ex:
+                    msg = (_("Create instance failed: %(err)s") %
+                           {'err': ex})
+                    LOG.error(msg)
+                    raise exception.InstanceCreationFailed(reason=msg)
             else:
-                img = self.glance.images.find(name=image_name)
+                img = self.nova.images.find(name=image_name)
                 self.cinder.volumes.create(
                     display_name="%s_vol" % kwargs['name'],
                     size=8,
