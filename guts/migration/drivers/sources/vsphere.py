@@ -100,7 +100,7 @@ class VSphereSourceDriver(driver.SourceDriver):
                     vm_disks.append('{}'.format(vm_hardware.capacityInKB/1024/1024))
 
             disks = ','.join(vm_disks)
-            inst["root_gb"] = vm_disks
+            inst["root_gb"] = vm_disks[0]
             instance_list.append(inst)
 
         return instance_list

@@ -142,7 +142,7 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
         count = 0
         network = self.nova.networks.find(label="private")
         flavor = self._flavor_create(kwargs['id'], kwargs['memory'],
-                                     kwargs['vcpus'], kwargs['root_gb'])
+                                     kwargs['vcpus'], int(kwargs['root_gb']))
         for disk in disks:
             image_name = "%s_%s" % (mig_ref, count)
             self._upload_image_to_glance(image_name, disk[str(count)])
