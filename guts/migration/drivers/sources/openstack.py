@@ -107,9 +107,14 @@ class OpenStackSourceDriver(driver.SourceDriver):
         for inst in src_instances:
             if inst.id in self.exclude:
                 continue
+            flavor_id = inst.flavor.get('id')
+            flavor = self.nova.flavors.find(id=flavor_id)
             i = {'name': inst.name,
                  'id': inst.id,
-                 'status': inst.status}
+                 'status': inst.status,
+                 'memory': flavor.ram,
+                 'vcpus': flavor.vcpus,
+                 'root_gb': flavor.disk}
             instances.append(i)
         return instances
 

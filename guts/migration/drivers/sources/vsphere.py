@@ -94,6 +94,13 @@ class VSphereSourceDriver(driver.SourceDriver):
             inst["name"] = instance.config.name
             inst["memory"] = instance.config.hardware.memoryMB
             inst['vcpus'] = instance.config.hardware.numCPU
+            vm_disks = []
+            for vm_hardware in instance.config.hardware.device:
+                if (vm_hardware.key >= 2000) and (vm_hardware.key < 3000):
+                    vm_disks.append('{}'.format(vm_hardware.capacityInKB/1024/1024))
+
+            disks = ','.join(vm_disks)
+            inst["root_gb"] = vm_disks
             instance_list.append(inst)
 
         return instance_list

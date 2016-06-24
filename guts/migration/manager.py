@@ -221,7 +221,7 @@ class SourceManager(manager.SchedulerDependentManager):
             path = disk[index]
             disk[index] = path.replace('.vmdk', '.qcow2')
             utils.convert_image(path, disk[index],
-                                'qcow2', run_as_root=False)
+                                'qcow2', run_as_root=True)
             converted_disks.append(disk)
         return converted_disks
 
