@@ -15,6 +15,8 @@
 
 """Utilities and helper functions."""
 
+from Crypto.Cipher import AES
+import base64
 import inspect
 import os
 import pyclbr
@@ -33,11 +35,43 @@ import six
 
 from guts import exception
 from guts.i18n import _, _LI
+from guts import objects
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 synchronized = lockutils.synchronized_with_prefix('guts-')
+
+
+class PasswordEncryption(object):
+    # the block size for the cipher object; must be 16, 24, or 32 for AES
+    block_size = 32
+
+    # the character used for padding--with a block cipher such as AES, the
+    # value you encrypt must be a multiple of BLOCK_SIZE in length.  This
+    # character is used to ensure that your value is always a multiple of
+    # BLOCK_SIZE
+    padding = '}'
+
+    #TODO(Bharat): Make secret_key configrable.
+    secret_key = """\xf7\x82\x03\xa3\x85_\x92\x96\x9b\xbd\xb1\xa2\xf1\
+\xb8\xe7R0\xde!\x97'\xd8\xa5s\x0e\x99`\xa2\xda\x04\xb4b"""
+
+    # create a cipher object using the random secret
+    cipher = AES.new(secret_key)
+
+    @classmethod
+    def encode(cls, password):
+        # Encode a string
+        password = (password + (cls.block_size - len(password) %
+                    cls.block_size) * cls.padding)
+        return base64.b64encode(cls.cipher.encrypt(password))
+
+    @classmethod
+    def decode(cls, encoded):
+        # Decode the encoded string
+        pwd = cls.cipher.decrypt(base64.b64decode(encoded))
+        return pwd.rstrip(cls.padding)
 
 
 class QemuImgInfo(object):
@@ -339,3 +373,27 @@ def service_is_up(service):
 def extract_host(host):
     """Extract host from host string."""
     return host.split('@')[0]
+
+
+def remove_invalid_filter_options(context, filters,
+                                  allowed_search_options):
+    """Remove search options that are not valid for non-admin API/context."""
+
+    if context.is_admin:
+        # Allow all options
+        return
+    # Otherwise, strip out all unknown options
+    unknown_options = [opt for opt in filters
+                       if opt not in allowed_search_options]
+    bad_options = ", ".join(unknown_options)
+    LOG.debug("Removing options '%s' from query.", bad_options)
+    for opt in unknown_options:
+        del filters[opt]
+
+def _get_all_migration_hostnames(ctxt):
+    services = objects.ServiceList.get_all_by_topic(ctxt,
+                                                    CONF.migration_topic)
+    all_hosts = []
+    for service in services:
+        all_hosts.append(service['host'])
+    return all_hosts

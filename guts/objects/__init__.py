@@ -18,3 +18,4 @@ def register_all():
     __import__('guts.objects.service')
     __import__('guts.objects.resources')
     __import__('guts.objects.migrations')
+    __import__('guts.objects.hypervisors')

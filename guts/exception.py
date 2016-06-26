@@ -234,6 +234,9 @@ class Invalid(GutsException):
     message = _("Unacceptable parameters.")
     code = 400
 
+class InvalidCredentials(GutsException):
+    message = _("Invalid credentials. Reason: %(reason)s")
+
 
 class InvalidContentType(Invalid):
     message = _("Invalid content type %(content_type)s.")
@@ -322,3 +325,14 @@ class InstanceImageDownloadFailed(GutsException):
 class InvalidPowerState(MigrationValidationFailed):
     message = _("Instance: %(instance_id)s cannot be migrated in its current "
                 "power state. Please shutdown virtual instance and retry.")
+
+
+class MigrationDriverException(GutsException):
+    message = _("Migration driver reported an error: %(message)s")
+
+
+class OpenStackException(MigrationDriverException):
+    message = _("Unknown OpenStack driver exception.")
+
+class HypervisorNotFound(GutsException):
+    message = _("Hypervisor %(hypervisor)s not found.")

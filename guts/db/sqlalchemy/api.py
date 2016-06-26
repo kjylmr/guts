@@ -32,7 +32,7 @@ from oslo_utils import timeutils
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.expression import literal_column
 
-
+from guts.common import sqlalchemyutils
 from guts.db.sqlalchemy import models
 from guts import exception
 from guts.i18n import _
@@ -46,6 +46,76 @@ options.set_defaults(CONF, connection='sqlite:///$state_path/guts.sqlite')
 
 _LOCK = threading.Lock()
 _FACADE = None
+
+
+def process_sort_params(sort_keys, sort_dirs, default_keys=None,
+                        default_dir='asc'):
+    """Process the sort parameters to include default keys.
+
+    Creates a list of sort keys and a list of sort directions. Adds the default
+    keys to the end of the list if they are not already included.
+
+    When adding the default keys to the sort keys list, the associated
+    direction is:
+    1) The first element in the 'sort_dirs' list (if specified), else
+    2) 'default_dir' value (Note that 'asc' is the default value since this is
+    the default in sqlalchemy.utils.paginate_query)
+
+    :param sort_keys: List of sort keys to include in the processed list
+    :param sort_dirs: List of sort directions to include in the processed list
+    :param default_keys: List of sort keys that need to be included in the
+                         processed list, they are added at the end of the list
+                         if not already specified.
+    :param default_dir: Sort direction associated with each of the default
+                        keys that are not supplied, used when they are added
+                        to the processed list
+    :returns: list of sort keys, list of sort directions
+    :raise exception.InvalidInput: If more sort directions than sort keys
+                                   are specified or if an invalid sort
+                                   direction is specified
+    """
+    if default_keys is None:
+        default_keys = ['created_at', 'id']
+    # Determine direction to use for when adding default keys
+    if sort_dirs and len(sort_dirs):
+        default_dir_value = sort_dirs[0]
+    else:
+        default_dir_value = default_dir
+
+    # Create list of keys (do not modify the input list)
+    if sort_keys:
+        result_keys = list(sort_keys)
+    else:
+        result_keys = []
+
+    # If a list of directions is not provided, use the default sort direction
+    # for all provided keys.
+    if sort_dirs:
+        result_dirs = []
+        # Verify sort direction
+        for sort_dir in sort_dirs:
+            if sort_dir not in ('asc', 'desc'):
+                msg = _("Unknown sort direction, must be 'desc' or 'asc'.")
+                raise exception.InvalidInput(reason=msg)
+            result_dirs.append(sort_dir)
+    else:
+        result_dirs = [default_dir_value for _sort_key in result_keys]
+
+    # Ensure that the key and direction length match
+    while len(result_dirs) < len(result_keys):
+        result_dirs.append(default_dir_value)
+    # Unless more direction are specified, which is an error
+    if len(result_dirs) > len(result_keys):
+        msg = _("Sort direction array size exceeds sort key array size.")
+        raise exception.InvalidInput(reason=msg)
+
+    # Ensure defaults are included
+    for key in default_keys:
+        if key not in result_keys:
+            result_keys.append(key)
+            result_dirs.append(default_dir_value)
+
+    return result_keys, result_dirs
 
 
 def _create_facade_lazily():
@@ -171,6 +241,68 @@ def _retry_on_deadlock(f):
     return wrapped
 
 
+def is_valid_model_filters(model, filters):
+    """Return True if filter values exist on the model
+
+    :param model: a Guts model
+    :param filters: dictionary of filters
+    """
+    for key in filters.keys():
+        try:
+            getattr(model, key)
+        except AttributeError:
+            LOG.debug("'%s' filter key is not valid.", key)
+            return False
+    return True
+
+
+def _generate_paginate_query(context, session, marker, limit, sort_keys,
+                             sort_dirs, filters, offset=None,
+                             paginate_type=models.Migration):
+    """Generate the query to include the filters and the paginate options.
+
+    Returns a query with sorting / pagination criteria added or None
+    if the given filters will not yield any results.
+
+    :param context: context to query under
+    :param session: the session to use
+    :param marker: the last item of the previous page; we returns the next
+                    results after this value.
+    :param limit: maximum number of items to return
+    :param sort_keys: list of attributes by which results should be sorted,
+                      paired with corresponding item in sort_dirs
+    :param sort_dirs: list of directions in which results should be sorted,
+                      paired with corresponding item in sort_keys
+    :param filters: dictionary of filters; values that are in lists, tuples,
+                    or sets cause an 'IN' operation, while exact matching
+                    is used for other values, see _process_volume_filters
+                    function for more information
+    :param offset: number of items to skip
+    :param paginate_type: type of pagination to generate
+
+    :returns: updated query or None
+    """
+    sort_keys, sort_dirs = process_sort_params(sort_keys,
+                                               sort_dirs,
+                                               default_dir='desc')
+    query = _hypervisor_get_query(context, session=session)
+
+    if filters:
+        query = query.filter_by(**filters)
+        if query is None:
+            return None
+
+    marker_object = None
+    if marker is not None:
+        marker_object = _hypervisor_get(context, marker, session)
+
+    return sqlalchemyutils.paginate_query(query, paginate_type, limit,
+                                          sort_keys,
+                                          marker=marker_object,
+                                          sort_dirs=sort_dirs,
+                                          offset=offset)
+
+
 def model_query(context, *args, **kwargs):
     """Query helper that accounts for context's `read_deleted` field.
 
@@ -204,28 +336,47 @@ def model_query(context, *args, **kwargs):
 
 # Hypervisors
 
-def def _hypervisor_get_query(context, session=None, read_deleted=None,
-                              expected_fields=None):
-    expected_fields = expected_fields or []
-    query = model_query(context,
-                        models.Hypervisors,
-                        session=session,
-                        read_deleted=read_deleted)
+@require_context
+def _hypervisor_get_query(context, session=None):
+    """Get the query to retrieve the hypervisor.
 
-    if 'projects' in expected_fields:
-        query = query.options(joinedload('projects'))
-
-    return query
+    :param context: the context used to run the method _hypervisor_get_query
+    :param session: the session to use
+    :param joined_load: the boolean used to decide whether the query loads
+                        the other models, which join the volume model in
+                        the database. Currently, the False value for this
+                        parameter is specially for the case of updating
+                        database during volume migration
+    :returns: updated query or None
+    """
+    return model_query(context, models.Hypervisor, session=session)
 
 
 @require_context
-def hypervisor_get_all(context, inactive=False):
+def hypervisor_get_all(context, filters=None, marker=None,limit=None,
+                       offset=None, sort_keys=None, sort_dirs=None):
+    """Returns a dict describing all hypervisors"""
+    if filters and not is_valid_model_filters(models.Hypervisor, filters):
+        return []
+
+    session = get_session()
+    with session.begin():
+        # Generate the paginate query
+        query = _generate_paginate_query(context, session, marker,
+                                         limit, sort_keys, sort_dirs, filters,
+                                         offset, models.Hypervisor)
+        if query is None:
+            return []
+        return query.all()
+
+
+@require_context
+def hypervisor_get_all_by_host(context, host, inactive=False):
     """Returns a dict describing all hypervisors."""
     read_deleted = "yes" if inactive else "no"
-    query = _hypervisor_get_query(context, read_deleted=read_deleted)
+    query = _hypervisor_get_query(context)
 
-    return query.order_by("id").all()
-
+    return query.filter_by(host=host).all()
 
 @require_context
 def _hypervisor_get(context, hypervisor_id, session=None):
@@ -235,7 +386,7 @@ def _hypervisor_get(context, hypervisor_id, session=None):
         first()
 
     if not result:
-        raise exception.ResourceNotFound(resource_id=hypervisor_id)
+        raise exception.hypervisorNotFound(hypervisor=hypervisor_id)
 
     return result
 
@@ -256,7 +407,7 @@ def hypervisor_create(context, values):
 
     with session.begin():
         try:
-            hypervisor_ref = models.Hypervisors()
+            hypervisor_ref = models.Hypervisor()
             hypervisor_ref.update(values)
             session.add(hypervisor_ref)
         except Exception as e:
@@ -272,122 +423,40 @@ def hypervisor_delete(context, hypervisor_id):
         hypervisor = hypervisor_get(context, hypervisor_id,
                                     session)
         if not hypervisor:
-            raise exception.ResourceNotFound(
-                resource_id=hypervisor_id)
+            raise exception.HypervisorNotFound(
+                hypervisor=hypervisor_id)
         hypervisor.update({'deleted': True,
                            'deleted_at': timeutils.utcnow(),
                            'updated_at': literal_column('updated_at')})
 
 
 @require_context
-def hypervisor_get_all_sources(context, session=None):
-    result = _hypervisor_get_query(
+def hypervisor_get_all_by_type(context, type, session=None):
+    hypervisors = _hypervisor_get_query(
         context, session).\
-        filter_by(type='source')
-
-    return result
+        filter_by(type=type)
+    return hypervisors.all()
 
 
 @require_context
-def hypervisor_get_all_destinations(context, session=None):
-    result = _hypervisor_get_query(
+def hypervisor_get_by_name(context, name, session=None):
+    hypervisor = _hypervisor_get_query(
         context, session).\
-        filter_by(type='destination')
-
-    return result
-
-
-# Credentials
-
-def def _credential_get_query(context, session=None, read_deleted=None,
-                              expected_fields=None):
-    expected_fields = expected_fields or []
-    query = model_query(context,
-                        models.Credentials,
-                        session=session,
-                        read_deleted=read_deleted)
-
-    if 'projects' in expected_fields:
-        query = query.options(joinedload('projects'))
-
-    return query
-
-
-@require_context
-def credential_create(context, values):
-    if not values.get('id'):
-        values['id'] = str(uuid.uuid4())
-
-    session = get_session()
-
-    with session.begin():
-        try:
-            credential_ref = models.Credentials()
-            credential_ref.update(values)
-            session.add(credential_ref)
-        except Exception as e:
-            raise db_exc.DBError(e)
-
-        return credential_ref
-
-
-@require_context
-def _credential_get(context, credential_id, session=None):
-    result = _credential_get_query(
-        context, session).\
-        filter_by(id=credential_id).\
+        filter_by(name=name).\
         first()
 
-    if not result:
-        raise exception.ResourceNotFound(resource_id=credential_id)
+    if not hypervisor:
+        raise exception.HypervisorNotFound(hypervisor=name)
 
-    return result
-
-
-@require_context
-def credential_get(context, credential_id, session=None):
-    return _credential_get(context, credential_id,
-                           session)
-
+    return hypervisor
 
 @require_admin_context
-def credential_delete(context, credential_id):
+def hypervisor_update(context, hypervisor_id, values):
     session = get_session()
     with session.begin():
-        credential = credential_get(context, hypervisor_id,
-                                    session)
-        if not credential:
-            raise exception.ResourceNotFound(
-                resource_id=credential_id)
-        credential.update({'deleted': True,
-                           'deleted_at': timeutils.utcnow(),
-                           'updated_at': literal_column('updated_at')})
-
-
-@require_context
-def credential_get_all_by_hypervisor_id(context, hypervisor_id, session=None):
-    result = _credential_get_query(
-        context, session).\
-        filter_by(hypervisor_id=hypervisor_id).\
-        first()
-
-    if not result:
-        raise exception.ResourceNotFound(resource_id=hypervisor_id)
-
-    return result
-
-
-@require_admin_context
-def resource_delete_all_by_source(context, source):
-    session = get_session()
-    with session.begin():
-        resources = _resources_get_by_source(context, source,
-                                             session)
-
-        for resource in resources:
-            resource.update({'deleted': True,
-                             'deleted_at': timeutils.utcnow(),
-                             'updated_at': literal_column('updated_at')})
+        hypervisor_ref = _hypervisor_get(context, hypervisor_id, session=session)
+        hypervisor_ref.update(values)
+        return hypervisor_ref
 
 
 # Resources
@@ -396,7 +465,7 @@ def _resource_get_query(context, session=None, read_deleted=None,
                         expected_fields=None):
     expected_fields = expected_fields or []
     query = model_query(context,
-                        models.Resources,
+                        models.Resource,
                         session=session,
                         read_deleted=read_deleted)
 
@@ -444,7 +513,7 @@ def resource_create(context, values):
 
     with session.begin():
         try:
-            resource_ref = models.Resources()
+            resource_ref = models.Resource()
             resource_ref.update(values)
             session.add(resource_ref)
         except Exception as e:
@@ -469,7 +538,7 @@ def resource_delete(context, resource_id):
 
 @require_context
 def resource_get_all_by_type(context, resource_type, session=None):
-    result = model_query(context, models.Resources, session=session).\
+    result = model_query(context, models.Resource, session=session).\
         filter_by(type=resource_type)
 
     return result
@@ -490,7 +559,7 @@ def resource_get_by_id_at_source(context, id_at_source, session=None):
 
 @require_context
 def _resources_get_by_source(context, source, session=None):
-    result = model_query(context, models.Resources, session=session).\
+    result = model_query(context, models.Resource, session=session).\
         filter_by(source=source)
 
     return result
@@ -525,7 +594,7 @@ def _migration_get_query(context, session=None, read_deleted=None,
                          expected_fields=None):
     expected_fields = expected_fields or []
     query = model_query(context,
-                        models.Migrations,
+                        models.Migration,
                         session=session,
                         read_deleted=read_deleted)
 
@@ -563,7 +632,7 @@ def migration_get(context, id, session=None):
 
 @require_context
 def _migration_get_by_name(context, name, session=None):
-    result = model_query(context, models.Migrations, session=session).\
+    result = model_query(context, models.Migration, session=session).\
         filter_by(name=name).\
         first()
 
@@ -608,7 +677,7 @@ def migration_create(context, values, projects=None):
             pass
 
         try:
-            migration_ref = models.Migrations()
+            migration_ref = models.Migration()
             migration_ref.update(values)
             session.add(migration_ref)
         except Exception as e:

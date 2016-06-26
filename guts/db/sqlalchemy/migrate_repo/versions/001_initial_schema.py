@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, CheckConstraint
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, CheckConstraint, UniqueConstraint
 from sqlalchemy import Integer, MetaData, String, Table, VARCHAR
 
 
@@ -24,28 +24,19 @@ def define_tables(meta):
         Column('updated_at', DateTime),
         Column('deleted_at', DateTime),
         Column('deleted', Boolean),
+        Column('enabled', Boolean, default=True),
         Column('id', String(length=36), primary_key=True, nullable=False),
         Column('name', String(length=36)),
+        Column('host', String(length=36)),
         Column('driver', String(length=255), nullable=False),
         Column('type', String(length=36),
                CheckConstraint("type in ('source', 'destination')")),
-        Column('preferred_hosts', String(length=36)),
+        Column('allowed_hosts', String(length=36)),
         Column('capabilities', String(length=36)),
-        mysql_engine='InnoDB',
-        mysql_charset='utf8'
-    )
-
-    credentials = Table(
-        'credentials', meta,
-        Column('created_at', DateTime),
-        Column('updated_at', DateTime),
-        Column('deleted_at', DateTime),
-        Column('deleted', Boolean),
-        Column('id', String(length=36), primary_key=True, nullable=False),
-        Column('hypervisor_id', String(length=36),
-               ForeignKey('hypervisors.id'), nullable=False),
-        Column('name', String(length=36)),
-        Column('value', String(length=36), nullable=False),
+        Column('exclude_resource_uuids', String(length=36)),
+        Column('exclude_resource_names', String(length=36)),
+        Column('conversion_dir', String(length=255)),
+        Column('credentials', String(length=1024)),
         mysql_engine='InnoDB',
         mysql_charset='utf8'
     )
@@ -113,7 +104,7 @@ def define_tables(meta):
         mysql_charset='utf8'
     )
 
-    return [services, hypervisors, credentials, resources, migrations]
+    return [services, hypervisors, resources, migrations]
 
 
 def upgrade(migrate_engine):
@@ -128,7 +119,7 @@ def upgrade(migrate_engine):
         table.create()
 
     if migrate_engine.name == "mysql":
-        tables = ['services', 'hypervisors', 'credentials',
+        tables = ['services', 'hypervisors',
                   'resources', 'migrations']
 
         migrate_engine.execute("SET foreign_key_checks = 0")

@@ -250,6 +250,54 @@ def migration_update(context, migration_id, values):
     """
     return IMPL.migration_update(context, migration_id, values)
 
+# Hypervisors
+
+def hypervisor_create(context, values):
+    """Creats hypervisor DB entry"""
+    return IMPL.hypervisor_create(context, values)
+
+
+def hypervisor_delete(context, hypervisor_id):
+    """Destroy the hypervisor or raise if it does not exist."""
+    return IMPL.hypervisor_delete(context, hypervisor_id)
+
+
+def hypervisor_get(context, hypervisor_id):
+    """Get a hypervisor or raise if it does not exist."""
+    return IMPL.hypervisor_get(context, hypervisor_id)
+
+
+def hypervisor_get_by_type(context, type):
+    """Get a list hypervisors by type."""
+    return IMPL.hypervisor_get_by_type(context, type)
+
+
+def hypervisor_get_by_name(context, name):
+    """Get a list hypervisors by type."""
+    return IMPL.hypervisor_get_by_name(context, name)
+
+
+def hypervisor_get_all(context, filters=None, marker=None, limit=None,
+                       offset=None, sort_keys=None, sort_dirs=None):
+    """Get all hypervisors."""
+    return IMPL.hypervisor_get_all(context, filters=filters, marker=marker,
+                                   limit=limit, offset=offset,
+                                   sort_keys=sort_keys, sort_dirs=sort_dirs)
+
+
+def hypervisor_get_all_by_host(context, host, disabled=None):
+    """Get all hypervisors."""
+    return IMPL.hypervisor_get_all_by_host(context, host, disabled)
+
+
+def hypervisor_update(context, hypervisor_id, values):
+    """Updates hypervisor entry
+
+    Set the given properties on an hypervisor and update it.
+    Raises NotFound if hypervisor does not exist.
+    """
+    return IMPL.hypervisor_update(context, hypervisor_id, values)
+
 
 # Service
 

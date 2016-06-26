@@ -21,13 +21,14 @@ from oslo_log import log as logging
 
 from guts.api import extensions
 import guts.api.openstack
-from guts.api.v1 import destinations
-from guts.api.v1 import instances
-from guts.api.v1 import migrations
-from guts.api.v1 import networks
-from guts.api.v1 import resources
-from guts.api.v1 import sources
-from guts.api.v1 import volumes
+from guts.api.v1 import hypervisors
+#from guts.api.v1 import destinations
+#from guts.api.v1 import instances
+#from guts.api.v1 import migrations
+#from guts.api.v1 import networks
+#from guts.api.v1 import resources
+#from guts.api.v1 import sources
+#from guts.api.v1 import volumes
 
 
 LOG = logging.getLogger(__name__)
@@ -40,30 +41,36 @@ class APIRouter(guts.api.openstack.APIRouter):
     def _setup_routes(self, mapper, ext_mgr):
         mapper.redirect("", "/")
 
-        self.resources['sources'] = sources.create_resource(ext_mgr)
-        mapper.resource("source", "sources",
-                        controller=self.resources['sources'])
+        self.resources['hypervisors'] = hypervisors.create_resource(ext_mgr)
+        mapper.resource("hypervisor", "hypervisors",
+                        collection={'detail': 'GET',
+                                    'get_creds_params': 'GET',
+                                    'get_driver_capab': 'GET',
+                                    'get_default_conversion_dir': 'GET',
+                                    'get_all_migration_hosts': 'GET'},
+                        controller=self.resources['hypervisors'],
+                        member={'action': 'POST'})
 
-        self.resources['destinations'] = destinations.create_resource(ext_mgr)
-        mapper.resource("destination", "destinations",
-                        controller=self.resources['destinations'])
+        #self.resources['destinations'] = destinations.create_resource(ext_mgr)
+        #mapper.resource("destination", "destinations",
+        #                controller=self.resources['destinations'])
 
-        self.resources['resources'] = resources.create_resource(ext_mgr)
-        mapper.resource("resource", "resources",
-                        controller=self.resources['resources'])
+        #self.resources['resources'] = resources.create_resource(ext_mgr)
+        #mapper.resource("resource", "resources",
+        #                controller=self.resources['resources'])
 
-        self.resources['instances'] = instances.create_resource(ext_mgr)
-        mapper.resource("instance", "instances",
-                        controller=self.resources['instances'])
+        #self.resources['instances'] = instances.create_resource(ext_mgr)
+        #mapper.resource("instance", "instances",
+        #                controller=self.resources['instances'])
 
-        self.resources['volumes'] = volumes.create_resource(ext_mgr)
-        mapper.resource("volume", "volumes",
-                        controller=self.resources['volumes'])
+        #self.resources['volumes'] = volumes.create_resource(ext_mgr)
+        #mapper.resource("volume", "volumes",
+        #                controller=self.resources['volumes'])
 
-        self.resources['networks'] = networks.create_resource(ext_mgr)
-        mapper.resource("network", "networks",
-                        controller=self.resources['networks'])
+        #self.resources['networks'] = networks.create_resource(ext_mgr)
+        #mapper.resource("network", "networks",
+        #                controller=self.resources['networks'])
 
-        self.resources['migrations'] = migrations.create_resource(ext_mgr)
-        mapper.resource("migration", "migrations",
-                        controller=self.resources['migrations'])
+        #self.resources['migrations'] = migrations.create_resource(ext_mgr)
+        #mapper.resource("migration", "migrations",
+        #                controller=self.resources['migrations'])

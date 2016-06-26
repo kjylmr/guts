@@ -47,33 +47,24 @@ class GutsBase(models.TimestampMixin,
         self.save(session=session)
 
 
-class Hypervisors(BASE, GutsBase):
+class Hypervisor(BASE, GutsBase):
     """Represent source & destination Hypervisors."""
     __tablename__ = "hypervisors"
     id = Column(String(36), primary_key=True)
     name = Column(String(36))
     driver = Column(String(255))
     type = Column(String(36))
-    preferred_hosts = Column(String(36))
+    host = Column(String(36))
+    allowed_hosts = Column(String(36))
+    exclude_resource_uuids = Column(String(36))
+    exclude_resource_names = Column(String(36))
     capabilities = Column(String(36))
+    conversion_dir = Column(String(255))
+    credentials = Column(String(1024))
+    enabled = Column(Boolean, default=True)
 
 
-class Credentials(BASE, GutsBase):
-    """Represent source & destination Hypervisor's credentials."""
-    __tablename__ = "credentials"
-    id = Column(String(36), primary_key=True)
-    name = Column(String(36))
-    value = Column(String(36))
-    hypervisor_id = Column(String(36), ForeignKey('hypervisors.id'),
-                                  nullable=False)
-    hypervisor = relationship(Hypervisors, backref="resources",
-                              foreign_keys=hypervisor_id,
-                              primaryjoin='and_('
-                              'Resources.hypervisor_id == Hypervisors.id,'
-                              'Resources.deleted == False)')
-
-
-class Resources(BASE, GutsBase):
+class Resource(BASE, GutsBase):
     """Represent resources to migrate."""
     __tablename__ = "resources"
     id = Column(String(36), primary_key=True)
@@ -84,14 +75,14 @@ class Resources(BASE, GutsBase):
     migrated = Column(Boolean, default=False)
     source_hypervisor_id = Column(String(255), ForeignKey('hypervisors.id'),
                                   nullable=False)
-    source_hypervisor = relationship(Hypervisors, backref="resources",
+    source_hypervisor = relationship(Hypervisor, backref="resources",
                                      foreign_keys=source_hypervisor_id,
                                      primaryjoin='and_('
-                                     'Resources.source_hypervisor_id == Hypervisors.id,'
-                                     'Resources.deleted == False)')
+                                     'Resource.source_hypervisor_id == Hypervisor.id,'
+                                     'Resource.deleted == False)')
 
 
-class Migrations(BASE, GutsBase):
+class Migration(BASE, GutsBase):
     """Represent migration."""
     __tablename__ = "migrations"
     id = Column(String(36), primary_key=True)
@@ -102,20 +93,20 @@ class Migrations(BASE, GutsBase):
     resource_id = Column(String(36),
                          ForeignKey('resources.id'))
     resource = relationship(
-        Resources,
+        Resource,
         backref="migrations",
         foreign_keys=resource_id,
-        primaryjoin='and_(Migrations.resource_id == Resources.id,'
-                    'Migrations.deleted == False)')
+        primaryjoin='and_(Migration.resource_id == Resource.id,'
+                    'Migration.deleted == False)')
 
     destination_hypervisor_id = Column(String(36),
                                        ForeignKey('hypervisors.id'))
     destination_hypervisor = relationship(
-        Hypervisors,
+        Hypervisor,
         backref="migrations",
         foreign_keys=destination_hypervisor_id,
-        primaryjoin='and_(Migrations.destination_hypervisor_id == Hypervisors.id,'
-                    'Migrations.deleted == False')
+        primaryjoin='and_(Migration.destination_hypervisor_id == Hypervisor.id,'
+                    'Migration.deleted == False)')
 
 
 class Service(BASE, GutsBase):

@@ -20,6 +20,8 @@ Migration Service
 
 import ast
 import functools
+import os
+import re
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -30,13 +32,38 @@ from oslo_utils import importutils
 from guts import context
 from guts import exception
 from guts.migration import configuration as config
-from guts.i18n import _, _LI, _LE
+from guts.migration import driver
+from guts.i18n import _, _LI, _LE, _LW
 from guts import manager
 from guts import objects
 from guts.objects import base as objects_base
 from guts import rpc
 from guts import utils
 
+
+manager_opts = [
+    cfg.StrOpt('hypervisor_name',
+               help="Unique name for the hypervisor."),
+    cfg.StrOpt('migration_driver',
+               help="Migration driver class path."),
+    cfg.ListOpt('allowed_hosts',
+                default=['*'],
+                help="List of migration node hostnames allowed to connect"
+                     "to this hypervisor. '*' represents all migration hosts."),
+    cfg.ListOpt('capabilities',
+                default=['instance'],
+                help="List of migration resource types, that this hypervisor "
+                     "supports."),
+    cfg.StrOpt('exclude_resource_uuids',
+                help="A regular pattern which matches resource UUIDs to "
+                     "exclude"),
+    cfg.StrOpt('exclude_resource_names',
+                help="A regular pattern which matches resource Names to "
+                     "exclude"),
+    cfg.StrOpt('conversion_dir',
+               default='$state_path/migrations',
+               help='Disk conversion directory.'),
+]
 
 source_manager_opts = [
     cfg.StrOpt('source_driver',
@@ -52,21 +79,14 @@ source_manager_opts = [
     cfg.StrOpt('exclude',
                default='',
                help='List of resource to be excluded from migration'),
-    cfg.StrOpt('nova_api_version',
-               default='2',
-               help='Shows the client version.'),
-    cfg.StrOpt('cinder_api_version',
-               default='1',
-               help='Cinder client version.'),
-    cfg.StrOpt('glance_api_version',
-               default='1',
-               help='Glance client version.'),
+    cfg.StrOpt('backend_host',
+               help='Backend override of host value.'),
 ]
 
 destination_manager_opts = [
     cfg.StrOpt('destination_driver',
-               default='guts.migration.drivers.destinations.openstack.\
-OpenStackDestinationDriver',
+               default='guts.migration.drivers.destinations.openstack.'
+                       'OpenStackDestinationDriver',
                help='Driver to use for destination hypervisor'),
     cfg.StrOpt('conversion_dir',
                default='$state_path/migrations',
@@ -147,6 +167,199 @@ def locked_migration_operation(f):
         return lvo_inner2(inst, context, migration_ref, **kwargs)
     return lvo_inner1
 
+
+class MigrationManager(manager.SchedulerDependentManager):
+    """Manager migration processes."""
+
+    RPC_API_VERSION = '1.8'
+
+    target = messaging.Target(version=RPC_API_VERSION)
+
+    def __init__(self, service_name=None, *args, **kwargs):
+        """Loads migration manager."""
+        # updated_service_capabilities needs service_name to be "source".
+        super(MigrationManager, self).__init__(service_name='migration',
+                                               *args, **kwargs)
+
+        svc_host = utils.extract_host(self.host)
+        ctxt = context.get_admin_context()
+        try:
+            objects.Service.get_by_args(ctxt, svc_host, 'guts-migration')
+        except exception.ServiceNotFound:
+            LOG.info(_LI("Service not found for updating."))
+
+    def init_host(self):
+        """Perform any required initialization."""
+        ctxt = context.get_admin_context()
+
+        try:
+            self._load_hypervisors(ctxt)
+        except Exception:
+            raise
+        self.publish_service_capabilities(ctxt)
+
+    def _load_hypervisor(self, ctxt, hypervisor):
+        # Reading hypervisor block configuration
+        configuration = config.Configuration(manager_opts,
+                                             config_group=hypervisor)
+        # Extracting hypervisor_name.
+        hypervisor_name = configuration.hypervisor_name
+        if not hypervisor_name:
+            hypervisor_name = "%s@%s" % (CONF.host, hypervisor)
+
+        # Validating migration_driver
+        migration_driver = configuration.migration_driver
+        if not migration_driver:
+            LOG.error(_LE("Unable to load %(hypervisor)s hypervisor "
+                          "configuration. Reason: 'migration_driver' "
+                          "not specified."), {'hypervisor': hypervisor})
+            return
+        try:
+            drv = importutils.import_object(migration_driver,
+                                            configuration=configuration)
+        except ImportError:
+            LOG.exception(_LE("Unable to load specified migration driver "
+                              "module %(drv)s."), {'drv':migration_driver})
+            return
+        except exception.GutsException as ex:
+            LOG.exception(_LE(ex.message))
+            return
+
+        # Checking the type of migration driver
+        if isinstance(drv, driver.SourceDriver):
+            hypervisor_type = 'source'
+        elif isinstance(drv, driver.DestinationDriver):
+            hypervisor_type = 'destination'
+        else:
+            LOG.error(_LE("Migration driver %(drv)s should be an instance of"
+                          "either SourceDriver or DestinationDriver class."))
+            return
+        LOG.info(_LI("Specified hypervisor %(hypervisor)s type is %(type)s"),
+                 {'hypervisor': hypervisor, 'type': hypervisor_type})
+
+        # Validating allowed hosts
+        allowed_hosts = configuration.allowed_hosts
+        if not allowed_hosts:
+            LOG.exception(_LE("Unable to load %(hypervisor)s hypervisor "
+                              "configuration. Reason: 'allowed_hosts' "
+                              "can't be none."), {'hypervisor': hypervisor})
+            return
+        all_hosts = utils._get_all_migration_hostnames(ctxt)
+        # When migration service is starting for the first time.
+        if CONF.host not in all_hosts:
+            all_hosts.append(CONF.host)
+        allowed_nodes = []
+        if '*' in allowed_hosts:
+            LOG.info(_LI("Adding all migration nodes: %(nodes)s as allowed_hosts "
+                         "to the hypervisor %(hypervisor)s."),
+                     {'nodes': all_hosts, 'hypervisor': hypervisor})
+            allowed_nodes = all_hosts
+        else:
+            for host in allowed_hosts:
+                if host not in all_hosts:
+                    LOG.error(_LE("Ignoring allowed_host %(host)s. "
+                                  "Reason: Host %(host)s is not running "
+                                  "migration service."), {'host': host})
+                else:
+                    allowed_nodes.append(host)
+        if not allowed_nodes:
+            LOG.error(_LE("Unable to load hypervisor: %(hypervisor)s. "
+                          "Reason: No valid allowed_host found."),
+                      {'hypervisor': hypervisor})
+            return
+        allowed_nodes = list(set(allowed_nodes))
+
+        # Checking regular expression for exclude resource using UUIDs.
+        exclude_uuid_re = configuration.exclude_resource_uuids
+        if exclude_uuid_re:
+            try:
+                re.compile(exclude_uuid_re)
+            except re.error:
+                LOG.exception(_LE("Invalid exclude_resource_uuids regex "
+                                  "%(reg)s in %(hypervisor)s configuration."),
+                              {'reg': exclude_uuid_re,
+                               'hypervisor': hypervisor})
+
+        # Checking regular expression for exclude resource using Names.
+        exclude_name_re = configuration.exclude_resource_names
+        if exclude_name_re:
+            try:
+                re.compile(exclude_name_re)
+            except re.error:
+                LOG.exception(_LE("Invalid exclude_resource_names regex "
+                                  "%(reg)s in %(hypervisor)s configuration."),
+                              {'reg': exclude_name_re,
+                               'hypervisor': hypervisor})
+
+        # Validating conversion directory.
+        conversion_dir = configuration.conversion_dir
+        if not os.path.exists(conversion_dir):
+            LOG.warning(_LW("Specified conversion directory %(dir)s "
+                            "does not exist."), {'dir': conversion_dir})
+            utils.execute('mkdir', '-p', conversion_dir, run_as_root=True)
+
+        try:
+            hypervisor_credentials = drv.get_credentials()
+        except exception.GutsException as ex:
+            LOG.exception(_LE(ex.message))
+            return
+
+        hypervisor_properties = {'name': hypervisor_name,
+                                 'driver': migration_driver,
+                                 'type': hypervisor_type,
+                                 'host': CONF.host,
+                                 'allowed_hosts': str(allowed_nodes),
+                                 'exclude_resource_uuids': exclude_uuid_re,
+                                 'exclude_resource_names': exclude_name_re,
+                                 'conversion_dir': conversion_dir,
+                                 'capabilities': str(drv.capabilities),
+                                 'credentials': str(hypervisor_credentials)}
+        try:
+            hypervisor_ref = objects.Hypervisor.get_by_name(ctxt,
+                                                            hypervisor_name)
+            LOG.warn(_LW("Hypervisor %(hypervisor_name)s already exist. "
+                         "So updating the exsting hypervisor."),
+                      {'hypervisor_name': hypervisor_name})
+            hypervisor_ref.update(hypervisor_properties)
+            hypervisor_ref.save()
+        except exception.HypervisorNotFound:
+            LOG.debug("Creating new hypervisor entry for: %(hypervisor_name)s",
+                      {'hypervisor_name': hypervisor_name})
+            hypervisor_ref = objects.Hypervisor(context=ctxt,
+                                                **hypervisor_properties)
+            hypervisor_ref.create()
+        return hypervisor_ref.name
+
+    def _load_hypervisors(self, ctxt):
+        enabled_hypervisors = []
+        if not CONF.enabled_hypervisors:
+            LOG.info(_LI("No hypervisors enabled on this host."))
+        else:
+            for hypervisor in CONF.enabled_hypervisors:
+                LOG.info(_LI("Loading %(hypervisor)s hypervisor "
+                             "Configuration."), {'hypervisor': hypervisor})
+                hypervisor_ref = self._load_hypervisor(ctxt, hypervisor)
+                if hypervisor_ref:
+                    enabled_hypervisors.append(hypervisor_ref)
+
+        # Cleaning up unused hypervisors on this host.
+        db_hypervisors = objects.HypervisorList.get_all_by_host(ctxt, CONF.host)
+        for hypervisor in db_hypervisors:
+            if hypervisor.name not in enabled_hypervisors:
+                LOG.warn(_LE("Removing hypervisor %(hypervisor)s entry, "
+                             "as it is not in enabled_hypervisors list."),
+                         {'hypervisor': hypervisor.name})
+                hypervisor.destroy()
+
+    @periodic_task.periodic_task
+    def _report_driver_status(self, context):
+        status = {'1': 'Hello'}
+        self.update_service_capabilities(status)
+
+    def publish_service_capabilities(self, context):
+        """Collect driver status and then publish."""
+        self._report_driver_status(context)
+        self._publish_service_capabilities(context)
 
 class SourceManager(manager.SchedulerDependentManager):
     """Manages source hypervisors."""

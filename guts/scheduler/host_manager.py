@@ -215,40 +215,15 @@ class HostManager(object):
 
     def update_service_capabilities(self, service_name, host, capabilities):
         """Update the per-service capabilities based on this notification."""
-        if not (service_name != 'source' or service_name != 'destination'):
+        if service_name != 'migration':
             LOG.debug('Ignoring %(service_name)s service update '
                       'from %(host)s',
                       {'service_name': service_name, 'host': host})
             return
 
-        if service_name == 'source':
-            resources = capabilities['resources']
-            # objects.ResourceList.delete_all_by_source(self._context, host)
-            for capab in resources.keys():
-                if capab not in capabilities['capabilities']:
-                    continue
-                for resource in resources[capab]:
-                    try:
-                        objects.Resource.get_by_id_at_source(
-                            self._context,
-                            resource.get('id'))
-                    except exception.ResourceNotFound:
-                        pass
-                    else:
-                        continue
-                    kwargs = {'type': capab,
-                              'source': host,
-                              'name': resource.get('name'),
-                              'id_at_source': resource.get('id'),
-                              'properties': str(resource)}
-                    resource_ref = objects.Resource(context=self._context,
-                                                    **kwargs)
-                    resource_ref.create()
-
         # Copy the capabilities, so we don't modify the original dict
         capab_copy = dict(capabilities)
         capab_copy["timestamp"] = timeutils.utcnow()  # Reported time
-
         self.service_states[host] = capab_copy
 
         LOG.debug("Received %(service_name)s service update from "
@@ -264,18 +239,16 @@ class HostManager(object):
     def _update_host_state_map(self, context):
 
         # Get resource usage across the available nodes:
-        sources = objects.ServiceList.get_all_by_topic(context,
-                                                       CONF.source_topic,
-                                                       disabled=False)
-        dests = objects.ServiceList.get_all_by_topic(context,
-                                                     CONF.destination_topic,
-                                                     disabled=False)
+        topic = CONF.migration_topic
+        migration_services = objects.ServiceList.get_all_by_topic(context,
+                                                                  topic,
+                                                                  disabled=False)
         active_hosts = set()
         no_capabilities_hosts = set()
-        for service in sources.objects + dests.objects:
+        for service in migration_services:
             host = service.host
             if not utils.service_is_up(service):
-                LOG.warning(_LW("Service is down. (host: %s)"), host)
+                LOG.warning(_LW("Migration service is down. (host: %s)"), host)
                 continue
             capabilities = self.service_states.get(host, None)
             if capabilities is None:

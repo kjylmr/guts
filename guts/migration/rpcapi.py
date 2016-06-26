@@ -27,6 +27,23 @@ from guts import rpc
 CONF = cfg.CONF
 
 
+class MigrationAPI(rpc.RPCAPI):
+    """Cllient side of the migration rpc API."""
+
+    BASE_RPC_API_VERSION = '1.8'
+    TOPIC = CONF.migration_topic
+    BINARY = 'guts-migration'
+
+    def _get_cctxt(self, host, version):
+        new_host = utils.get_migration_rpc_host(host)
+        return self.client.prepare(server=new_host, version=version)
+
+    def publish_service_capabilities(self, ctxt):
+        cctxt = self.client.prepare(fanout=True,
+                                    version=self.BASE_RPC_API_VERSION)
+        cctxt.cast(ctxt, 'publish_service_capabilities')
+
+
 class SourceAPI(rpc.RPCAPI):
     """Client side of the source rpc API."""
 
