@@ -19,12 +19,14 @@ import webob
 
 from oslo_config import cfg
 from oslo_log import log as logging
+import oslo_messaging as messaging
 from oslo_utils import timeutils
 
 from guts.api import extensions
 from guts.api.openstack import wsgi
 from guts import exception
 from guts import objects
+from guts.objects import base as objects_base
 from guts import rpc
 
 LOG = logging.getLogger(__name__)
@@ -95,8 +97,19 @@ class SourcesController(wsgi.Controller):
         source['hypervisor_name'] = hyp_ref.name
         source['id'] = hyp_ref.id
         source['binary'] = 'guts-source'
-
+        self._cast_to_manager(context, hyp_ref)
         return {'source': source}
+
+    def _cast_to_manager(self, context, hypervisor_ref):
+        host = hypervisor_ref.registered_host
+        topic = ('guts-migration.%s' % (host))
+        target = messaging.Target(topic=topic, version='1.8')
+        serializer = objects_base.GutsObjectSerializer()
+        client = rpc.get_client(target, version_cap=None,
+                                serializer=serializer)
+
+        ctxt = client.prepare(version='1.8')
+        ctxt.cast(context, 'resource_update', hypervisor_ref=hypervisor_ref)
 
 
 def create_resource(ext_mgr):

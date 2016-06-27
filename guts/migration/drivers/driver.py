@@ -34,7 +34,10 @@ class SourceDriver(MigrationDriver):
     def __init__(self, *args, **kwargs):
         super(SourceDriver, self).__init__(*args, **kwargs)
         if self.hypervisor_ref:
-            self.exclude = self.hypervisor_ref.exclude.split(',')
+            if self.hypervisor_ref.exclude:
+                self.exclude = self.hypervisor_ref.exclude.split(',')
+            else:
+                self.exclude = []
 
     def get_instances_list(self):
         msg = _("The method get_instances_list is not implemented.")

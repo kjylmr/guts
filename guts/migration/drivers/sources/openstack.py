@@ -97,15 +97,15 @@ class OpenStackSourceDriver(driver.SourceDriver):
         auth_url = creds['auth_url']
         if auth_url is None:
             raise ValueError(_("Cannot authenticate without an auth_url"))
-        username = creds['username']
-        password = creds['password']
-        tenant_name = creds['tenant_name']
-        project_id = creds['project_id']
-        user_domain_name = creds['user_domain_name']
-        nova_api_version = creds['nova_api_version']
-        cinder_api_version = creds['cinder_api_version']
-        glance_api_version = creds['glance_api_version']
-        keystone_version = creds['keystone_version']
+        username = creds.get('username')
+        password = creds.get('password')
+        tenant_name = creds.get('tenant_name')
+        project_id = creds.get('project_id')
+        user_domain_name = creds.get('user_domain_name')
+        nova_api_version = creds.get('nova_api_version', 2)
+        cinder_api_version = creds.get('cinder_api_version', 2)
+        glance_api_version = creds.get('glance_api_version', 2)
+        keystone_version = creds.get('keystone_version', 'v2')
 
         if keystone_version == 'v3':
             auth = v3.Password(auth_url=auth_url, username=username,

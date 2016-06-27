@@ -85,18 +85,18 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
     def do_setup(self, context):
         """Any initialization the source driver does while starting."""
         self.creds = ast.literal_eval(self.hypervisor_ref.credentials)
-        auth_url = self.creds['auth_url']
+        auth_url = self.creds.get('auth_url')
         if auth_url is None:
             raise ValueError(_("Cannot authenticate without an auth_url"))
-        username = self.creds['username']
-        password = self.creds['password']
-        tenant_name = self.creds['tenant_name']
-        project_id = self.creds['project_id']
-        user_domain_name = self.creds['user_domain_name']
-        nova_api_version = self.creds['nova_api_version']
-        cinder_api_version = self.creds['cinder_api_version']
-        glance_api_version = self.creds['glance_api_version']
-        keystone_version = self.creds['keystone_version']
+        username = self.creds.get('username')
+        password = self.creds.get('password')
+        tenant_name = self.creds.get('tenant_name')
+        project_id = self.creds.get('project_id')
+        user_domain_name = self.creds.get('user_domain_name')
+        nova_api_version = self.creds.get('nova_api_version', 2)
+        cinder_api_version = self.creds.get('cinder_api_version', 2)
+        glance_api_version = self.creds.get('glance_api_version', 1)
+        keystone_version = self.creds.get('keystone_version', 'v2')
 
         if keystone_version == 'v3':
             auth = v3.Password(auth_url=auth_url, username=username,
@@ -122,6 +122,15 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             LOG.error(_LE("Failed to create network '%s' on "
                           "destination: %s"), kwargs['label'], e)
             raise exception.NetworkCreationFailed(reason=e.message)
+
+    def get_flavors_list(self):
+        if not self._initialized:
+            self.do_setup(context)
+        flavors = self.nova.flavors.list()
+        flavor_list = []
+        for f in flavors:
+            flavor_list.append(f.name)
+        return flavor_list
 
     def get_keypairs_list(self):
         if not self._initialized:

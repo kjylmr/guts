@@ -19,12 +19,14 @@ import webob
 
 from oslo_config import cfg
 from oslo_log import log as logging
+import oslo_messaging as messaging
 from oslo_utils import timeutils
 
 from guts.api import extensions
 from guts.api.openstack import wsgi
 from guts import exception
 from guts import objects
+from guts.objects import base as objects_base
 from guts import rpc
 
 LOG = logging.getLogger(__name__)
@@ -86,18 +88,30 @@ class DestinationsController(wsgi.Controller):
         """Create a new hypervisor"""
         context = req.environ['guts.context']
         LOG.debug('Create hypervisor request body: %s', body)
-        hypervisor_values = body['source']
+        hypervisor_values = body['destination']
 
         hyp_ref = objects.Hypervisor(context=context, **hypervisor_values)
         hyp_ref.create()
-        source = {}
-        source['status'] = "Up"
-        source['host'] = hyp_ref.registered_host
-        source['hypervisor_name'] = hyp_ref.name
-        source['id'] = hyp_ref.id
-        source['binary'] = 'guts-destination'
+        destination = {}
+        destination['status'] = "Up"
+        destination['host'] = hyp_ref.registered_host
+        destination['hypervisor_name'] = hyp_ref.name
+        destination['id'] = hyp_ref.id
+        destination['binary'] = 'guts-destination'
 
-        return {'destination': source}
+        self._cast_to_manager(context, hyp_ref)
+        return {'destination': destination}
+
+    def _cast_to_manager(self, context, hypervisor_ref):
+        host = hypervisor_ref.registered_host
+        topic = ('guts-migration.%s' % (host))
+        target = messaging.Target(topic=topic, version='1.8')
+        serializer = objects_base.GutsObjectSerializer()
+        client = rpc.get_client(target, version_cap=None,
+                                serializer=serializer)
+
+        ctxt = client.prepare(version='1.8')
+        ctxt.cast(context, 'get_destination_properties', hypervisor_ref=hypervisor_ref)
 
 
 def create_resource(ext_mgr):

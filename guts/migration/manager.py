@@ -197,18 +197,21 @@ class MigrationManager(manager.SchedulerDependentManager):
                                                 **hypervisor)
             hypervisor_ref.create()
             if hypervisor_ref.type == 'source':
-                self.resource_update(hypervisor_ref)
+                self.resource_update(context.get_admin_context(),
+                                     hypervisor_ref)
             elif hypervisor_ref.type == 'destination':
-                self.get_destination_properties(hypervisor_ref)
+                self.get_destination_properties(context.get_admin_context(),
+                                                hypervisor_ref)
 
         return hypervisor_ref
 
-    def get_destination_properties(self, hypervisor_ref):
+    def get_destination_properties(self, ctxt, hypervisor_ref):
         try:
             drv = importutils.import_object(hypervisor_ref.driver,
                                             hypervisor_ref=hypervisor_ref)
-            drv.do_setup(context.get_admin_context())
+            drv.do_setup(ctxt)
             properties = {'keypairs': drv.get_keypairs_list(),
+                          'flavors': drv.get_flavors_list(),
                           'secgroups': drv.get_secgroups_list(),
                           'networks': drv.get_networks_list()}
             hypervisor_ref.update(dict(properties=str(properties)))
@@ -217,23 +220,23 @@ class MigrationManager(manager.SchedulerDependentManager):
             LOG.exception(_LE("Failed to fetch resources: %s"),
                               error.message)
 
-    def resource_update(self, hypervisor_ref):
+    def resource_update(self, ctxt, hypervisor_ref):
         try:
             drv = importutils.import_object(hypervisor_ref.driver,
                                             hypervisor_ref=hypervisor_ref)
-            drv.do_setup(context.get_admin_context())
+            drv.do_setup(ctxt)
             resources = {}
             for capab in hypervisor_ref.capabilities.split(','):
                 if capab == 'instance':
-                    instances = drv.get_instances_list(context)
+                    instances = drv.get_instances_list(ctxt)
                     if instances:
                         resources['instance'] = instances
                 elif capab == 'volume':
-                    volumes = drv.get_volumes_list(context)
+                    volumes = drv.get_volumes_list(ctxt)
                     if volumes:
                         resources['volume'] = volumes
                 elif capab == 'network':
-                    networks = drv.get_networks_list(context)
+                    networks = drv.get_networks_list(ctxt)
                     if networks:
                         resources['network'] = networks
             self._store_resources(resources, hypervisor_ref)
