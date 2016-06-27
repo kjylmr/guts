@@ -156,6 +156,64 @@ def source_delete(context, source_id):
     """Deletes the given source."""
     return IMPL.source_delete(context, source_id)
 
+# Hypervisors
+
+def hypervisor_get_all(context, inactive=False):
+    """Get all hypervisors.
+
+    :param context: context to query under
+    :param inactive: Include inactive sources to the result set
+
+    :returns: list of hypervisors
+    """
+    return IMPL.hypervisor_get_all(context, inactive)
+
+
+def hypervisor_get(context, id):
+    """Get hypervisor by ID.
+
+    :param context: context to query under
+    :param id: Resource id to get.
+
+    :returns: hypervisor
+    """
+    return IMPL.hypervisor_get(context, id)
+
+
+def hypervisor_create(context, hypervisor):
+    """Create a new hypervisor."""
+    return IMPL.hypervisor_create(context, hypervisor)
+
+
+def hypervisor_update(context, hypervisor_id, values):
+    """Set the given properties on a hypervisor and update it.
+
+    Raises NotFound if vm does not exist.
+    """
+    return IMPL.hypervisor_update(context, hypervisor_id, values)
+
+
+def hypervisor_delete(context, hypervisor_id):
+    """Deletes the given hypervisor."""
+    return IMPL.hypervisor_delete(context, hypervisor_id)
+
+
+def hypervisor_get_all_by_type(context, hypervisor_type):
+    """Return a hypervisors of similar types."""
+    return IMPL.hypervisor_get_all_by_type(context, hypervisor_type)
+
+
+def hypervisor_get_by_name(context, hypervisor_name):
+    """Return a hypervisors of similar types."""
+    return IMPL.hypervisor_get_by_name(context, hypervisor_name)
+
+
+def hypervisor_get_by_registered_host(context, host):
+    """Return a hypervisors based on it at source."""
+    return IMPL.hypervisor_get_by_registered_host(context, id_at_source)
+
+
+
 
 # Resources
 

@@ -60,7 +60,7 @@ class InstancesController(wsgi.Controller):
             instance = {}
             instance['id'] = i.id
             instance['name'] = i.name
-            instance['hypervisor_name'] = i.source.split('@')[1]
+            instance['hypervisor_name'] = i.source_hypervisor
             instance['migrated'] = i.migrated
 
             instances.append(instance)
@@ -78,7 +78,7 @@ class InstancesController(wsgi.Controller):
         instance['id'] = inst.id
         instance['name'] = inst.name
         instance['migrated'] = inst.migrated
-        instance['source'] = inst.source
+        instance['source'] = inst.source_hypervisor
         instance['properties'] = inst.properties
 
         return {'instance': instance}

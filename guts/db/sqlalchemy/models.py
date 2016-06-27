@@ -46,6 +46,21 @@ class GutsBase(models.TimestampMixin,
         self.save(session=session)
 
 
+class Hypervisors(BASE, GutsBase):
+    """Represent hypervisors"""
+    __tablename__ = "hypervisors"
+    id = Column(String(36), primary_key=True)
+    name = Column(String(64))
+    driver = Column(String(64))
+    type = Column(String(36))
+    properties = Column(String(2048))
+    credentials = Column(String(2048))
+    capabilities = Column(String(36))
+    exclude = Column(String(36))
+    registered_host = Column(String(36))
+    conversion_dir = Column(String(36))
+
+
 class Resources(BASE, GutsBase):
     """Represent resources to migrate."""
     __tablename__ = "resources"
@@ -55,8 +70,7 @@ class Resources(BASE, GutsBase):
     type = Column(String(36))
     properties = Column(String(1024))
     migrated = Column(Boolean, default=False)
-    source = Column(String(255),
-                    nullable=False)
+    source_hypervisor = Column(String(36), ForeignKey('hypervisors.id'))
 
 
 class Migrations(BASE, GutsBase):
@@ -70,7 +84,8 @@ class Migrations(BASE, GutsBase):
     resource_id = Column(String(36),
                          ForeignKey('resources.id'))
     destination_hypervisor = Column(String(36),
-                                    ForeignKey('services.id'))
+                                    ForeignKey('hypervisors.id'))
+    extra_params = Column(String(512))
 
 
 class Service(BASE, GutsBase):

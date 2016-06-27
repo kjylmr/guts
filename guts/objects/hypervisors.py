@@ -30,7 +30,7 @@ LOG = logging.getLogger(__name__)
 
 
 @base.GutsObjectRegistry.register
-class Resource(base.GutsPersistentObject, base.GutsObject,
+class Hypervisor(base.GutsPersistentObject, base.GutsObject,
                base.GutsObjectDictCompat,
                base.GutsComparableObject):
     # Version 1.0: Initial version
@@ -38,12 +38,15 @@ class Resource(base.GutsPersistentObject, base.GutsObject,
 
     fields = {
         'id': fields.StringField(),
-        'id_at_source': fields.StringField(nullable=True),
         'name': fields.StringField(nullable=True),
         'type': fields.StringField(nullable=True),
-        'source_hypervisor': fields.StringField(nullable=False),
+        'driver': fields.StringField(nullable=True),
+        'credentials': fields.StringField(nullable=True),
+        'capabilities': fields.StringField(nullable=True),
+        'exclude': fields.StringField(nullable=True),
+        'registered_host': fields.StringField(nullable=True),
         'properties': fields.StringField(nullable=True),
-        'migrated': fields.BooleanField(default=False),
+        'conversion_dir': fields.StringField(nullable=True),
         'deleted': fields.BooleanField(default=False),
     }
 
@@ -52,28 +55,28 @@ class Resource(base.GutsPersistentObject, base.GutsObject,
         target_version = utils.convert_version_to_tuple(target_version)
 
     @staticmethod
-    def _from_db_object(context, resource, db_service):
-        for name, field in resource.fields.items():
-            value = db_service.get(name)
+    def _from_db_object(context, hypervisor, db_hypervisor):
+        for name, field in hypervisor.fields.items():
+            value = db_hypervisor.get(name)
             if isinstance(field, fields.IntegerField):
                 value = value or 0
             elif isinstance(field, fields.DateTimeField):
                 value = value or None
-            resource[name] = value
+            hypervisor[name] = value
 
-        resource._context = context
-        resource.obj_reset_changes()
-        return resource
-
-    @base.remotable_classmethod
-    def get_by_id_at_source(cls, context, id_at_source):
-        db_resource = db.resource_get_by_id_at_source(context, id_at_source)
-        return cls._from_db_object(context, cls(context), db_resource)
+        hypervisor._context = context
+        hypervisor.obj_reset_changes()
+        return hypervisor
 
     @base.remotable_classmethod
-    def get(cls, context, resource_id):
-        db_resource = db.resource_get(context, resource_id)
-        return cls._from_db_object(context, cls(context), db_resource)
+    def get(cls, context, hypervisor_id):
+        db_hypervisor = db.hypervisor_get(context, hypervisor_id)
+        return cls._from_db_object(context, cls(context), db_hypervisor)
+
+    @base.remotable_classmethod
+    def get_by_name(cls, context, hypervisor_name):
+        db_hypervisor = db.hypervisor_get_by_name(context, hypervisor_name)
+        return cls._from_db_object(context, cls(context), db_hypervisor)
 
     @base.remotable
     def create(self):
@@ -81,28 +84,28 @@ class Resource(base.GutsPersistentObject, base.GutsObject,
             raise exception.ObjectActionError(action='create',
                                               reason=_('already created'))
         updates = self.guts_obj_get_changes()
-        db_resource = db.resource_create(self._context, updates)
-        self._from_db_object(self._context, self, db_resource)
+        db_hypervisor = db.hypervisor_create(self._context, updates)
+        self._from_db_object(self._context, self, db_hypervisor)
 
     @base.remotable
     def save(self):
         updates = self.guts_obj_get_changes()
         if updates:
-            db.resource_update(self._context, self.id, updates)
+            db.hypervisor_update(self._context, self.id, updates)
             self.obj_reset_changes()
 
     @base.remotable
     def destroy(self):
         with self.obj_as_admin():
-            db.resource_delete(self._context, self.id)
+            db.hypervisor_delete(self._context, self.id)
 
 
 @base.GutsObjectRegistry.register
-class ResourceList(base.ObjectListBase, base.GutsObject):
+class HypervisorList(base.ObjectListBase, base.GutsObject):
     VERSION = '1.0'
 
     fields = {
-        'objects': fields.ListOfObjectsField('Resource'),
+        'objects': fields.ListOfObjectsField('Hypervisor'),
     }
     child_versions = {
         '1.0': '1.0'
@@ -110,22 +113,12 @@ class ResourceList(base.ObjectListBase, base.GutsObject):
 
     @base.remotable_classmethod
     def get_all(cls, context, filters=None):
-        resources = db.resource_get_all(context, filters)
-        return base.obj_make_list(context, cls(context), objects.Resource,
-                                  resources)
+        hypervisors = db.hypervisor_get_all(context, filters)
+        return base.obj_make_list(context, cls(context), objects.Hypervisor,
+                                  hypervisors)
 
     @base.remotable_classmethod
-    def get_all_by_type(cls, context, resource_type, disabled=None):
-        resources = db.resource_get_all_by_type(context, resource_type)
-        return base.obj_make_list(context, cls(context), objects.Resource,
-                                  resources)
-
-    @base.remotable_classmethod
-    def get_all_by_source(cls, context, source, disabled=None):
-        resources = db.resource_get_all_by_source(context, source)
-        return base.obj_make_list(context, cls(context), objects.Resource,
-                                  resources)
-
-    @base.remotable_classmethod
-    def delete_all_by_source(cls, context, source, disabled=None):
-        db.resource_delete_all_by_source(context, source)
+    def get_all_by_type(cls, context, hypervisor_type, disabled=None):
+        hypervisors = db.hypervisor_get_all_by_type(context, hypervisor_type)
+        return base.obj_make_list(context, cls(context), objects.Hypervisor,
+                                  hypervisors)

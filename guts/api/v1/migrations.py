@@ -15,6 +15,7 @@
 
 """Migrations."""
 
+import ast
 import webob
 
 from oslo_config import cfg
@@ -103,7 +104,9 @@ class MigrationsController(wsgi.Controller):
                   'resource_id': mig_values['resource_id'],
                   'migration_status': 'Initiating',
                   'migration_event': 'Scheduling',
-                  'destination_hypervisor': dest_hypervisor, }
+                  'destination_hypervisor': dest_hypervisor}
+        if mig_values['extra_params'] is not None:
+            kwargs['extra_params'] = ast.literal_eval(mig_values['extra_params'])
 
         mig_ref = objects.Migration(context=context, **kwargs)
         mig_ref.create()
@@ -122,10 +125,12 @@ class MigrationsController(wsgi.Controller):
         return {'migration': migration}
 
     def _cast_to_source(self, context, mig_ref, resource_ref):
-        src_host = resource_ref.source
-        dest_ref = objects.Service.get(context, mig_ref.destination_hypervisor)
-        dest_host = dest_ref.host
-        src_topic = ('guts-source.%s' % (src_host))
+        src_host = resource_ref.source_hypervisor
+        src_host = objects.Hypervisor.get(context, src_host)
+        src_host = src_host.registered_host
+        dest_ref = objects.Hypervisor.get(context, mig_ref.destination_hypervisor)
+        dest_host = dest_ref.registered_host
+        src_topic = ('guts-migration.%s' % (src_host))
         target = messaging.Target(topic=src_topic, version='1.8')
         serializer = objects_base.GutsObjectSerializer()
         client = rpc.get_client(target, version_cap=None,

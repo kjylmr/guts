@@ -44,6 +44,7 @@ class Migration(base.GutsPersistentObject, base.GutsObject,
         'migration_status': fields.StringField(nullable=True),
         'migration_event': fields.StringField(nullable=True),
         'destination_hypervisor': fields.StringField(nullable=True),
+        'extra_params': fields.StringField(nullable=True),
     }
 
     def obj_make_compatible(self, primitive, target_version):

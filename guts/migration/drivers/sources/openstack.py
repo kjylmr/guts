@@ -14,6 +14,8 @@
 #    under the License.
 
 
+import ast
+import time
 import os
 
 from cinderclient import client as cinder_client
@@ -56,6 +58,15 @@ openstack_source_opts = [
     cfg.StrOpt('keystone_version',
                default='v2',
                help="User's domain ID for authentication"),
+    cfg.StrOpt('nova_api_version',
+               default='2',
+               help='Shows the client version.'),
+    cfg.StrOpt('cinder_api_version',
+               default='2',
+               help='Cinder client version.'),
+    cfg.StrOpt('glance_api_version',
+               default='2',
+               help='Glance client version.'),
 ]
 
 LOG = logging.getLogger(__name__)
@@ -65,24 +76,36 @@ class OpenStackSourceDriver(driver.SourceDriver):
     """OpenStack Source Hypervisor"""
     def __init__(self, *args, **kwargs):
         super(OpenStackSourceDriver, self).__init__(*args, **kwargs)
+
+    def get_credentials(self):
         self.configuration.append_config_values(openstack_source_opts)
+
+        return {'auth_url': self.configuration.auth_url,
+                'username': self.configuration.username,
+                'password': self.configuration.password,
+                'tenant_name': self.configuration.tenant_name,
+                'project_id': self.configuration.project_id,
+                'user_domain_name': self.configuration.user_domain_name,
+                'nova_api_version': self.configuration.nova_api_version,
+                'cinder_api_version': self.configuration.cinder_api_version,
+                'glance_api_version': self.configuration.glance_api_version,
+                'keystone_version': self.configuration.keystone_version}
 
     def do_setup(self, context):
         """Any initialization the source driver does while starting."""
-        super(OpenStackSourceDriver, self).do_setup(context)
-
-        auth_url = self.configuration.auth_url
+        creds = ast.literal_eval(self.hypervisor_ref.credentials)
+        auth_url = creds['auth_url']
         if auth_url is None:
             raise ValueError(_("Cannot authenticate without an auth_url"))
-        username = self.configuration.username
-        password = self.configuration.password
-        tenant_name = self.configuration.tenant_name
-        project_id = self.configuration.project_id
-        user_domain_name = self.configuration.user_domain_name
-        nova_api_version = self.configuration.nova_api_version
-        cinder_api_version = self.configuration.cinder_api_version
-        glance_api_version = self.configuration.glance_api_version
-        keystone_version = self.configuration.keystone_version
+        username = creds['username']
+        password = creds['password']
+        tenant_name = creds['tenant_name']
+        project_id = creds['project_id']
+        user_domain_name = creds['user_domain_name']
+        nova_api_version = creds['nova_api_version']
+        cinder_api_version = creds['cinder_api_version']
+        glance_api_version = creds['glance_api_version']
+        keystone_version = creds['keystone_version']
 
         if keystone_version == 'v3':
             auth = v3.Password(auth_url=auth_url, username=username,
@@ -121,7 +144,7 @@ class OpenStackSourceDriver(driver.SourceDriver):
         for vol in src_volumes:
             if vol.id in self.exclude:
                 continue
-            v = {'name': vol.display_name,
+            v = {'name': vol.name,
                  'id': vol.id,
                  'size': vol.size}
             volumes.append(v)
@@ -151,14 +174,15 @@ class OpenStackSourceDriver(driver.SourceDriver):
     def get_instance(self, context, instance_id):
         """Downloads given instance to local conversion directory."""
         if not self._initialized:
-            self.do_setup()
+            self.do_setup(context)
         try:
             instance = self.nova.servers.get(instance_id)
             image_id = instance.create_image(instance_id)
             img = self.glance.images.get(image_id)
             while img.status != 'active':
+                time.sleep(5)
                 img = self.glance.images.get(image_id)
-            image_path = os.path.join(self.configuration.conversion_dir,
+            image_path = os.path.join(self.hypervisor_ref.conversion_dir,
                                       image_id)
             self._download_image_from_glance(image_id, image_path)
             self.glance.images.delete(image_id)
@@ -180,7 +204,7 @@ class OpenStackSourceDriver(driver.SourceDriver):
     def get_volume(self, context, volume_id, migration_ref_id):
         """Downloads given volume to local conversion directory."""
         if not self._initialized:
-            self.do_setup()
+            self.do_setup(context)
         try:
             vol = self.cinder.volumes.get(volume_id)
             status = self.cinder.volumes.upload_to_image(vol, True,
@@ -189,8 +213,9 @@ class OpenStackSourceDriver(driver.SourceDriver):
             img_id = status[1]['os-volume_upload_image']['image_id']
             vol_img = self.glance.images.get(img_id)
             while vol_img.status != 'active':
+                time.sleep(5)
                 vol_img = self.glance.images.get(img_id)
-            image_path = os.path.join(self.configuration.conversion_dir,
+            image_path = os.path.join(self.hypervisor_ref.conversion_dir,
                                       migration_ref_id)
             self._download_image_from_glance(vol_img.id, image_path)
             self.glance.images.delete(vol_img.id)
@@ -201,10 +226,11 @@ class OpenStackSourceDriver(driver.SourceDriver):
         return image_path
 
     def _download_image_from_glance(self, image_id, file_path):
-            out, err = utils.execute(
-                'glance', '--os-username', self.configuration.username,
-                '--os-password', self.configuration.password,
-                '--os-tenant-name', self.configuration.tenant_name,
-                '--os-auth-url', self.configuration.auth_url,
-                'image-download', '--file', file_path,
-                image_id, run_as_root=True)
+        creds = ast.literal_eval(self.hypervisor_ref.credentials)
+        out, err = utils.execute(
+            'glance', '--os-username', creds['username'],
+            '--os-password', creds['password'],
+            '--os-tenant-name', creds['tenant_name'],
+            '--os-auth-url', creds['auth_url'],
+            'image-download', '--file', file_path,
+            image_id, run_as_root=True)

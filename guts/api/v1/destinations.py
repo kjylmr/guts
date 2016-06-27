@@ -51,44 +51,53 @@ class DestinationsController(wsgi.Controller):
         rpc.get_notifier('source').info(ctxt, method, payload)
 
     def index(self, req):
-        """Returns the list of Source Hypervisors."""
+        """Returns the list of Destination Hypervisors."""
         context = req.environ['guts.context']
-        src_services = objects.ServiceList.get_all_by_topic(context,
-                                                            'guts-destination')
-        now = timeutils.utcnow(with_timezone=True)
-
-        destinations = []
-        for service in src_services:
-            dest = {}
-            delta = now - (service.updated_at or service.created_at)
-            delta_sec = delta.total_seconds()
-            alive = abs(delta_sec) <= CONF.service_down_time
-            dest['status'] = (alive and "Up") or "Down"
-            dest['host'] = service.host.split('@')[0]
-            dest['hypervisor_name'] = service.host.split('@')[1]
-            dest['id'] = service.id
-            destinations.append(dest)
-        return dict(destinations=destinations)
+        db_dests = objects.HypervisorList.get_all_by_type(context,
+                                                         'destination')
+        dests = []
+        for dest in db_dests:
+            d = {}
+            d['status'] = "Up"
+            d['host'] = dest.registered_host
+            d['hypervisor_name'] = dest.name
+            d['id'] = dest.id
+            dests.append(d)
+        return dict(destinations=dests)
 
     def show(self, req, id):
         """Returns data about given destination hypervisor."""
         context = req.environ['guts.context']
         try:
-            service = objects.Service.get(context, id)
+            db_source = objects.Hypervisor.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
-        now = timeutils.utcnow(with_timezone=True)
-        dest = {}
-        delta = now - (service.updated_at or service.created_at)
-        delta_sec = delta.total_seconds()
-        alive = abs(delta_sec) <= CONF.service_down_time
-        dest['status'] = (alive and "Up") or "Down"
-        dest['host'] = service.host.split('@')[0]
-        dest['hypervisor_name'] = service.host.split('@')[1]
-        dest['id'] = service.id
-        dest['binary'] = service.binary
+        source = {}
+        source['status'] = "Up"
+        source['host'] = db_source.registered_host
+        source['hypervisor_name'] = db_source.name
+        source['id'] = db_source.id
+        source['binary'] = 'guts-destination'
+        source['properties'] = db_source.properties
 
-        return {'destination': dest}
+        return {'destination': source}
+
+    def create(self, req, body):
+        """Create a new hypervisor"""
+        context = req.environ['guts.context']
+        LOG.debug('Create hypervisor request body: %s', body)
+        hypervisor_values = body['source']
+
+        hyp_ref = objects.Hypervisor(context=context, **hypervisor_values)
+        hyp_ref.create()
+        source = {}
+        source['status'] = "Up"
+        source['host'] = hyp_ref.registered_host
+        source['hypervisor_name'] = hyp_ref.name
+        source['id'] = hyp_ref.id
+        source['binary'] = 'guts-destination'
+
+        return {'destination': source}
 
 
 def create_resource(ext_mgr):

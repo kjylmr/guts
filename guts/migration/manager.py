@@ -39,6 +39,8 @@ from guts import utils
 
 
 source_manager_opts = [
+    cfg.StrOpt('name',
+               help='Name of the source hypervisor'),
     cfg.StrOpt('source_driver',
                default='guts.migration.drivers.sources.openstack.'
                        'OpenStackSourceDriver',
@@ -52,15 +54,6 @@ source_manager_opts = [
     cfg.StrOpt('exclude',
                default='',
                help='List of resource to be excluded from migration'),
-    cfg.StrOpt('nova_api_version',
-               default='2',
-               help='Shows the client version.'),
-    cfg.StrOpt('cinder_api_version',
-               default='1',
-               help='Cinder client version.'),
-    cfg.StrOpt('glance_api_version',
-               default='1',
-               help='Glance client version.'),
 ]
 
 destination_manager_opts = [
@@ -96,7 +89,7 @@ wrap_exception = functools.partial(exception.wrap_exception,
 
 def _cast_to_destination(context, dest_host, method, migration_ref,
                          resource_ref, **kwargs):
-    dest_topic = ('guts-destination.%s' % (dest_host))
+    dest_topic = ('guts-migration.%s' % (dest_host))
     target = messaging.Target(topic=dest_topic,
                               version='1.8')
     serializer = objects_base.GutsObjectSerializer()
@@ -148,55 +141,114 @@ def locked_migration_operation(f):
     return lvo_inner1
 
 
-class SourceManager(manager.SchedulerDependentManager):
+class MigrationManager(manager.SchedulerDependentManager):
     """Manages source hypervisors."""
 
     RPC_API_VERSION = '1.8'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
-    def __init__(self, source_driver=None, service_name=None,
-                 *args, **kwargs):
-        """Load the source driver."""
-        # updated_service_capabilities needs service_name to be "source".
-        super(SourceManager, self).__init__(service_name='source',
-                                            *args, **kwargs)
-        self.configuration = config.Configuration(source_manager_opts,
-                                                  config_group=service_name)
-        self.stats = {}
+    def __init__(self, service_name=None, *args, **kwargs):
+        super(MigrationManager, self).__init__(service_name='migration',
+                                               *args, **kwargs)
+        if CONF.enabled_source_hypervisors:
+            for source in CONF.enabled_source_hypervisors:
+                self._load_hypervisor(source, 'source')
+            for destination in CONF.enabled_destination_hypervisors:
+                self._load_hypervisor(destination, 'destination')
 
-        if not source_driver:
-            # Get from configuration, which will get the default
-            # if its not using the multi backend.
-            source_driver = self.configuration.source_driver
-
-        svc_host = utils.extract_host(self.host)
         try:
+            svc_host = utils.extract_host(self.host)
             objects.Service.get_by_args(context.get_admin_context(),
-                                        svc_host, 'guts-source')
+                                        svc_host, 'guts-migration')
         except exception.ServiceNotFound:
             LOG.info(_LI("Service not found for updating."))
-        self.driver = importutils.import_object(
-            source_driver,
-            configuration=self.configuration,
-            host=self.host)
 
-    def init_host(self):
-        """Perform any required initialization."""
-        ctxt = context.get_admin_context()
+    def _load_hypervisor(self, source, type):
+        configuration = config.Configuration(source_manager_opts,
+                                             config_group=source)
+        if configuration.name:
+            name = configuration.name
+        else:
+            name = "%s@%s" % (CONF.host, source)
 
-        LOG.info(_LI("Starting source driver %(driver_name)s."),
-                 {'driver_name': self.driver.__class__.__name__})
+        hypervisor = {"name": name,
+                      "driver": configuration.source_driver,
+                      "capabilities": configuration.capabilities,
+                      "conversion_dir": configuration.conversion_dir,
+                      "exclude": configuration.exclude,
+                      "type": type,
+                      "registered_host": self.host}
+
+        drv = importutils.import_object(configuration.source_driver,
+                                        configuration=configuration)
+
+        hypervisor['credentials'] = str(drv.get_credentials())
         try:
-            self.driver.do_setup(ctxt)
-        except Exception:
-            LOG.exception(_LE("Failed to initialize driver."),
-                          resource={'type': 'driver',
-                                    'id': self.__class__.__name__})
-            # we don't want to continue since we failed
-            # to initialize the driver correctly.
-            return
-        self.publish_service_capabilities(ctxt)
+            hypervisor_ref = objects.Hypervisor.get_by_name(context.get_admin_context(),
+                                                            name)
+            hypervisor_ref.update(hypervisor)
+            hypervisor_ref.save()
+        except exception.ResourceNotFound:
+            hypervisor_ref = objects.Hypervisor(context=context.get_admin_context(),
+                                                **hypervisor)
+            hypervisor_ref.create()
+            if hypervisor_ref.type == 'source':
+                self.resource_update(hypervisor_ref)
+            elif hypervisor_ref.type == 'destination':
+                self.get_destination_properties(hypervisor_ref)
+
+        return hypervisor_ref
+
+    def get_destination_properties(self, hypervisor_ref):
+        try:
+            drv = importutils.import_object(hypervisor_ref.driver,
+                                            hypervisor_ref=hypervisor_ref)
+            drv.do_setup(context.get_admin_context())
+            properties = {'keypairs': drv.get_keypairs_list(),
+                          'secgroups': drv.get_secgroups_list(),
+                          'networks': drv.get_networks_list()}
+            hypervisor_ref.update(dict(properties=str(properties)))
+            hypervisor_ref.save()
+        except Exception as error:
+            LOG.exception(_LE("Failed to fetch resources: %s"),
+                              error.message)
+
+    def resource_update(self, hypervisor_ref):
+        try:
+            drv = importutils.import_object(hypervisor_ref.driver,
+                                            hypervisor_ref=hypervisor_ref)
+            drv.do_setup(context.get_admin_context())
+            resources = {}
+            for capab in hypervisor_ref.capabilities.split(','):
+                if capab == 'instance':
+                    instances = drv.get_instances_list(context)
+                    if instances:
+                        resources['instance'] = instances
+                elif capab == 'volume':
+                    volumes = drv.get_volumes_list(context)
+                    if volumes:
+                        resources['volume'] = volumes
+                elif capab == 'network':
+                    networks = drv.get_networks_list(context)
+                    if networks:
+                        resources['network'] = networks
+            self._store_resources(resources, hypervisor_ref)
+        except Exception as error:
+            LOG.exception(_LE("Failed to fetch resources: %s"),
+                              error.message)
+
+    def _store_resources(self, resources, hypervisor_ref):
+        for capab in resources.keys():
+            for resource in resources[capab]:
+                kwargs = {'type': capab,
+                          'source_hypervisor': hypervisor_ref.id,
+                          'name': resource.get('name'),
+                          'id_at_source': resource.get('id'),
+                          'properties': str(resource)}
+                resource_ref = objects.Resource(context=context.get_admin_context(),
+                                                **kwargs)
+                resource_ref.create()
 
     # RPC Method
     def get_resource(self, context, migration_ref, resource_ref,
@@ -231,7 +283,12 @@ class SourceManager(manager.SchedulerDependentManager):
         LOG.info(_LI('Getting instance from source hypervisor, '
                      'instance_id: %s'), instance_id)
         migration_ref.save()
-        instance_disks = self.driver.get_instance(context, instance_id)
+        hypervisor_ref = objects.Hypervisor.get(context,
+                                                resource_ref.source_hypervisor)
+
+        drv = importutils.import_object(hypervisor_ref.driver,
+                                        hypervisor_ref=hypervisor_ref)
+        instance_disks = drv.driver.get_instance(context, instance_id)
         instance_disks = self._convert_disks(instance_disks)
 
         instance_info = ast.literal_eval(resource_ref.properties)
@@ -247,8 +304,14 @@ class SourceManager(manager.SchedulerDependentManager):
         migration_ref.migration_status = "Inprogress"
         migration_ref.migration_event = "Fetching from source"
         migration_ref.save()
-        volume_path = self.driver.get_volume(context, volume_id,
-                                             migration_ref.id)
+
+        hypervisor_ref = objects.Hypervisor.get(context,
+                                                resource_ref.source_hypervisor)
+
+        drv = importutils.import_object(hypervisor_ref.driver,
+                                        hypervisor_ref=hypervisor_ref)
+        volume_path = drv.get_volume(context, volume_id,
+                                     migration_ref.id)
         volume_info = ast.literal_eval(resource_ref.properties)
         volume_info['path'] = volume_path
         _cast_to_destination(context, dest_host, 'create_volume',
@@ -264,6 +327,167 @@ class SourceManager(manager.SchedulerDependentManager):
         migration_ref.save()
         _cast_to_destination(context, dest_host, 'create_network',
                              migration_ref, resource_ref, **network_info)
+
+    def create_network(self, context, **kwargs):
+        """Creates new network on destination OpenStack hypervisor."""
+        LOG.info(_LI('Create network started, network: %s.'), kwargs['id'])
+        del kwargs['id']
+        del kwargs['name']
+        migration_ref = kwargs.pop('migration_ref')
+        resource_ref = kwargs.pop('resource_ref')
+        migration_ref.migration_event = 'Creating at destination'
+        migration_ref.save()
+        try:
+            hypervisor_ref = objects.Hypervisor.get(context,
+                                                    migration_ref.destination_hypervisor)
+            drv = importutils.import_object(hypervisor_ref.driver,
+                                            hypervisor_ref=hypervisor_ref)
+            drv.create_network(context, **kwargs)
+        except Exception:
+            migration_ref.migration_status = 'ERROR'
+            migration_ref.migration_event = None
+            migration_ref.save()
+            raise
+        migration_ref.migration_status = 'COMPLETE'
+        migration_ref.migration_event = None
+        migration_ref.save()
+        resource_ref.migrated = True
+        resource_ref.save()
+
+    def create_volume(self, context, **kwargs):
+        """Creats volume on destination OpenStack hypervisor."""
+        LOG.info(_LI('Create volume started, volume: %s.'), kwargs['id'])
+        del kwargs['id']
+        migration_ref = kwargs.pop('migration_ref')
+        resource_ref = kwargs.pop('resource_ref')
+        migration_ref.migration_event = 'Creating at destination'
+        migration_ref.save()
+        kwargs['mig_ref_id'] = migration_ref.id
+        try:
+            hypervisor_ref = objects.Hypervisor.get(context,
+                                                    migration_ref.destination_hypervisor)
+            drv = importutils.import_object(hypervisor_ref.driver,
+                                            hypervisor_ref=hypervisor_ref)
+            drv.create_volume(context, **kwargs)
+        except Exception:
+            migration_ref.migration_status = 'ERROR'
+            migration_ref.migration_event = None
+            migration_ref.save()
+            raise
+        migration_ref.migration_status = 'COMPLETE'
+        migration_ref.migration_event = None
+        migration_ref.save()
+        resource_ref.migrated = True
+        resource_ref.save()
+
+    def create_instance(self, context, **kwargs):
+        """Create a new instance."""
+        LOG.info(_LI('Create instance started.'))
+        migration_ref = kwargs.pop('migration_ref')
+        resource_ref = kwargs.pop('resource_ref')
+        migration_ref.migration_event = 'Creating at destination'
+        migration_ref.save()
+        kwargs['mig_ref_id'] = migration_ref.id
+        try:
+            hypervisor_ref = objects.Hypervisor.get(context,
+                                                    migration_ref.destination_hypervisor)
+            drv = importutils.import_object(hypervisor_ref.driver,
+                                            hypervisor_ref=hypervisor_ref)
+            drv.create_instance(context, **kwargs)
+        except Exception:
+            migration_ref.migration_status = 'ERROR'
+            migration_ref.migration_event = None
+            migration_ref.save()
+            raise
+        migration_ref.migration_status = 'COMPLETE'
+        migration_ref.migration_event = None
+        migration_ref.save()
+        resource_ref.migrated = True
+        resource_ref.save()
+
+
+
+
+class SourceManager(manager.SchedulerDependentManager):
+    """Manages source hypervisors."""
+
+    RPC_API_VERSION = '1.8'
+
+    target = messaging.Target(version=RPC_API_VERSION)
+
+    def __init__(self, source_driver=None, service_name=None,
+                 *args, **kwargs):
+        """Load the source driver."""
+        # updated_service_capabilities needs service_name to be "source".
+        super(SourceManager, self).__init__(service_name='migration',
+                                            *args, **kwargs)
+        self.configuration = config.Configuration(source_manager_opts,
+                                                  config_group=service_name)
+        self.stats = {}
+
+        if not source_driver:
+            # Get from configuration, which will get the default
+            # if its not using the multi backend.
+            source_driver = self.configuration.source_driver
+
+        svc_host = utils.extract_host(self.host)
+        try:
+            objects.Service.get_by_args(context.get_admin_context(),
+                                        svc_host, 'guts-source')
+        except exception.ServiceNotFound:
+            LOG.info(_LI("Service not found for updating."))
+        if CONF.enabled_source_hypervisors:
+            for source in CONF.enabled_source_hypervisors:
+                host = "%s@%s" % (CONF.host, source)
+                try:
+                    server = service.Service.create(host=host,
+                                                    service_name=source,
+                                                    binary="guts-source")
+                except Exception:
+                    msg = _('Source service %s failed to start.') % (host)
+                    LOG.exception(msg)
+                else:
+                    launcher.launch_service(server)
+                    source_service_started = True
+
+        if CONF.enabled_destination_hypervisors:
+            for dest in CONF.enabled_destination_hypervisors:
+                host = "%s@%s" % (CONF.host, dest)
+                try:
+                    server = service.Service.create(host=host,
+                                                    service_name=dest,
+                                                    binary="guts-destination")
+                except Exception:
+                    msg = _('Destination service %s failed to start.') % (host)
+                    LOG.exception(msg)
+                else:
+                    launcher.launch_service(server)
+                    destination_service_started = True
+
+
+
+        self.driver = importutils.import_object(
+            source_driver,
+            configuration=self.configuration,
+            host=self.host)
+
+    def init_host(self):
+        """Perform any required initialization."""
+        ctxt = context.get_admin_context()
+
+        LOG.info(_LI("Starting source driver %(driver_name)s."),
+                 {'driver_name': self.driver.__class__.__name__})
+        try:
+            self.driver.do_setup(ctxt)
+        except Exception:
+            LOG.exception(_LE("Failed to initialize driver."),
+                          resource={'type': 'driver',
+                                    'id': self.__class__.__name__})
+            # we don't want to continue since we failed
+            # to initialize the driver correctly.
+            return
+        self.publish_service_capabilities(ctxt)
+
 
     @periodic_task.periodic_task
     def _report_driver_status(self, context):
@@ -359,68 +583,3 @@ class DestinationManager(manager.SchedulerDependentManager):
         """Collect driver status and then publish."""
         self._report_driver_status(context)
         self._publish_service_capabilities(context)
-
-    def create_network(self, context, **kwargs):
-        """Creates new network on destination OpenStack hypervisor."""
-        LOG.info(_LI('Create network started, network: %s.'), kwargs['id'])
-        del kwargs['id']
-        del kwargs['name']
-        migration_ref = kwargs.pop('migration_ref')
-        resource_ref = kwargs.pop('resource_ref')
-        migration_ref.migration_event = 'Creating at destination'
-        migration_ref.save()
-        try:
-            self.driver.create_network(context, **kwargs)
-        except exception.NetworkCreationFailed:
-            migration_ref.migration_status = 'ERROR'
-            migration_ref.migration_event = None
-            migration_ref.save()
-            raise
-        migration_ref.migration_status = 'COMPLETE'
-        migration_ref.migration_event = None
-        migration_ref.save()
-        resource_ref.migrated = True
-        resource_ref.save()
-
-    def create_volume(self, context, **kwargs):
-        """Creats volume on destination OpenStack hypervisor."""
-        LOG.info(_LI('Create volume started, volume: %s.'), kwargs['id'])
-        del kwargs['id']
-        migration_ref = kwargs.pop('migration_ref')
-        resource_ref = kwargs.pop('resource_ref')
-        migration_ref.migration_event = 'Creating at destination'
-        migration_ref.save()
-        kwargs['mig_ref_id'] = migration_ref.id
-        try:
-            self.driver.create_volume(context, **kwargs)
-        except exception.NetworkCreationFailed:
-            migration_ref.migration_status = 'ERROR'
-            migration_ref.migration_event = None
-            migration_ref.save()
-            raise
-        migration_ref.migration_status = 'COMPLETE'
-        migration_ref.migration_event = None
-        migration_ref.save()
-        resource_ref.migrated = True
-        resource_ref.save()
-
-    def create_instance(self, context, **kwargs):
-        """Create a new instance."""
-        LOG.info(_LI('Create instance started.'))
-        migration_ref = kwargs.pop('migration_ref')
-        resource_ref = kwargs.pop('resource_ref')
-        migration_ref.migration_event = 'Creating at destination'
-        migration_ref.save()
-        kwargs['mig_ref_id'] = migration_ref.id
-        try:
-            self.driver.create_instance(context, **kwargs)
-        except exception.NetworkCreationFailed:
-            migration_ref.migration_status = 'ERROR'
-            migration_ref.migration_event = None
-            migration_ref.save()
-            raise
-        migration_ref.migration_status = 'COMPLETE'
-        migration_ref.migration_event = None
-        migration_ref.save()
-        resource_ref.migrated = True
-        resource_ref.save()

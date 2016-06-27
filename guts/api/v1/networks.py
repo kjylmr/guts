@@ -60,7 +60,7 @@ class NetworksController(wsgi.Controller):
             network['id'] = i.id
             network['name'] = i.name
             network['migrated'] = i.migrated
-            network['hypervisor_name'] = i.source.split('@')[1]
+            network['hypervisor_name'] = i.source_hypervisor
             networks.append(network)
 
         return dict(networks=networks)
@@ -77,7 +77,7 @@ class NetworksController(wsgi.Controller):
         network['id'] = net.id
         network['name'] = net.name
         network['migrated'] = net.migrated
-        network['source'] = net.source
+        network['source'] = net.source.source_hypervisor
         network['properties'] = net.properties
 
         return {'network': network}

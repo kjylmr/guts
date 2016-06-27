@@ -18,6 +18,26 @@ from sqlalchemy import Integer, MetaData, String, Table
 
 
 def define_tables(meta):
+    hypervisors = Table(
+        'hypervisors', meta,
+        Column('created_at', DateTime),
+        Column('updated_at', DateTime),
+        Column('deleted_at', DateTime),
+        Column('id', String(length=36), primary_key=True, nullable=False),
+        Column('type', String(length=36)),
+        Column('name', String(length=64)),
+        Column('driver', String(length=512)),
+        Column('credentials', String(length=2048)),
+        Column('capabilities', String(length=36)),
+        Column('properties', String(length=2048)),
+        Column('exclude', String(length=36)),
+        Column('deleted', Boolean),
+        Column('registered_host', String(length=36)),
+        Column('conversion_dir', String(length=36)),
+        mysql_engine='InnoDB',
+        mysql_charset='utf8'
+    )
+
     resources = Table(
         'resources', meta,
         Column('created_at', DateTime),
@@ -30,8 +50,8 @@ def define_tables(meta):
         Column('properties', String(length=1024)),
         Column('deleted', Boolean),
         Column('migrated', Boolean),
-        Column('source', String(length=255),
-               nullable=False),
+        Column('source_hypervisor', String(length=255),
+               ForeignKey('hypervisors.id'), nullable=False),
         mysql_engine='InnoDB',
         mysql_charset='utf8'
     )
@@ -50,10 +70,11 @@ def define_tables(meta):
         Column('migration_status', String(length=255)),
         Column('migration_event', String(length=255)),
         Column('destination_hypervisor', String(length=36),
-               ForeignKey('services.id'), nullable=False),
+               ForeignKey('hypervisors.id'), nullable=False),
         Column('start_time', DateTime),
         Column('finish_time', DateTime),
         Column('deleted', Boolean),
+        Column('extra_params', String(length=512)),
         mysql_engine='InnoDB',
         mysql_charset='utf8'
     )
@@ -80,7 +101,7 @@ def define_tables(meta):
         mysql_charset='utf8'
     )
 
-    return [services, resources, migrations]
+    return [hypervisors, resources, migrations, services]
 
 
 def upgrade(migrate_engine):
@@ -95,7 +116,7 @@ def upgrade(migrate_engine):
         table.create()
 
     if migrate_engine.name == "mysql":
-        tables = ['services', 'resources', 'migrations']
+        tables = ['hypervisors', 'resources', 'migrations', 'services']
 
         migrate_engine.execute("SET foreign_key_checks = 0")
         for table in tables:

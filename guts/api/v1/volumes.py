@@ -60,7 +60,7 @@ class VolumesController(wsgi.Controller):
             volume['id'] = v.id
             volume['migrated'] = v.migrated
             volume['name'] = v.name
-            volume['hypervisor_name'] = v.source.split('@')[1]
+            volume['hypervisor_name'] = v.source_hypervisor
 
             volumes.append(volume)
         return dict(volumes=volumes)
@@ -77,7 +77,7 @@ class VolumesController(wsgi.Controller):
         volume['id'] = vol.id
         volume['migrated'] = vol.migrated
         volume['name'] = vol.name
-        volume['source'] = vol.source
+        volume['source'] = vol.source_hypervisor
         volume['properties'] = vol.properties
 
         return {'volume': volume}
