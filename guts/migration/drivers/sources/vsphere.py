@@ -161,6 +161,9 @@ class VSphereSourceDriver(driver.SourceDriver):
                           '-O', dest_disk_path, run_as_root=True)
 
     def get_instance(self, context, instance_id):
+        if not self._initialized:
+            self.do_setup(context)
+
         instance = self._find_instance_by_uuid(instance_id)
         lease = self._get_instance_lease(instance)
 

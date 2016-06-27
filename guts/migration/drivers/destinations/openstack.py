@@ -202,7 +202,7 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             extra_params = ast.literal_eval(extra_params)
             flavor = extra_params.get('flavor', 2)
             network = extra_params.get('network', None)
-            sec_group = extra_params.get('secgroup', None)
+            secgroup = extra_params.get('secgroup', None)
             keypair = extra_params.get('keypair', None)
 
         boot_string = ['nova', '--os-username', self.creds['username'],
@@ -216,7 +216,7 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             boot_string.extend(['--nic', "net-name=%s" % (network)])
         if keypair:
             boot_string.extend(['--key-name', keypair])
-        if sec_group:
+        if secgroup:
             boot_string.extend(['--security-groups', secgroup])
         out, err = utils.execute(*boot_string, run_as_root=True)
 
