@@ -39,6 +39,8 @@ from guts import utils
 
 
 source_manager_opts = [
+    cfg.StrOpt('name',
+               help='Name of the source hypervisor'),
     cfg.StrOpt('source_driver',
                default='guts.migration.drivers.sources.openstack.'
                        'OpenStackSourceDriver',
@@ -148,6 +150,62 @@ def locked_migration_operation(f):
     return lvo_inner1
 
 
+class MigrationManager(manager.SchedulerDependentManager):
+    """Manages source hypervisors."""
+
+    RPC_API_VERSION = '1.8'
+
+    target = messaging.Target(version=RPC_API_VERSION)
+
+    def __init__(self, service_name=None, *args, **kwargs):
+        super(MigrationManager, self).__init__(service_name='migration',
+                                               *args, **kwargs)
+        if CONF.enabled_source_hypervisors:
+            for source in CONF.enabled_source_hypervisors:
+                self._load_hypervisor(source, 'source')
+            for destination in CONF.enabled_destination_hypervisors:
+                self._load_hypervisor(destination, 'destination')
+
+        try:
+            svc_host = utils.extract_host(self.host)
+            objects.Service.get_by_args(context.get_admin_context(),
+                                        svc_host, 'guts-migration')
+        except exception.ServiceNotFound:
+            LOG.info(_LI("Service not found for updating."))
+
+    def _load_hypervisor(self, source, type):
+        configuration = config.Configuration(source_manager_opts,
+                                             config_group=source)
+
+        if configuration.name:
+            name = configuration.name
+        else:
+            name = "%s@%s" % (CONF.host, source)
+
+        hypervisor = {"name": name,
+                      "driver": configuration.source_driver,
+                      "capabilities": configuration.capabilities,
+                      "conversion_dir": configuration.conversion_dir,
+                      "exclude": configuration.exclude,
+                      "type": type,
+                      "registered_host": self.host}
+
+        drv = importutils.import_object(configuration.source_driver,
+                                        configuration=configuration)
+
+        hypervisor['credentials'] = str(drv.get_credentials())
+        try:
+            hypervisor_ref = objects.Hypervisor.get_by_name(context.get_admin_context(),
+                                                            name)
+            hypervisor_ref.update(hypervisor)
+            hypervisor_ref.save()
+        except exception.ResourceNotFound:
+            hypervisor_ref = objects.Hypervisor(context=context.get_admin_context(),
+                                                **hypervisor)
+            hypervisor_ref.create()
+        return hypervisor_ref
+
+
 class SourceManager(manager.SchedulerDependentManager):
     """Manages source hypervisors."""
 
@@ -176,6 +234,36 @@ class SourceManager(manager.SchedulerDependentManager):
                                         svc_host, 'guts-source')
         except exception.ServiceNotFound:
             LOG.info(_LI("Service not found for updating."))
+        if CONF.enabled_source_hypervisors:
+            for source in CONF.enabled_source_hypervisors:
+                host = "%s@%s" % (CONF.host, source)
+                try:
+                    server = service.Service.create(host=host,
+                                                    service_name=source,
+                                                    binary="guts-source")
+                except Exception:
+                    msg = _('Source service %s failed to start.') % (host)
+                    LOG.exception(msg)
+                else:
+                    launcher.launch_service(server)
+                    source_service_started = True
+
+        if CONF.enabled_destination_hypervisors:
+            for dest in CONF.enabled_destination_hypervisors:
+                host = "%s@%s" % (CONF.host, dest)
+                try:
+                    server = service.Service.create(host=host,
+                                                    service_name=dest,
+                                                    binary="guts-destination")
+                except Exception:
+                    msg = _('Destination service %s failed to start.') % (host)
+                    LOG.exception(msg)
+                else:
+                    launcher.launch_service(server)
+                    destination_service_started = True
+
+
+
         self.driver = importutils.import_object(
             source_driver,
             configuration=self.configuration,

@@ -65,7 +65,19 @@ class OpenStackSourceDriver(driver.SourceDriver):
     """OpenStack Source Hypervisor"""
     def __init__(self, *args, **kwargs):
         super(OpenStackSourceDriver, self).__init__(*args, **kwargs)
+
+    def get_credentials(self):
         self.configuration.append_config_values(openstack_source_opts)
+
+        return {'username': self.configuration.username,
+                'password': self.configuration.password,
+                'tenant_name': self.configuration.tenant_name,
+                'project_id': self.configuration.project_id,
+                'user_domain_name': self.configuration.user_domain_name,
+                'nova_api_version': self.configuration.nova_api_version,
+                'cinder_api_version': self.configuration.cinder_api_version,
+                'glance_api_version': self.configuration.glance_api_version,
+                'keystone_version': self.configuration.keystone_version}
 
     def do_setup(self, context):
         """Any initialization the source driver does while starting."""

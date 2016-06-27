@@ -202,6 +202,126 @@ def model_query(context, *args, **kwargs):
     return query
 
 
+# Hypervisors
+
+def _hypervisor_get_query(context, session=None, read_deleted=None,
+                        expected_fields=None):
+    expected_fields = expected_fields or []
+    query = model_query(context,
+                        models.Hypervisors,
+                        session=session,
+                        read_deleted=read_deleted)
+
+    if 'projects' in expected_fields:
+        query = query.options(joinedload('projects'))
+
+    return query
+
+
+@require_context
+def hypervisor_get_all(context, inactive=False):
+    """Returns a dict describing all hypervisors with id as key."""
+    read_deleted = "yes" if inactive else "no"
+    query = _hypervisor_get_query(context, read_deleted=read_deleted)
+
+    return query.order_by("id").all()
+
+
+@require_admin_context
+def hypervisor_update(context, hypervisor_id, values):
+    session = get_session()
+    with session.begin():
+        hypervisor_ref = _hypervisor_get(context, hypervisor_id, session=session)
+        hypervisor_ref.update(values)
+        return hypervisor_ref
+
+
+@require_context
+def _hypervisor_get(context, hypervisor_id, session=None):
+    result = _hypervisor_get_query(
+        context, session).\
+        filter_by(id=hypervisor_id).\
+        first()
+
+    if not result:
+        raise exception.ResourceNotFound(resource_id=hypervisor_id)
+
+    return result
+
+
+@require_context
+def hypervisor_get(context, hypervisor_id, session=None):
+    """Return a dict describing specific hypervisor."""
+    return _hypervisor_get(context, hypervisor_id,
+                         session)
+
+
+@require_context
+def hypervisor_create(context, values):
+    if not values.get('id'):
+        values['id'] = str(uuid.uuid4())
+
+    session = get_session()
+
+    with session.begin():
+        try:
+            hypervisor_ref = models.Hypervisors()
+            hypervisor_ref.update(values)
+            session.add(hypervisor_ref)
+        except Exception as e:
+            raise db_exc.DBError(e)
+
+        return hypervisor_ref
+
+
+@require_admin_context
+def hypervisor_delete(context, hypervisor_id):
+    session = get_session()
+    with session.begin():
+        hypervisor = hypervisor_get(context, hypervisor_id,
+                                session)
+        if not hypervisor:
+            raise exception.ResourceNotFound(
+                resource_id=hypervisor_id)
+        hypervisor.update({'deleted': True,
+                         'deleted_at': timeutils.utcnow(),
+                         'updated_at': literal_column('updated_at')})
+
+
+@require_context
+def hypervisor_get_all_by_type(context, hypervisor_type, session=None):
+    result = model_query(context, models.Hypervisors, session=session).\
+        filter_by(type=hypervisor_type)
+
+    return result
+
+
+@require_context
+def hypervisor_get_by_registered_host(context, host, session=None):
+    result = _hypervisor_get_query(
+        context, session).\
+        filter_by(registered_host=host).\
+        first()
+
+    if not result:
+        raise exception.ResourceNotFound(resource_id=host)
+
+    return result
+
+
+@require_context
+def hypervisor_get_by_name(context, name, session=None):
+    result = _hypervisor_get_query(
+        context, session).\
+        filter_by(name=name).\
+        first()
+
+    if not result:
+        raise exception.ResourceNotFound(resource_id=name)
+
+    return result
+
+
 # Resources
 
 def _resource_get_query(context, session=None, read_deleted=None,

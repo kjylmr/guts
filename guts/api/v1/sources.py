@@ -53,40 +53,48 @@ class SourcesController(wsgi.Controller):
     def index(self, req):
         """Returns the list of Source Hypervisors."""
         context = req.environ['guts.context']
-        src_services = objects.ServiceList.get_all_by_topic(context,
-                                                            'guts-source')
-        now = timeutils.utcnow(with_timezone=True)
-
+        db_sources = objects.HypervisorList.get_all_by_type(context,
+                                                         'source')
         sources = []
-        for service in src_services:
-            source = {}
-            delta = now - (service.updated_at or service.created_at)
-            delta_sec = delta.total_seconds()
-            alive = abs(delta_sec) <= CONF.service_down_time
-            source['status'] = (alive and "Up") or "Down"
-            source['host'] = service.host.split('@')[0]
-            source['hypervisor_name'] = service.host.split('@')[1]
-            source['id'] = service.id
-            sources.append(source)
+        for source in db_sources:
+            s = {}
+            s['status'] = "Up"
+            s['host'] = source.registered_host
+            s['hypervisor_name'] = source.name
+            s['id'] = source.id
+            sources.append(s)
         return dict(sources=sources)
 
     def show(self, req, id):
         """Returns data about given source hypervisor."""
         context = req.environ['guts.context']
         try:
-            service = objects.Service.get(context, id)
+            db_source = objects.Hypervisor.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
-        now = timeutils.utcnow(with_timezone=True)
         source = {}
-        delta = now - (service.updated_at or service.created_at)
-        delta_sec = delta.total_seconds()
-        alive = abs(delta_sec) <= CONF.service_down_time
-        source['status'] = (alive and "Up") or "Down"
-        source['host'] = service.host.split('@')[0]
-        source['hypervisor_name'] = service.host.split('@')[1]
-        source['id'] = service.id
-        source['binary'] = service.binary
+        source['status'] = "Up"
+        source['host'] = db_source.registered_host
+        source['hypervisor_name'] = db_source.name
+        source['id'] = db_source.id
+        source['binary'] = 'guts-source'
+
+        return {'source': source}
+
+    def create(self, req, body):
+        """Create a new hypervisor"""
+        context = req.environ['guts.context']
+        LOG.debug('Create hypervisor request body: %s', body)
+        hypervisor_values = body['source']
+
+        hyp_ref = objects.Hypervisor(context=context, **hypervisor_values)
+        hyp_ref.create()
+        source = {}
+        source['status'] = "Up"
+        source['host'] = hyp_ref.registered_host
+        source['hypervisor_name'] = hyp_ref.name
+        source['id'] = hyp_ref.id
+        source['binary'] = 'guts-source'
 
         return {'source': source}
 
