@@ -57,9 +57,14 @@ source_manager_opts = [
 ]
 
 destination_manager_opts = [
+    cfg.StrOpt('exclude',
+               default='',
+               help='List of resource to be excluded from migration'),
+    cfg.StrOpt('name',
+               help='Name of the source hypervisor'),
     cfg.StrOpt('destination_driver',
-               default='guts.migration.drivers.destinations.openstack.\
-OpenStackDestinationDriver',
+               default='guts.migration.drivers.destinations.openstack.'
+                       'OpenStackDestinationDriver',
                help='Driver to use for destination hypervisor'),
     cfg.StrOpt('conversion_dir',
                default='$state_path/migrations',
@@ -67,15 +72,6 @@ OpenStackDestinationDriver',
     cfg.StrOpt('capabilities',
                default='instance',
                help='Specifies types of migrations this driver supports.'),
-    cfg.StrOpt('nova_api_version',
-               default='2',
-               help='Shows the client version.'),
-    cfg.StrOpt('cinder_api_version',
-               default='1',
-               help='Cinder client version.'),
-    cfg.StrOpt('glance_api_version',
-               default='1',
-               help='Glance client version.'),
 ]
 
 CONF = cfg.CONF
@@ -165,22 +161,29 @@ class MigrationManager(manager.SchedulerDependentManager):
             LOG.info(_LI("Service not found for updating."))
 
     def _load_hypervisor(self, source, type):
-        configuration = config.Configuration(source_manager_opts,
-                                             config_group=source)
+        if type == 'source':
+            configuration = config.Configuration(source_manager_opts,
+                                                 config_group=source)
+            driver = configuration.source_driver
+        elif type == 'destination':
+            configuration = config.Configuration(destination_manager_opts,
+                                                 config_group=source)
+            driver = configuration.destination_driver
+
         if configuration.name:
             name = configuration.name
         else:
             name = "%s@%s" % (CONF.host, source)
 
         hypervisor = {"name": name,
-                      "driver": configuration.source_driver,
+                      "driver": driver,
                       "capabilities": configuration.capabilities,
                       "conversion_dir": configuration.conversion_dir,
                       "exclude": configuration.exclude,
                       "type": type,
                       "registered_host": self.host}
 
-        drv = importutils.import_object(configuration.source_driver,
+        drv = importutils.import_object(driver,
                                         configuration=configuration)
 
         hypervisor['credentials'] = str(drv.get_credentials())
@@ -288,7 +291,7 @@ class MigrationManager(manager.SchedulerDependentManager):
 
         drv = importutils.import_object(hypervisor_ref.driver,
                                         hypervisor_ref=hypervisor_ref)
-        instance_disks = drv.driver.get_instance(context, instance_id)
+        instance_disks = drv.get_instance(context, instance_id)
         instance_disks = self._convert_disks(instance_disks)
 
         instance_info = ast.literal_eval(resource_ref.properties)
@@ -393,7 +396,7 @@ class MigrationManager(manager.SchedulerDependentManager):
                                                     migration_ref.destination_hypervisor)
             drv = importutils.import_object(hypervisor_ref.driver,
                                             hypervisor_ref=hypervisor_ref)
-            drv.create_instance(context, **kwargs)
+            drv.create_instance(context, migration_ref.extra_params, **kwargs)
         except Exception:
             migration_ref.migration_status = 'ERROR'
             migration_ref.migration_event = None

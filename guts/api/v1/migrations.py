@@ -104,9 +104,8 @@ class MigrationsController(wsgi.Controller):
                   'resource_id': mig_values['resource_id'],
                   'migration_status': 'Initiating',
                   'migration_event': 'Scheduling',
-                  'destination_hypervisor': dest_hypervisor}
-        if mig_values['extra_params'] is not None:
-            kwargs['extra_params'] = ast.literal_eval(mig_values['extra_params'])
+                  'destination_hypervisor': dest_hypervisor,
+                  'extra_params': mig_values['extra_params']}
 
         mig_ref = objects.Migration(context=context, **kwargs)
         mig_ref.create()

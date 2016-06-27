@@ -185,13 +185,18 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
                                  run_as_root=True)
 
     def nova_boot(self, instance_name, image_name, extra_params):
+        flavor = '2'
+        network = None
+        secgroup = None
+        keypair = None
         if extra_params:
             extra_params = ast.literal_eval(extra_params)
-        flavor = extra_params.get('flavor', 2)
-        network = extra_params.get('network', None)
-        sec_group = extra_params.get('secgroup', None)
-        keypair = extra_params.get('keypair', None)
-        boot_string = ['nova', '--os-username', self.crds['username'],
+            flavor = extra_params.get('flavor', 2)
+            network = extra_params.get('network', None)
+            sec_group = extra_params.get('secgroup', None)
+            keypair = extra_params.get('keypair', None)
+
+        boot_string = ['nova', '--os-username', self.creds['username'],
                        '--os-password', self.creds['password'],
                        '--os-tenant-name', self.creds['tenant_name'],
                        '--os-auth-url', self.creds['auth_url'],
@@ -199,14 +204,16 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
                        '--flavor', flavor,
                        instance_name]
         if network:
-            boot_string.extend(['--nic', "net-id=%s" % (network)])
+            boot_string.extend(['--nic', "net-name=%s" % (network)])
         if keypair:
             boot_string.extend(['--key-name', keypair])
         if sec_group:
             boot_string.extend(['--security-groups', secgroup])
         out, err = utils.execute(*boot_string, run_as_root=True)
 
-    def create_instance(self, context, extra_params=None, **kwargs):
+    def create_instance(self, context, extra_params, **kwargs):
+        if not self._initialized:
+            self.do_setup(context)
         disks = kwargs['disks']
         mig_ref = kwargs['mig_ref_id']
         count = 0
