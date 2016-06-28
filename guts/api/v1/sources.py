@@ -88,6 +88,8 @@ class SourcesController(wsgi.Controller):
         context = req.environ['guts.context']
         LOG.debug('Create hypervisor request body: %s', body)
         hypervisor_values = body['source']
+        if not hypervisor_values.get('conversion_dir'):
+            hypervisor_values['conversion_dir'] = '/var/lib/guts/migrations'
 
         hyp_ref = objects.Hypervisor(context=context, **hypervisor_values)
         hyp_ref.create()

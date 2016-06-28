@@ -235,7 +235,7 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             else:
                 img = self.glance.images.find(name=image_name)
                 self.cinder.volumes.create(
-                    display_name="%s_vol" % kwargs['name'],
+                    name="%s_vol" % kwargs['name'],
                     size=8,
                     imageRef=img.id)
             count += 1

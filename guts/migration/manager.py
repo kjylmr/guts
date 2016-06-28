@@ -199,9 +199,9 @@ class MigrationManager(manager.SchedulerDependentManager):
             if hypervisor_ref.type == 'source':
                 self.resource_update(context.get_admin_context(),
                                      hypervisor_ref)
-            elif hypervisor_ref.type == 'destination':
-                self.get_destination_properties(context.get_admin_context(),
-                                                hypervisor_ref)
+        if hypervisor_ref.type == 'destination':
+            self.get_destination_properties(context.get_admin_context(),
+                                            hypervisor_ref)
 
         return hypervisor_ref
 
