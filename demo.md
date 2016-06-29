@@ -104,7 +104,7 @@ guts destination-create openstack_destination --driver guts.migration.drivers.de
 ```
 
 ```
-guts destination-create dummy_cloud --driver guts.migration.drivers.destinations.openstack.OpenStackDestinationDriver --capabilities instance,network,volume --registered_host guts-environment --credentials "{'auth_url':'http://192.168.100.27:5000/v2.0','username':'admin','password':'secret','tenant_name':'admin'}”
+guts destination-create openstack_destination_2 --driver guts.migration.drivers.destinations.openstack.OpenStackDestinationDriver --capabilities instance,network,volume --registered_host guts-environment --credentials "{'auth_url':'http://192.168.100.27:5000/v2.0','username':'admin','password':'secret','tenant_name':'admin'}”
 ```
 
 Verify that destination is populated
