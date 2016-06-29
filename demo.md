@@ -43,7 +43,7 @@ Similarly in a browser, open these urls, in different tabs and remain logged in.
 
 #### Destination Environment Dashboard
 
-    Url :             http://180.148.27.190/dashboard/
+    Url :              http://180.148.27.190/dashboard/
     Username :         admin
     Password :         secret
 
@@ -53,8 +53,8 @@ Sample keypairs, secgroups & flavor are there.
 
 #### Guts Dashboard
 
-    Url:             http://180.148.27.191:8888/guts/migrations/
-    Username:         admin
+    Url:               http://180.148.27.191:8888/guts/migrations/
+    Username:          admin
     Password :         secret
 
 After login , verify there is no current migration and source and destination.
@@ -86,7 +86,7 @@ Next we will add two sources, one openstack source and other vmware source throu
 ### Add one VMware source
 
 ```
-guts source-create vmware_source --driver guts.migration.drivers.sources.vsphere.VSphereSourceDriver --capabilities instance --registered_host guts-environment --credentials "{'host':'192.168.125.35','username':'administrator@vsphere.local','password':'POIpoi99(','port':'443'}"
+guts source-create vmware_source --driver guts.migration.drivers.sources.vsphere.VSphereSourceDriver --capabilities instance --registered_host guts-environment --credentials "{'host':'192.168.125.35','username':'administrator@vsphere.local','password':'test123','port':'443'}"
 ```
 
 Verify that source is populated
