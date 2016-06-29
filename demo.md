@@ -113,17 +113,17 @@ Verify that destination is populated
 
 ### Let’s migrate
 
-* Get resource id (Temp_MinimulUbuntu)
+* Get resource id (Test1)
 * Get destination id (OpenStack1)
 * Get network name, flavor, secgroup
 
 For single resource migration
 
-```guts create --name Test_Mig1 --destination openstack_destination --extra_param "{'flavor':2}" Temp_MinimalUbuntu```
+```guts create --name Test_Mig1 --destination openstack_destination --extra_param "{'flavor':3}" TestVM1```
 
 For multiple resource migration
 
-```guts create --name Test_Mig2 --destination openstack_destination --extra_param "{'flavor':2}" Temp_MinimalUbuntu MinimalUbuntu```
+```guts create --name Test_Mig2 --destination openstack_destination --extra_param "{'flavor':2}" TestVM1 TestVM2```
 
 Example String: --extra_params="{'flavor':3,'secgroup':'default','network':'private','keypair':'win'}"
 Creates migration process
