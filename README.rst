@@ -3,8 +3,8 @@ GUTS
 ====
 
 A Workload migration engine designed to automatically move
-existing workloads and virtual machines from various previous
-generation virtualisation platforms on to OpenStack.
+existing workloads and virtual machines from various
+virtualisation platforms to OpenStack.
 
 Guts provides seamless and fully automated migration for both Linux or Windows
 virtual machines to OpenStack infrastructure.
@@ -24,7 +24,7 @@ Architecture
 
 GUTS primarily consists of a set of Python daemons, though
 it requires and integrates with a number of native system
-components for databases, messaging and miagaration
+components for databases, messaging and migration
 capabilities.
 
 GUTS architecture diagram looks like::
@@ -58,7 +58,7 @@ guts-api:
 guts-migration:
 
 * A worker daemon that migrates VMs from source hypervisor to OpenStack
-* Also communicates with Glance, Nova and Neutron to create VM on OpenStack
+* Also communicates with Glance, Nova and Neutron to create VMs on OpenStack
 
 Other Components
 ----------------
