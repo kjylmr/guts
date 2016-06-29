@@ -123,7 +123,7 @@ For single resource migration
 
 For multiple resource migration
 
-`guts create --name Test_Mig1 --destination openstack_destination --extra_param "{'flavor':2}" Temp_MinimalUbuntu MinimalUbuntu`
+`guts create --name Test_Mig2 --destination openstack_destination --extra_param "{'flavor':2}" Temp_MinimalUbuntu MinimalUbuntu`
 
 Example String: --extra_params="{'flavor':3,'secgroup':'default','network':'private','keypair':'win'}"
 Creates migration process
