@@ -28,6 +28,8 @@ You will see two services running ( migration & scheduler) and no resources.
 
 #### Login to Destination Environment
 
+Similarly from your local machine, ssh to destination machine by 
+
 `ssh ubuntu@180.148.27.190`
 
 And then verify again that there are no instances booted on destination.
