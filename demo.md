@@ -33,8 +33,8 @@ You will see two services running ( migration & scheduler) and no resources.
 And then verify again that there are no instances booted on destination.
 
 ```
-Openstack image list
-Openstack server list
+openstack image list
+openstack server list
 ```
 
 ### UI Access
